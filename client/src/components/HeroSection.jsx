@@ -1,30 +1,34 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from './ui/button';
 
 const HeroSection = () => {
+  const { t } = useTranslation();
+
   return (
     <section className='bg-gradient-to-br from-medical-50 to-blue-50 pt-20 pb-32'>
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
         <div className='text-center'>
           <h1 className='text-4xl md:text-6xl font-bold text-gray-900 mb-6'>
-            Modern Healthcare
-            <span className='text-medical-600 block'>Management Platform</span>
+            {t('hero.title')}
+            <span className='text-medical-600 block'>
+              {t('hero.titleSpan')}
+            </span>
           </h1>
           <p className='text-xl text-gray-600 mb-8 max-w-3xl mx-auto'>
-            Streamline your medical practice with our comprehensive SaaS
-            platform. Manage patients, consultations, appointments, and payments
-            all in one place.
+            {t('hero.description')}
           </p>
           <div className='flex flex-col sm:flex-row gap-4 justify-center'>
             <Button size='lg' className='text-lg px-8 py-4'>
-              Start Free Trial
+              {t('hero.startFreeTrial')}
             </Button>
             <Button variant='outline' size='lg' className='text-lg px-8 py-4'>
-              Watch Demo
+              {t('hero.watchDemo')}
             </Button>
           </div>
           <div className='mt-12 text-sm text-gray-500'>
-            ✓ No credit card required ✓ 14-day free trial ✓ Cancel anytime
+            ✓ {t('hero.features.noCreditCard')} ✓ {t('hero.features.freeTrial')}{' '}
+            ✓ {t('hero.features.cancelAnytime')}
           </div>
         </div>
 

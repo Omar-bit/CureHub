@@ -1,8 +1,20 @@
 import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
+import LanguageSwitcher from './LanguageSwitcher';
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { isAuthenticated, user, logout } = useAuth();
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+  };
 
   return (
     <nav className='bg-white border-b border-gray-200 sticky top-0 z-50'>
@@ -11,14 +23,14 @@ const Navigation = () => {
           {/* Logo */}
           <div className='flex items-center'>
             <div className='flex-shrink-0'>
-              <div className='flex items-center'>
-                <div className='h-8 w-8 bg-medical-500 rounded-lg flex items-center justify-center'>
+              <Link to='/' className='flex items-center'>
+                <div className='h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center'>
                   <span className='text-white font-bold text-lg'>C</span>
                 </div>
                 <span className='ml-2 text-xl font-bold text-gray-900'>
                   CureHub
                 </span>
-              </div>
+              </Link>
             </div>
           </div>
 
@@ -29,13 +41,13 @@ const Navigation = () => {
                 href='#features'
                 className='text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium'
               >
-                Features
+                {t('navigation.features')}
               </a>
               <a
                 href='#pricing'
                 className='text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium'
               >
-                Pricing
+                {t('navigation.pricing')}
               </a>
               <a
                 href='#about'
@@ -54,10 +66,33 @@ const Navigation = () => {
 
           {/* Desktop Auth Buttons */}
           <div className='hidden md:flex items-center space-x-4'>
-            <Button variant='outline' size='sm'>
-              Sign In
-            </Button>
-            <Button size='sm'>Get Started</Button>
+            <LanguageSwitcher />
+            {isAuthenticated ? (
+              <>
+                <span className='text-gray-700'>
+                  {user?.firstName || user?.email}
+                </span>
+                <Link to='/dashboard'>
+                  <Button variant='outline' size='sm'>
+                    Dashboard
+                  </Button>
+                </Link>
+                <Button onClick={handleLogout} variant='outline' size='sm'>
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link to='/login'>
+                  <Button variant='outline' size='sm'>
+                    {t('navigation.login')}
+                  </Button>
+                </Link>
+                <Link to='/register'>
+                  <Button size='sm'>{t('navigation.getStarted')}</Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -130,10 +165,39 @@ const Navigation = () => {
               Contact
             </a>
             <div className='flex flex-col space-y-2 px-3 pt-4'>
-              <Button variant='outline' size='sm'>
-                Sign In
-              </Button>
-              <Button size='sm'>Get Started</Button>
+              {isAuthenticated ? (
+                <>
+                  <span className='text-gray-700 px-3 py-2'>
+                    {user?.firstName || user?.email}
+                  </span>
+                  <Link to='/dashboard'>
+                    <Button variant='outline' size='sm' className='w-full'>
+                      Dashboard
+                    </Button>
+                  </Link>
+                  <Button
+                    onClick={handleLogout}
+                    variant='outline'
+                    size='sm'
+                    className='w-full'
+                  >
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link to='/login'>
+                    <Button variant='outline' size='sm' className='w-full'>
+                      Sign In
+                    </Button>
+                  </Link>
+                  <Link to='/register'>
+                    <Button size='sm' className='w-full'>
+                      Get Started
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

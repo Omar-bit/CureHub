@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Card,
   CardHeader,
@@ -8,11 +9,12 @@ import {
 } from './ui/card';
 
 const FeaturesSection = () => {
+  const { t } = useTranslation();
+
   const features = [
     {
-      title: 'Patient Management',
-      description:
-        'Comprehensive patient profiles with medical history, prescriptions, and family grouping.',
+      title: t('features.patientManagement.title'),
+      description: t('features.patientManagement.description'),
       icon: '👥',
       details: [
         'Individual patient profiles',
@@ -22,9 +24,8 @@ const FeaturesSection = () => {
       ],
     },
     {
-      title: 'Smart Scheduling',
-      description:
-        'Intelligent appointment scheduling with online booking and real-time availability.',
+      title: t('features.agenda.title'),
+      description: t('features.agenda.description'),
       icon: '📅',
       details: [
         'Online booking system',
@@ -34,9 +35,8 @@ const FeaturesSection = () => {
       ],
     },
     {
-      title: 'Consultation Types',
-      description:
-        'Support for online, in-person, and home visit consultations with seamless management.',
+      title: t('features.consultations.title'),
+      description: t('features.consultations.description'),
       icon: '💻',
       details: [
         'Teleconsultations',
@@ -46,9 +46,8 @@ const FeaturesSection = () => {
       ],
     },
     {
-      title: 'Payment Integration',
-      description:
-        'Secure payment processing with automated invoicing and receipt generation.',
+      title: t('features.payments.title'),
+      description: t('features.payments.description'),
       icon: '💳',
       details: [
         'Stripe integration',
@@ -58,9 +57,8 @@ const FeaturesSection = () => {
       ],
     },
     {
-      title: 'Task Management',
-      description:
-        'Organize and assign tasks to team members with priority levels and deadlines.',
+      title: t('features.tasks.title'),
+      description: t('features.tasks.description'),
       icon: '✅',
       details: [
         'Task assignment',
@@ -70,9 +68,8 @@ const FeaturesSection = () => {
       ],
     },
     {
-      title: 'Real-time Dashboard',
-      description:
-        'Live updates on appointments, patient activity, revenue, and practice performance.',
+      title: t('features.website.title'),
+      description: t('features.website.description'),
       icon: '📊',
       details: [
         'Live updates',
@@ -88,11 +85,10 @@ const FeaturesSection = () => {
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
         <div className='text-center mb-16'>
           <h2 className='text-3xl md:text-4xl font-bold text-gray-900 mb-4'>
-            Everything You Need to Run Your Practice
+            {t('features.title')}
           </h2>
           <p className='text-xl text-gray-600 max-w-3xl mx-auto'>
-            Our comprehensive platform provides all the tools modern healthcare
-            providers need to deliver exceptional patient care.
+            {t('features.description')}
           </p>
         </div>
 

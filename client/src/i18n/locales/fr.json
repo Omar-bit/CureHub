@@ -1,0 +1,211 @@
+{
+  "navigation": {
+    "features": "Fonctionnalités",
+    "pricing": "Tarifs",
+    "login": "Connexion",
+    "getStarted": "Commencer"
+  },
+  "hero": {
+    "title": "Plateforme Moderne de",
+    "titleSpan": "Gestion Médicale",
+    "description": "Optimisez votre cabinet médical avec notre plateforme SaaS complète. Gérez les patients, consultations, rendez-vous et paiements en un seul endroit.",
+    "startFreeTrial": "Essai Gratuit",
+    "watchDemo": "Voir la Démo",
+    "features": {
+      "noCreditCard": "Aucune carte de crédit requise",
+      "freeTrial": "Essai gratuit de 14 jours",
+      "cancelAnytime": "Annulez à tout moment"
+    }
+  },
+  "features": {
+    "title": "Tout ce dont vous avez besoin pour gérer votre cabinet",
+    "description": "Notre plateforme complète fournit tous les outils nécessaires pour gérer efficacement un cabinet médical moderne.",
+    "patientManagement": {
+      "title": "Gestion des Patients",
+      "description": "Profils patients complets avec historique médical, ordonnances et documents. Groupez les familles et recherchez par condition."
+    },
+    "consultations": {
+      "title": "Consultations Intelligentes",
+      "description": "Support pour téléconsultations en ligne, visites en clinique et visites à domicile avec tenue complète des dossiers."
+    },
+    "agenda": {
+      "title": "Agenda Médical",
+      "description": "Système de calendrier avancé pour gérer les rendez-vous, consultations et congés avec synchronisation en temps réel."
+    },
+    "payments": {
+      "title": "Paiements Intégrés",
+      "description": "Traitement de paiement transparent avec intégration Stripe, facturation automatique et historique complet des paiements."
+    },
+    "tasks": {
+      "title": "Gestion des Tâches",
+      "description": "Créez et assignez des tâches à vous-même ou aux assistants avec échéances, priorités et suivi de completion."
+    },
+    "website": {
+      "title": "Site de Réservation",
+      "description": "Chaque médecin obtient son propre site de réservation personnalisé où les patients peuvent planifier, annuler et reprogrammer."
+    }
+  },
+  "pricing": {
+    "title": "Tarification simple et transparente",
+    "description": "Choisissez le plan qui convient à votre cabinet. Tous les plans incluent les fonctionnalités principales sans frais cachés.",
+    "monthly": "Mensuel",
+    "annually": "Annuel",
+    "save": "Économisez 20%",
+    "starter": {
+      "name": "Débutant",
+      "price": "29€",
+      "period": "/mois",
+      "description": "Parfait pour les praticiens individuels qui démarrent leur cabinet.",
+      "features": [
+        "Jusqu'à 50 patients",
+        "Gestion de consultation de base",
+        "Système d'agenda simple",
+        "Support par email",
+        "Traitement de paiement de base"
+      ],
+      "button": "Essai Gratuit"
+    },
+    "professional": {
+      "name": "Professionnel",
+      "price": "79€",
+      "period": "/mois",
+      "description": "Idéal pour les cabinets en croissance et petites cliniques.",
+      "features": [
+        "Jusqu'à 200 patients",
+        "Fonctionnalités de consultation avancées",
+        "Gestion complète de l'agenda",
+        "Gestion des tâches",
+        "Support prioritaire",
+        "Site de réservation personnalisé",
+        "Analyses avancées"
+      ],
+      "button": "Essai Gratuit",
+      "popular": "Le Plus Populaire"
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "price": "199€",
+      "period": "/mois",
+      "description": "Pour les grandes cliniques et organisations de santé.",
+      "features": [
+        "Patients illimités",
+        "Support multi-médecins",
+        "Gestion des rôles d'assistant",
+        "Rapports avancés",
+        "Accès API",
+        "Solutions en marque blanche",
+        "Support téléphonique 24/7"
+      ],
+      "button": "Contacter les Ventes"
+    }
+  },
+  "footer": {
+    "description": "La plateforme moderne de gestion médicale de confiance des médecins du monde entier.",
+    "product": "Produit",
+    "features": "Fonctionnalités",
+    "pricing": "Tarifs",
+    "changelog": "Changelog",
+    "company": "Entreprise",
+    "about": "À Propos",
+    "blog": "Blog",
+    "careers": "Carrières",
+    "support": "Support",
+    "help": "Centre d'Aide",
+    "contact": "Contact",
+    "documentation": "Documentation",
+    "legal": "Légal",
+    "privacy": "Politique de Confidentialité",
+    "terms": "Conditions d'Utilisation",
+    "allRightsReserved": "Tous droits réservés."
+  },
+  "auth": {
+    "login": {
+      "title": "Bon retour",
+      "description": "Entrez vos identifiants pour accéder à votre tableau de bord",
+      "email": "Email",
+      "password": "Mot de passe",
+      "button": "Se Connecter",
+      "noAccount": "Vous n'avez pas de compte ?",
+      "signUp": "S'inscrire",
+      "forgotPassword": "Mot de passe oublié ?",
+      "errors": {
+        "invalidCredentials": "Email ou mot de passe invalide",
+        "emailRequired": "L'email est requis",
+        "invalidEmail": "Adresse email invalide",
+        "passwordRequired": "Le mot de passe est requis",
+        "passwordMinLength": "Le mot de passe doit contenir au moins 6 caractères"
+      }
+    },
+    "register": {
+      "title": "Créez votre compte",
+      "description": "Commencez votre essai gratuit aujourd'hui",
+      "cardTitle": "Rejoindre CureHub",
+      "orText": "Ou",
+      "signInLink": "connectez-vous à votre compte existant",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "name": "Nom Complet",
+      "email": "Adresse email",
+      "phone": "Téléphone (optionnel)",
+      "accountType": "Type de Compte",
+      "password": "Mot de passe",
+      "confirmPassword": "Confirmer le Mot de passe",
+      "button": "Créer un compte",
+      "buttonLoading": "Création du compte...",
+      "hasAccount": "Vous avez déjà un compte ?",
+      "signIn": "Se connecter",
+      "roles": {
+        "PATIENT": "Patient",
+        "DOCTOR": "Médecin",
+        "ASSISTANT": "Assistant"
+      },
+      "errors": {
+        "firstNameRequired": "Le prénom est requis",
+        "lastNameRequired": "Le nom est requis",
+        "nameRequired": "Le nom est requis",
+        "emailRequired": "L'email est requis",
+        "invalidEmail": "Adresse email invalide",
+        "passwordRequired": "Le mot de passe est requis",
+        "passwordMinLength": "Le mot de passe doit contenir au moins 6 caractères",
+        "confirmPasswordRequired": "La confirmation du mot de passe est requise",
+        "passwordsMustMatch": "Les mots de passe ne correspondent pas",
+        "registrationFailed": "Échec de l'inscription. Veuillez réessayer."
+      }
+    }
+  },
+  "dashboard": {
+    "welcome": "Bienvenue sur CureHub",
+    "subtitle": "Votre tableau de bord de cabinet médical",
+    "quickActions": "Actions Rapides",
+    "recentActivity": "Activité Récente",
+    "upcomingAppointments": "Rendez-vous à Venir",
+    "todaysTasks": "Tâches d'Aujourd'hui",
+    "patientStats": "Statistiques des Patients",
+    "actions": {
+      "newConsultation": "Nouvelle Consultation",
+      "scheduleAppointment": "Planifier un Rendez-vous",
+      "addPatient": "Ajouter un Patient",
+      "createTask": "Créer une Tâche"
+    }
+  },
+  "common": {
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "view": "Voir",
+    "close": "Fermer",
+    "ok": "OK",
+    "yes": "Oui",
+    "no": "Non",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "sort": "Trier",
+    "language": "Langue"
+  }
+}

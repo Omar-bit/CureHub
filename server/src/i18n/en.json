@@ -1,0 +1,58 @@
+{
+  "errors": {
+    "user": {
+      "notFound": "User not found",
+      "emailExists": "Email already exists",
+      "invalidCredentials": "Invalid email or password",
+      "unauthorized": "Unauthorized access"
+    },
+    "validation": {
+      "required": "This field is required",
+      "invalidEmail": "Invalid email format",
+      "minLength": "Minimum length is {min} characters",
+      "maxLength": "Maximum length is {max} characters"
+    },
+    "server": {
+      "internalError": "Internal server error",
+      "serviceUnavailable": "Service temporarily unavailable"
+    }
+  },
+  "success": {
+    "user": {
+      "created": "User created successfully",
+      "updated": "User updated successfully",
+      "deleted": "User deleted successfully"
+    },
+    "auth": {
+      "loginSuccess": "Login successful",
+      "logoutSuccess": "Logout successful"
+    }
+  },
+  "entities": {
+    "user": {
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "role": "Role",
+      "createdAt": "Created At",
+      "updatedAt": "Updated At"
+    },
+    "patient": {
+      "name": "Patient Name",
+      "email": "Email",
+      "phone": "Phone Number",
+      "dateOfBirth": "Date of Birth",
+      "address": "Address",
+      "medicalHistory": "Medical History"
+    },
+    "consultation": {
+      "type": "Consultation Type",
+      "date": "Date",
+      "time": "Time",
+      "duration": "Duration",
+      "notes": "Notes",
+      "diagnosis": "Diagnosis",
+      "prescription": "Prescription"
+    }
+  }
+}

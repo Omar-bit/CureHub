@@ -1,7 +1,7 @@
 # Product Requirements Document (PRD)
 
 **Project Name:** CureHub
-**Type:** SaaS Web Platform for Clinics & Independent Doctors  
+**Type:** SaaS Web Platform for Doctors  
 **Tech Stack:** React.js, TailwindCSS, ShadCN, NestJS, MySQL, Prisma, Docker
 
 ---
@@ -14,12 +14,9 @@ Build a scalable SaaS platform that empowers doctors, clinics, assistants, and p
 
 ## 2. Target Users
 
-- **Clinics**: Manage doctors, assistants, and centralized patient/consultation data.
-- **Doctors (independent or within a clinic)**: Manage patients, agenda, consultations, payments, and tasks.
+- **Doctors**: Manage patients, agenda, consultations, payments, and tasks.
 - **Assistants**: Support doctors with scheduling, patient management, and tasks.
 - **Patients**: Book online consultations (remote/local/onsite), view history, manage payments.
-
-⚠️ Doctors can work **independently** without being assigned to a clinic.
 
 ---
 
@@ -55,14 +52,13 @@ Build a scalable SaaS platform that empowers doctors, clinics, assistants, and p
 
 ### 3.6 Independent Website & Online Booking
 
-- Each doctor/clinic gets their own booking site.
+- Each doctor gets their own booking site.
 - Patients can book, cancel, and reschedule.
 - Customizable branding (name, logo, working hours).
 
 ### 3.7 User Roles
 
-- **Clinic Admin**: Manage clinic-level settings, doctors, assistants, reports.
-- **Doctor**: Manage patients, consultations, agenda, payments.
+- **Doctor**: Manage patients,scheduling, tasks, consultations, agenda, payments.
 - **Assistant**: Manage scheduling, tasks, and patient intake.
 - **Patient**: Book consultations, manage profile, make payments.
 
@@ -81,7 +77,7 @@ Build a scalable SaaS platform that empowers doctors, clinics, assistants, and p
 
 ### 3.10 Settings
 
-- Profile & account settings (clinic, doctor, patient).
+- Profile & account settings ( doctor, patient).
 - Notification preferences (email, SMS, push).
 - Language & regional settings.
 

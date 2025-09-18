@@ -1,0 +1,211 @@
+{
+  "navigation": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "login": "Login",
+    "getStarted": "Get Started"
+  },
+  "hero": {
+    "title": "Modern Healthcare",
+    "titleSpan": "Management Platform",
+    "description": "Streamline your medical practice with our comprehensive SaaS platform. Manage patients, consultations, appointments, and payments all in one place.",
+    "startFreeTrial": "Start Free Trial",
+    "watchDemo": "Watch Demo",
+    "features": {
+      "noCreditCard": "No credit card required",
+      "freeTrial": "14-day free trial",
+      "cancelAnytime": "Cancel anytime"
+    }
+  },
+  "features": {
+    "title": "Everything you need to manage your practice",
+    "description": "Our comprehensive platform provides all the tools you need to run a modern medical practice efficiently.",
+    "patientManagement": {
+      "title": "Patient Management",
+      "description": "Comprehensive patient profiles with medical history, prescriptions, and documents. Group families and search by condition."
+    },
+    "consultations": {
+      "title": "Smart Consultations",
+      "description": "Support for online teleconsultations, onsite clinic visits, and local home visits with complete record keeping."
+    },
+    "agenda": {
+      "title": "Medical Agenda",
+      "description": "Advanced calendar system for managing appointments, consultations, and personal time off with real-time synchronization."
+    },
+    "payments": {
+      "title": "Integrated Payments",
+      "description": "Seamless payment processing with Stripe integration, automatic invoicing, and comprehensive payment history."
+    },
+    "tasks": {
+      "title": "Task Management",
+      "description": "Create and assign tasks to yourself or assistants with deadlines, priorities, and completion tracking."
+    },
+    "website": {
+      "title": "Booking Website",
+      "description": "Each doctor gets their own branded booking website where patients can schedule, cancel, and reschedule appointments."
+    }
+  },
+  "pricing": {
+    "title": "Simple, transparent pricing",
+    "description": "Choose the plan that's right for your practice. All plans include core features with no hidden fees.",
+    "monthly": "Monthly",
+    "annually": "Annually",
+    "save": "Save 20%",
+    "starter": {
+      "name": "Starter",
+      "price": "$29",
+      "period": "/month",
+      "description": "Perfect for individual practitioners starting their practice.",
+      "features": [
+        "Up to 50 patients",
+        "Basic consultation management",
+        "Simple agenda system",
+        "Email support",
+        "Basic payment processing"
+      ],
+      "button": "Start Free Trial"
+    },
+    "professional": {
+      "name": "Professional",
+      "price": "$79",
+      "period": "/month",
+      "description": "Ideal for growing practices and small clinics.",
+      "features": [
+        "Up to 200 patients",
+        "Advanced consultation features",
+        "Full agenda management",
+        "Task management",
+        "Priority support",
+        "Custom booking website",
+        "Advanced analytics"
+      ],
+      "button": "Start Free Trial",
+      "popular": "Most Popular"
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "price": "$199",
+      "period": "/month",
+      "description": "For large clinics and healthcare organizations.",
+      "features": [
+        "Unlimited patients",
+        "Multi-doctor support",
+        "Assistant role management",
+        "Advanced reporting",
+        "API access",
+        "White-label solutions",
+        "24/7 phone support"
+      ],
+      "button": "Contact Sales"
+    }
+  },
+  "footer": {
+    "description": "The modern healthcare management platform trusted by doctors worldwide.",
+    "product": "Product",
+    "features": "Features",
+    "pricing": "Pricing",
+    "changelog": "Changelog",
+    "company": "Company",
+    "about": "About",
+    "blog": "Blog",
+    "careers": "Careers",
+    "support": "Support",
+    "help": "Help Center",
+    "contact": "Contact",
+    "documentation": "Documentation",
+    "legal": "Legal",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "allRightsReserved": "All rights reserved."
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome back",
+      "description": "Enter your credentials to access your dashboard",
+      "email": "Email",
+      "password": "Password",
+      "button": "Sign In",
+      "noAccount": "Don't have an account?",
+      "signUp": "Sign up",
+      "forgotPassword": "Forgot your password?",
+      "errors": {
+        "invalidCredentials": "Invalid email or password",
+        "emailRequired": "Email is required",
+        "invalidEmail": "Invalid email address",
+        "passwordRequired": "Password is required",
+        "passwordMinLength": "Password must be at least 6 characters"
+      }
+    },
+    "register": {
+      "title": "Create your account",
+      "description": "Get started with your free trial today",
+      "cardTitle": "Join CureHub",
+      "orText": "Or",
+      "signInLink": "sign in to your existing account",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "name": "Full Name",
+      "email": "Email address",
+      "phone": "Phone (optional)",
+      "accountType": "Account Type",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "button": "Create account",
+      "buttonLoading": "Creating account...",
+      "hasAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "roles": {
+        "PATIENT": "Patient",
+        "DOCTOR": "Doctor",
+        "ASSISTANT": "Assistant"
+      },
+      "errors": {
+        "firstNameRequired": "First name is required",
+        "lastNameRequired": "Last name is required",
+        "nameRequired": "Name is required",
+        "emailRequired": "Email is required",
+        "invalidEmail": "Invalid email address",
+        "passwordRequired": "Password is required",
+        "passwordMinLength": "Password must be at least 6 characters",
+        "confirmPasswordRequired": "Password confirmation is required",
+        "passwordsMustMatch": "Passwords don't match",
+        "registrationFailed": "Registration failed. Please try again."
+      }
+    }
+  },
+  "dashboard": {
+    "welcome": "Welcome to CureHub",
+    "subtitle": "Your medical practice dashboard",
+    "quickActions": "Quick Actions",
+    "recentActivity": "Recent Activity",
+    "upcomingAppointments": "Upcoming Appointments",
+    "todaysTasks": "Today's Tasks",
+    "patientStats": "Patient Statistics",
+    "actions": {
+      "newConsultation": "New Consultation",
+      "scheduleAppointment": "Schedule Appointment",
+      "addPatient": "Add Patient",
+      "createTask": "Create Task"
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "close": "Close",
+    "ok": "OK",
+    "yes": "Yes",
+    "no": "No",
+    "next": "Next",
+    "previous": "Previous",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "language": "Language"
+  }
+}

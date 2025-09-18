@@ -1,0 +1,58 @@
+{
+  "errors": {
+    "user": {
+      "notFound": "Utilisateur non trouvé",
+      "emailExists": "L'email existe déjà",
+      "invalidCredentials": "Email ou mot de passe invalide",
+      "unauthorized": "Accès non autorisé"
+    },
+    "validation": {
+      "required": "Ce champ est requis",
+      "invalidEmail": "Format d'email invalide",
+      "minLength": "La longueur minimale est de {min} caractères",
+      "maxLength": "La longueur maximale est de {max} caractères"
+    },
+    "server": {
+      "internalError": "Erreur interne du serveur",
+      "serviceUnavailable": "Service temporairement indisponible"
+    }
+  },
+  "success": {
+    "user": {
+      "created": "Utilisateur créé avec succès",
+      "updated": "Utilisateur mis à jour avec succès",
+      "deleted": "Utilisateur supprimé avec succès"
+    },
+    "auth": {
+      "loginSuccess": "Connexion réussie",
+      "logoutSuccess": "Déconnexion réussie"
+    }
+  },
+  "entities": {
+    "user": {
+      "firstName": "Prénom",
+      "lastName": "Nom de famille",
+      "email": "Email",
+      "role": "Rôle",
+      "createdAt": "Créé le",
+      "updatedAt": "Mis à jour le"
+    },
+    "patient": {
+      "name": "Nom du patient",
+      "email": "Email",
+      "phone": "Numéro de téléphone",
+      "dateOfBirth": "Date de naissance",
+      "address": "Adresse",
+      "medicalHistory": "Historique médical"
+    },
+    "consultation": {
+      "type": "Type de consultation",
+      "date": "Date",
+      "time": "Heure",
+      "duration": "Durée",
+      "notes": "Notes",
+      "diagnosis": "Diagnostic",
+      "prescription": "Prescription"
+    }
+  }
+}
