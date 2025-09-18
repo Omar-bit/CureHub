@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from 'react';
 import { authAPI } from '../services/api';
 
 const AuthContext = createContext(null);
@@ -16,11 +22,7 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
-
-  const checkAuthStatus = async () => {
+  const checkAuthStatus = useCallback(async () => {
     try {
       // Try to get current user to check if cookie is valid
       const currentUser = await authAPI.getCurrentUser();
@@ -30,13 +32,25 @@ export const AuthProvider = ({ children }) => {
       // Store user data in localStorage for persistence across page refreshes
       localStorage.setItem('user', JSON.stringify(currentUser));
     } catch (error) {
-      // No valid authentication cookie
-      console.log('No valid authentication found');
-      logout();
+      // No valid authentication cookie or network error
+      console.log(
+        'No valid authentication found:',
+        error.response?.status || error.message
+      );
+
+      // Just clear state without calling API logout to prevent loops
+      localStorage.removeItem('user');
+      setUser(null);
+      setIsAuthenticated(false);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []); // No dependencies to prevent re-creation
+
+  useEffect(() => {
+    // Only check auth status once on mount
+    checkAuthStatus();
+  }, [checkAuthStatus]); // Include checkAuthStatus as dependency
 
   const login = async (email, password) => {
     try {
@@ -80,7 +94,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       // Call logout endpoint to clear server-side cookie
       await authAPI.logout();
@@ -92,7 +106,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setIsAuthenticated(false);
     }
-  };
+  }, []);
 
   const value = {
     user,

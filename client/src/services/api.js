@@ -13,9 +13,14 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Clear any stored user data and redirect to login
+      // Clear any stored user data
       localStorage.removeItem('user');
-      window.location.href = '/login';
+
+      // Only redirect if not already on login or register page
+      const currentPath = window.location.pathname;
+      if (currentPath !== '/login' && currentPath !== '/register') {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
