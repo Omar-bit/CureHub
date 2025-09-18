@@ -1,0 +1,14 @@
+{
+  "recommendations": [
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    "prisma.prisma",
+    "ms-vscode.vscode-typescript-next",
+    "formulahendry.auto-rename-tag",
+    "christian-kohler.path-intellisense",
+    "ms-vscode.vscode-json",
+    "usernamehw.errorlens",
+    "github.copilot",
+    "github.copilot-chat"
+  ]
+}
