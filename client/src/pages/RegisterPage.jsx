@@ -15,10 +15,14 @@ import {
   CardTitle,
 } from '../components/ui/card';
 import { Alert, AlertDescription } from '../components/ui/alert';
+import { CenteredLayout } from '../components/Layout';
+import { User, Mail, Lock, Eye, EyeOff, Phone, UserCheck } from 'lucide-react';
 
 const RegisterPage = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { register: registerUser } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -46,6 +50,9 @@ const RegisterPage = () => {
     formState: { errors },
   } = useForm({
     resolver: zodResolver(registerSchema),
+    defaultValues: {
+      role: 'PATIENT',
+    },
   });
 
   const onSubmit = async (data) => {
@@ -65,111 +72,131 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className='max-h-screen overflow-hidden flex items-center justify-center bg-gray-50  px-4 sm:px-6 lg:px-8'>
-      <div className='max-w-md w-full space-y-8'>
-        <div className='text-center'>
-          <h2 className='mt-6 text-3xl font-extrabold text-gray-900'>
-            {t('auth.register.title')}
-          </h2>
-          <p className='mt-2 text-sm text-gray-600'>
-            {t('auth.register.orText')}{' '}
-            <Link
-              to='/login'
-              className='font-medium text-blue-600 hover:text-blue-500'
-            >
-              {t('auth.register.signInLink')}
-            </Link>
-          </p>
+    <CenteredLayout maxWidth='max-w-lg' className='py-8'>
+      <div className='text-center mb-8'>
+        <div className='mx-auto h-12 w-12 bg-primary rounded-lg flex items-center justify-center mb-4'>
+          <span className='text-primary-foreground font-bold text-xl'>C</span>
         </div>
+        <h2 className='text-3xl font-bold text-foreground'>
+          {t('auth.register.title')}
+        </h2>
+        <p className='mt-2 text-sm text-muted-foreground'>
+          {t('auth.register.orText')}{' '}
+          <Link
+            to='/login'
+            className='font-medium text-primary hover:text-primary/80 transition-colors'
+          >
+            {t('auth.register.signInLink')}
+          </Link>
+        </p>
+      </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('auth.register.cardTitle')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className='space-y-6'>
-              {error && (
-                <Alert variant='destructive'>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+      <Card className='shadow-lg'>
+        <CardHeader className='text-center'>
+          <CardTitle className='text-xl'>
+            {t('auth.register.cardTitle')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)} className='space-y-6'>
+            {error && (
+              <Alert variant='destructive'>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-              <div className='grid grid-cols-2 gap-4'>
-                <div>
-                  <Label htmlFor='firstName'>
-                    {t('auth.register.firstName')}
-                  </Label>
+            <div className='grid grid-cols-2 gap-4'>
+              <div>
+                <Label htmlFor='firstName'>
+                  {t('auth.register.firstName')}
+                </Label>
+                <div className='mt-1'>
                   <Input
                     id='firstName'
                     type='text'
                     autoComplete='given-name'
+                    placeholder='First name'
+                    leftIcon={<User />}
+                    className={errors.firstName ? 'border-destructive' : ''}
                     {...register('firstName')}
-                    className={errors.firstName ? 'border-red-500' : ''}
                   />
-                  {errors.firstName && (
-                    <p className='mt-1 text-sm text-red-600'>
-                      {errors.firstName.message}
-                    </p>
-                  )}
                 </div>
+                {errors.firstName && (
+                  <p className='mt-1 text-sm text-destructive'>
+                    {errors.firstName.message}
+                  </p>
+                )}
+              </div>
 
-                <div>
-                  <Label htmlFor='lastName'>
-                    {t('auth.register.lastName')}
-                  </Label>
+              <div>
+                <Label htmlFor='lastName'>{t('auth.register.lastName')}</Label>
+                <div className='mt-1'>
                   <Input
                     id='lastName'
                     type='text'
                     autoComplete='family-name'
+                    placeholder='Last name'
+                    leftIcon={<User />}
+                    className={errors.lastName ? 'border-destructive' : ''}
                     {...register('lastName')}
-                    className={errors.lastName ? 'border-red-500' : ''}
                   />
-                  {errors.lastName && (
-                    <p className='mt-1 text-sm text-red-600'>
-                      {errors.lastName.message}
-                    </p>
-                  )}
                 </div>
+                {errors.lastName && (
+                  <p className='mt-1 text-sm text-destructive'>
+                    {errors.lastName.message}
+                  </p>
+                )}
               </div>
+            </div>
 
-              <div>
-                <Label htmlFor='email'>{t('auth.register.email')}</Label>
+            <div>
+              <Label htmlFor='email'>{t('auth.register.email')}</Label>
+              <div className='mt-1'>
                 <Input
                   id='email'
                   type='email'
                   autoComplete='email'
+                  placeholder='Enter your email'
+                  leftIcon={<Mail />}
+                  className={errors.email ? 'border-destructive' : ''}
                   {...register('email')}
-                  className={errors.email ? 'border-red-500' : ''}
                 />
-                {errors.email && (
-                  <p className='mt-1 text-sm text-red-600'>
-                    {errors.email.message}
-                  </p>
-                )}
               </div>
+              {errors.email && (
+                <p className='mt-1 text-sm text-destructive'>
+                  {errors.email.message}
+                </p>
+              )}
+            </div>
 
-              <div>
-                <Label htmlFor='phone'>{t('auth.register.phone')}</Label>
+            <div>
+              <Label htmlFor='phone'>{t('auth.register.phone')}</Label>
+              <div className='mt-1'>
                 <Input
                   id='phone'
                   type='tel'
                   autoComplete='tel'
+                  placeholder='Phone number (optional)'
+                  leftIcon={<Phone />}
+                  className={errors.phone ? 'border-destructive' : ''}
                   {...register('phone')}
-                  className={errors.phone ? 'border-red-500' : ''}
                 />
-                {errors.phone && (
-                  <p className='mt-1 text-sm text-red-600'>
-                    {errors.phone.message}
-                  </p>
-                )}
               </div>
+              {errors.phone && (
+                <p className='mt-1 text-sm text-destructive'>
+                  {errors.phone.message}
+                </p>
+              )}
+            </div>
 
-              <div>
-                <Label htmlFor='role'>{t('auth.register.accountType')}</Label>
+            <div>
+              <Label htmlFor='role'>{t('auth.register.accountType')}</Label>
+              <div className='relative mt-1'>
+                <UserCheck className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground' />
                 <select
                   id='role'
                   {...register('role')}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
+                  className='w-full pl-10 pr-4 py-2 border border-input rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground'
                 >
                   <option value='PATIENT'>
                     {t('auth.register.roles.PATIENT')}
@@ -181,57 +208,98 @@ const RegisterPage = () => {
                     {t('auth.register.roles.ASSISTANT')}
                   </option>
                 </select>
-                {errors.role && (
-                  <p className='mt-1 text-sm text-red-600'>
-                    {errors.role.message}
-                  </p>
-                )}
               </div>
+              {errors.role && (
+                <p className='mt-1 text-sm text-destructive'>
+                  {errors.role.message}
+                </p>
+              )}
+            </div>
 
-              <div>
-                <Label htmlFor='password'>{t('auth.register.password')}</Label>
+            <div>
+              <Label htmlFor='password'>{t('auth.register.password')}</Label>
+              <div className='mt-1'>
                 <Input
                   id='password'
-                  type='password'
+                  type={showPassword ? 'text' : 'password'}
                   autoComplete='new-password'
+                  placeholder='Create a password'
+                  leftIcon={<Lock />}
+                  rightIcon={
+                    <button
+                      type='button'
+                      className='text-muted-foreground hover:text-foreground'
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff /> : <Eye />}
+                    </button>
+                  }
+                  className={errors.password ? 'border-destructive' : ''}
                   {...register('password')}
-                  className={errors.password ? 'border-red-500' : ''}
                 />
-                {errors.password && (
-                  <p className='mt-1 text-sm text-red-600'>
-                    {errors.password.message}
-                  </p>
-                )}
               </div>
+              {errors.password && (
+                <p className='mt-1 text-sm text-destructive'>
+                  {errors.password.message}
+                </p>
+              )}
+            </div>
 
-              <div>
-                <Label htmlFor='confirmPassword'>
-                  {t('auth.register.confirmPassword')}
-                </Label>
+            <div>
+              <Label htmlFor='confirmPassword'>
+                {t('auth.register.confirmPassword')}
+              </Label>
+              <div className='mt-1'>
                 <Input
                   id='confirmPassword'
-                  type='password'
+                  type={showConfirmPassword ? 'text' : 'password'}
                   autoComplete='new-password'
+                  placeholder='Confirm your password'
+                  leftIcon={<Lock />}
+                  rightIcon={
+                    <button
+                      type='button'
+                      className='text-muted-foreground hover:text-foreground'
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
+                    >
+                      {showConfirmPassword ? <EyeOff /> : <Eye />}
+                    </button>
+                  }
+                  className={errors.confirmPassword ? 'border-destructive' : ''}
                   {...register('confirmPassword')}
-                  className={errors.confirmPassword ? 'border-red-500' : ''}
                 />
-                {errors.confirmPassword && (
-                  <p className='mt-1 text-sm text-red-600'>
-                    {errors.confirmPassword.message}
-                  </p>
-                )}
               </div>
+              {errors.confirmPassword && (
+                <p className='mt-1 text-sm text-destructive'>
+                  {errors.confirmPassword.message}
+                </p>
+              )}
+            </div>
 
-              <Button type='submit' className='w-full' disabled={isLoading}>
-                {isLoading
-                  ? t('auth.register.buttonLoading')
-                  : t('auth.register.button')}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+            <Button
+              type='submit'
+              className='w-full'
+              loading={isLoading}
+              loadingText={t('auth.register.buttonLoading')}
+              size='lg'
+            >
+              {t('auth.register.button')}
+            </Button>
+          </form>
+
+          <div className='mt-6 text-center'>
+            <Link
+              to='/'
+              className='text-sm text-muted-foreground hover:text-foreground transition-colors'
+            >
+              ← Back to home
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    </CenteredLayout>
   );
 };
 

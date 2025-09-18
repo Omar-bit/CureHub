@@ -1,5 +1,5 @@
 @import 'tailwindcss';
-@import "tw-animate-css";
+@import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -42,72 +42,109 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+  --radius: 0.5rem;
+
+  /* Medical-themed color palette - Light mode */
+  --background: #fafbfc;
+  --foreground: #1a202c;
+  --card: #ffffff;
+  --card-foreground: #1a202c;
+  --popover: #ffffff;
+  --popover-foreground: #1a202c;
+
+  /* Primary: Medical blue-green */
+  --primary: #0d9488; /* teal-600 */
+  --primary-foreground: #ffffff;
+
+  /* Secondary: Soft gray-blue */
+  --secondary: #f1f5f9; /* slate-100 */
+  --secondary-foreground: #334155; /* slate-700 */
+
+  /* Muted colors for subtle elements */
+  --muted: #f8fafc; /* slate-50 */
+  --muted-foreground: #64748b; /* slate-500 */
+
+  /* Accent: Complementary teal */
+  --accent: #e6fffa; /* teal-50 */
+  --accent-foreground: #0f766e; /* teal-700 */
+
+  /* Destructive: Medical red for warnings */
+  --destructive: #dc2626; /* red-600 */
+  --destructive-foreground: #ffffff;
+
+  /* Borders and inputs */
+  --border: #e2e8f0; /* slate-200 */
+  --input: #e2e8f0; /* slate-200 */
+  --ring: #14b8a6; /* teal-500 */
+
+  /* Chart colors - medical themed */
+  --chart-1: #0d9488; /* teal-600 */
+  --chart-2: #3b82f6; /* blue-500 */
+  --chart-3: #8b5cf6; /* violet-500 */
+  --chart-4: #10b981; /* emerald-500 */
+  --chart-5: #f59e0b; /* amber-500 */
+
+  /* Sidebar colors */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1a202c;
+  --sidebar-primary: #0d9488; /* teal-600 */
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f0fdfa; /* teal-50 */
+  --sidebar-accent-foreground: #0f766e; /* teal-700 */
+  --sidebar-border: #e2e8f0; /* slate-200 */
+  --sidebar-ring: #14b8a6; /* teal-500 */
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  /* Medical-themed color palette - Dark mode */
+  --background: #0f172a; /* slate-900 */
+  --foreground: #f8fafc; /* slate-50 */
+  --card: #1e293b; /* slate-800 */
+  --card-foreground: #f8fafc; /* slate-50 */
+  --popover: #1e293b; /* slate-800 */
+  --popover-foreground: #f8fafc; /* slate-50 */
+
+  /* Primary: Lighter teal for dark mode */
+  --primary: #14b8a6; /* teal-500 */
+  --primary-foreground: #0f172a; /* slate-900 */
+
+  /* Secondary: Dark slate */
+  --secondary: #334155; /* slate-700 */
+  --secondary-foreground: #f8fafc; /* slate-50 */
+
+  /* Muted colors for dark mode */
+  --muted: #1e293b; /* slate-800 */
+  --muted-foreground: #94a3b8; /* slate-400 */
+
+  /* Accent: Dark teal accent */
+  --accent: #1e293b; /* slate-800 */
+  --accent-foreground: #5eead4; /* teal-300 */
+
+  /* Destructive: Softer red for dark mode */
+  --destructive: #ef4444; /* red-500 */
+  --destructive-foreground: #f8fafc; /* slate-50 */
+
+  /* Borders and inputs for dark mode */
+  --border: #334155; /* slate-700 */
+  --input: #334155; /* slate-700 */
+  --ring: #14b8a6; /* teal-500 */
+
+  /* Chart colors - adjusted for dark mode */
+  --chart-1: #14b8a6; /* teal-500 */
+  --chart-2: #60a5fa; /* blue-400 */
+  --chart-3: #a78bfa; /* violet-400 */
+  --chart-4: #34d399; /* emerald-400 */
+  --chart-5: #fbbf24; /* amber-400 */
+
+  /* Sidebar colors for dark mode */
+  --sidebar: #1e293b; /* slate-800 */
+  --sidebar-foreground: #f8fafc; /* slate-50 */
+  --sidebar-primary: #14b8a6; /* teal-500 */
+  --sidebar-primary-foreground: #0f172a; /* slate-900 */
+  --sidebar-accent: #334155; /* slate-700 */
+  --sidebar-accent-foreground: #5eead4; /* teal-300 */
+  --sidebar-border: #334155; /* slate-700 */
+  --sidebar-ring: #14b8a6; /* teal-500 */
 }
 
 @layer base {

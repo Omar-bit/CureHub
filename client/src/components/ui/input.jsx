@@ -1,12 +1,7 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-export interface InputProps extends React.ComponentProps<'input'> {
-  leftIcon?: React.ReactNode;
-  rightIcon?: React.ReactNode;
-}
-
-const Input = React.forwardRef<HTMLInputElement, InputProps>(
+const Input = React.forwardRef(
   ({ className, type, leftIcon, rightIcon, ...props }, ref) => {
     // If no icons, render simple input
     if (!leftIcon && !rightIcon) {

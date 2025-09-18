@@ -3,7 +3,15 @@
     "features": "Features",
     "pricing": "Pricing",
     "login": "Login",
-    "getStarted": "Get Started"
+    "getStarted": "Get Started",
+    "dashboard": "Dashboard",
+    "agenda": "Agenda",
+    "patients": "Patients",
+    "tasks": "Tasks",
+    "consultations": "Consultations",
+    "payments": "Payments",
+    "settings": "Settings",
+    "logout": "Logout"
   },
   "hero": {
     "title": "Modern Healthcare",
@@ -121,6 +129,7 @@
   "auth": {
     "login": {
       "title": "Welcome back",
+      "welcomeBack": "Welcome back",
       "description": "Enter your credentials to access your dashboard",
       "email": "Email",
       "password": "Password",

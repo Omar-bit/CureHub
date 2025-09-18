@@ -3,7 +3,15 @@
     "features": "Fonctionnalités",
     "pricing": "Tarifs",
     "login": "Connexion",
-    "getStarted": "Commencer"
+    "getStarted": "Commencer",
+    "dashboard": "Tableau de bord",
+    "agenda": "Agenda",
+    "patients": "Patients",
+    "tasks": "Tâches",
+    "consultations": "Consultations",
+    "payments": "Paiements",
+    "settings": "Paramètres",
+    "logout": "Déconnexion"
   },
   "hero": {
     "title": "Plateforme Moderne de",

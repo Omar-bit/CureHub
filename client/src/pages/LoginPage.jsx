@@ -15,10 +15,13 @@ import {
   CardTitle,
 } from '../components/ui/card';
 import { Alert, AlertDescription } from '../components/ui/alert';
+import { CenteredLayout } from '../components/Layout';
+import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 
 const LoginPage = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -55,75 +58,110 @@ const LoginPage = () => {
   };
 
   return (
-    <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
-      <div className='max-w-md w-full space-y-8'>
-        <div className='text-center'>
-          <h2 className='mt-6 text-3xl font-extrabold text-gray-900'>
-            {t('auth.login.title')}
-          </h2>
-          <p className='mt-2 text-sm text-gray-600'>
-            {t('auth.login.noAccount')}{' '}
-            <Link
-              to='/register'
-              className='font-medium text-blue-600 hover:text-blue-500'
-            >
-              {t('auth.login.signUp')}
-            </Link>
-          </p>
+    <CenteredLayout maxWidth='max-w-md'>
+      <div className='text-center mb-8'>
+        <div className='mx-auto h-12 w-12 bg-primary rounded-lg flex items-center justify-center mb-4'>
+          <span className='text-primary-foreground font-bold text-xl'>C</span>
         </div>
+        <h2 className='text-3xl font-bold text-foreground'>
+          {t('auth.login.title')}
+        </h2>
+        <p className='mt-2 text-sm text-muted-foreground'>
+          {t('auth.login.noAccount')}{' '}
+          <Link
+            to='/register'
+            className='font-medium text-primary hover:text-primary/80 transition-colors'
+          >
+            {t('auth.login.signUp')}
+          </Link>
+        </p>
+      </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('auth.login.title')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className='space-y-6'>
-              {error && (
-                <Alert variant='destructive'>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+      <Card className='shadow-lg'>
+        <CardHeader className='text-center'>
+          <CardTitle className='text-xl'>
+            {t('auth.login.welcomeBack')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)} className='space-y-6'>
+            {error && (
+              <Alert variant='destructive'>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-              <div>
-                <Label htmlFor='email'>{t('auth.login.email')}</Label>
+            <div>
+              <Label htmlFor='email'>{t('auth.login.email')}</Label>
+              <div className='mt-1'>
                 <Input
                   id='email'
                   type='email'
                   autoComplete='email'
+                  placeholder='Enter your email'
+                  leftIcon={<Mail />}
+                  className={errors.email ? 'border-destructive' : ''}
                   {...register('email')}
-                  className={errors.email ? 'border-red-500' : ''}
                 />
-                {errors.email && (
-                  <p className='mt-1 text-sm text-red-600'>
-                    {errors.email.message}
-                  </p>
-                )}
               </div>
+              {errors.email && (
+                <p className='mt-1 text-sm text-destructive'>
+                  {errors.email.message}
+                </p>
+              )}
+            </div>
 
-              <div>
-                <Label htmlFor='password'>{t('auth.login.password')}</Label>
+            <div>
+              <Label htmlFor='password'>{t('auth.login.password')}</Label>
+              <div className='mt-1'>
                 <Input
                   id='password'
-                  type='password'
+                  type={showPassword ? 'text' : 'password'}
                   autoComplete='current-password'
+                  placeholder='Enter your password'
+                  leftIcon={<Lock />}
+                  rightIcon={
+                    <button
+                      type='button'
+                      className='text-muted-foreground hover:text-foreground'
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff /> : <Eye />}
+                    </button>
+                  }
+                  className={errors.password ? 'border-destructive' : ''}
                   {...register('password')}
-                  className={errors.password ? 'border-red-500' : ''}
                 />
-                {errors.password && (
-                  <p className='mt-1 text-sm text-red-600'>
-                    {errors.password.message}
-                  </p>
-                )}
               </div>
+              {errors.password && (
+                <p className='mt-1 text-sm text-destructive'>
+                  {errors.password.message}
+                </p>
+              )}
+            </div>
 
-              <Button type='submit' className='w-full' disabled={isLoading}>
-                {isLoading ? t('common.loading') : t('auth.login.button')}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+            <Button
+              type='submit'
+              className='w-full'
+              loading={isLoading}
+              loadingText={t('common.loading')}
+              size='lg'
+            >
+              {t('auth.login.button')}
+            </Button>
+          </form>
+
+          <div className='mt-6 text-center'>
+            <Link
+              to='/'
+              className='text-sm text-muted-foreground hover:text-foreground transition-colors'
+            >
+              ← Back to home
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    </CenteredLayout>
   );
 };
 
