@@ -180,6 +180,32 @@
         "passwordsMustMatch": "Passwords don't match",
         "registrationFailed": "Registration failed. Please try again."
       }
+    },
+    "emailVerification": {
+      "title": "Verify Your Email",
+      "description": "We've sent a verification code to your email address",
+      "codeLabel": "Verification Code",
+      "codePlaceholder": "Enter 6-digit code",
+      "button": "Verify Email",
+      "buttonLoading": "Verifying...",
+      "resendButton": "Resend Code",
+      "resendButtonLoading": "Sending...",
+      "resendText": "Didn't receive the code?",
+      "resendCountdown": "Resend in",
+      "backToRegister": "← Back to Registration",
+      "securityTip": "Security tip: Never share your verification code with anyone.",
+      "securityNote": "If you didn't request this verification, please ignore this message or contact support.",
+      "errors": {
+        "codeRequired": "Verification code is required",
+        "codeLength": "Verification code must be 6 digits",
+        "codeInvalid": "Verification code must contain only numbers",
+        "verificationFailed": "Verification failed. Please check your code and try again.",
+        "resendFailed": "Failed to resend verification code. Please try again."
+      },
+      "success": {
+        "verified": "Email verified successfully! Redirecting to login...",
+        "codeSent": "Verification code sent! Check your email."
+      }
     }
   },
   "dashboard": {

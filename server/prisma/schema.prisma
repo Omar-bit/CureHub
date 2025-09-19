@@ -19,16 +19,19 @@ enum UserRole {
 
 // User model for authentication
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  role      UserRole @default(PATIENT)
-  firstName String?
-  lastName  String?
-  phone     String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                      String    @id @default(cuid())
+  email                   String    @unique
+  password                String
+  role                    UserRole  @default(PATIENT)
+  firstName               String?
+  lastName                String?
+  phone                   String?
+  isActive                Boolean   @default(true)
+  isEmailVerified         Boolean   @default(false)
+  emailVerificationCode   String?
+  emailVerificationExpiry DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 
   @@map("users")
 }

@@ -28,6 +28,7 @@ const LoginPage = () => {
   const location = useLocation();
 
   const from = location.state?.from?.pathname || '/agenda';
+  const successMessage = location.state?.message;
 
   const loginSchema = z.object({
     email: z.string().email(t('auth.login.errors.invalidEmail')),
@@ -51,6 +52,11 @@ const LoginPage = () => {
     if (result.success) {
       navigate(from, { replace: true });
     } else {
+      console.log(result);
+      if (result.error === 'errors.user.emailNotVerified') {
+        navigate('/verify-email', { state: { email: data.email } });
+        return;
+      }
       setError(result.error);
     }
 
@@ -85,6 +91,12 @@ const LoginPage = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className='space-y-6'>
+            {successMessage && (
+              <Alert className='border-green-200 bg-green-50 text-green-800'>
+                <AlertDescription>{successMessage}</AlertDescription>
+              </Alert>
+            )}
+
             {error && (
               <Alert variant='destructive'>
                 <AlertDescription>{error}</AlertDescription>

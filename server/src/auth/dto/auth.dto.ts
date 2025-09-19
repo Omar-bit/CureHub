@@ -4,6 +4,7 @@ import {
   MinLength,
   IsOptional,
   IsEnum,
+  Length,
 } from 'class-validator';
 import { UserRole } from '@prisma/client';
 
@@ -39,4 +40,15 @@ export class RegisterDto {
   @IsOptional()
   @IsEnum(UserRole)
   role?: UserRole;
+}
+
+export class VerifyEmailDto {
+  @IsString()
+  @Length(6, 6, { message: 'Verification code must be 6 characters long' })
+  code: string;
+}
+
+export class ResendVerificationDto {
+  @IsEmail()
+  email: string;
 }

@@ -51,7 +51,7 @@ const RegisterPage = () => {
   } = useForm({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      role: 'PATIENT',
+      role: 'DOCTOR',
     },
   });
 
@@ -63,7 +63,19 @@ const RegisterPage = () => {
     const result = await registerUser(userData);
 
     if (result.success) {
-      navigate('/dashboard', { replace: true });
+      if (result.requiresVerification) {
+        // Redirect to email verification page
+        navigate('/verify-email', {
+          replace: true,
+          state: {
+            email: userData.email,
+            message: result.message,
+          },
+        });
+      } else {
+        // Fallback: direct login (shouldn't happen with email verification)
+        navigate('/dashboard', { replace: true });
+      }
     } else {
       setError(result.error);
     }
@@ -198,9 +210,6 @@ const RegisterPage = () => {
                   {...register('role')}
                   className='w-full pl-10 pr-4 py-2 border border-input rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground'
                 >
-                  <option value='PATIENT'>
-                    {t('auth.register.roles.PATIENT')}
-                  </option>
                   <option value='DOCTOR'>
                     {t('auth.register.roles.DOCTOR')}
                   </option>

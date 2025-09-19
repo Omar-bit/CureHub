@@ -12,7 +12,12 @@ import {
 import { I18nLang } from 'nestjs-i18n';
 import type { Response, Request } from 'express';
 import { AuthService } from './auth.service';
-import { LoginDto, RegisterDto } from './dto/auth.dto';
+import {
+  LoginDto,
+  RegisterDto,
+  VerifyEmailDto,
+  ResendVerificationDto,
+} from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -24,23 +29,8 @@ export class AuthController {
 
   @Public()
   @Post('register')
-  async register(
-    @Body() registerDto: RegisterDto,
-    @I18nLang() lang: string,
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    const result = await this.authService.register(registerDto, lang);
-
-    // Set HTTP-only cookie
-    response.cookie('access_token', result.access_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    });
-
-    // Return user data without the token
-    return { user: result.user };
+  async register(@Body() registerDto: RegisterDto, @I18nLang() lang: string) {
+    return await this.authService.register(registerDto, lang);
   }
 
   @Public()
@@ -82,5 +72,26 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async getCurrentUser(@CurrentUser() user: Omit<User, 'password'>) {
     return user;
+  }
+
+  // Email verification endpoints
+  @Public()
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  async verifyEmail(
+    @Body() verifyEmailDto: VerifyEmailDto,
+    @I18nLang() lang: string,
+  ) {
+    return await this.authService.verifyEmail(verifyEmailDto, lang);
+  }
+
+  @Public()
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  async resendVerificationEmail(
+    @Body() resendDto: ResendVerificationDto,
+    @I18nLang() lang: string,
+  ) {
+    return await this.authService.resendVerificationEmail(resendDto, lang);
   }
 }

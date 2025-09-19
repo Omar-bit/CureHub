@@ -73,4 +73,51 @@ export class UserService {
       where: { isActive: true },
     });
   }
+
+  // Email verification methods
+  async setEmailVerificationCode(
+    userId: string,
+    code: string,
+    expiryDate: Date,
+  ): Promise<User> {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        emailVerificationCode: code,
+        emailVerificationExpiry: expiryDate,
+      },
+    });
+  }
+
+  async verifyEmail(userId: string): Promise<User> {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        isEmailVerified: true,
+        emailVerificationCode: null,
+        emailVerificationExpiry: null,
+      },
+    });
+  }
+
+  async clearEmailVerificationCode(userId: string): Promise<User> {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        emailVerificationCode: null,
+        emailVerificationExpiry: null,
+      },
+    });
+  }
+
+  async findByEmailVerificationCode(code: string): Promise<User | null> {
+    return this.prisma.user.findFirst({
+      where: {
+        emailVerificationCode: code,
+        emailVerificationExpiry: {
+          gt: new Date(),
+        },
+      },
+    });
+  }
 }

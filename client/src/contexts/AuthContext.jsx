@@ -77,14 +77,16 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authAPI.register(userData);
 
-      // Cookie is set automatically by the server
-      // Store user data in localStorage for UI state
-      localStorage.setItem('user', JSON.stringify(response.user));
-
-      setUser(response.user);
-      setIsAuthenticated(true);
-
-      return { success: true, user: response.user };
+      // Registration now returns a message instead of immediate login
+      // User needs to verify email before logging in
+      return {
+        success: true,
+        requiresVerification: true,
+        email: userData.email,
+        message:
+          response.message ||
+          'Registration successful! Please check your email to verify your account.',
+      };
     } catch (error) {
       console.error('Registration failed:', error);
       return {
@@ -108,6 +110,39 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  const verifyEmail = async (email, code) => {
+    try {
+      const response = await authAPI.verifyEmail({ email, code });
+      return {
+        success: true,
+        message: response.message || 'Email verified successfully!',
+      };
+    } catch (error) {
+      console.error('Email verification failed:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Email verification failed',
+      };
+    }
+  };
+
+  const resendVerification = async (email) => {
+    try {
+      const response = await authAPI.resendVerification({ email });
+      return {
+        success: true,
+        message: response.message || 'Verification code sent successfully!',
+      };
+    } catch (error) {
+      console.error('Resend verification failed:', error);
+      return {
+        success: false,
+        error:
+          error.response?.data?.message || 'Failed to resend verification code',
+      };
+    }
+  };
+
   const value = {
     user,
     isAuthenticated,
@@ -115,6 +150,8 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    verifyEmail,
+    resendVerification,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

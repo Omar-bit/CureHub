@@ -31,6 +31,12 @@ export const authAPI = {
 
   register: (data) => api.post('/auth/register', data).then((res) => res.data),
 
+  verifyEmail: (data) =>
+    api.post('/auth/verify-email', data).then((res) => res.data),
+
+  resendVerification: (data) =>
+    api.post('/auth/resend-verification', data).then((res) => res.data),
+
   logout: () => api.post('/auth/logout').then((res) => res.data),
 
   getProfile: () => api.get('/auth/profile').then((res) => res.data),

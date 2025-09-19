@@ -8,6 +8,8 @@ import { UserService } from '../user/user.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { EmailModule } from '../email/email.module';
+import { OtpModule } from '../otp/otp.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
       }),
       inject: [ConfigService],
     }),
+    EmailModule,
+    OtpModule,
   ],
   controllers: [AuthController],
   providers: [
