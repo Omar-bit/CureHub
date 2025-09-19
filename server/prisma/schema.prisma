@@ -30,8 +30,33 @@ model User {
   isEmailVerified         Boolean   @default(false)
   emailVerificationCode   String?
   emailVerificationExpiry DateTime?
+  language                String    @default("en")
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
 
+  // Relations
+  doctorProfile DoctorProfile?
+
   @@map("users")
+}
+
+// Doctor profile for professional settings and preferences
+model DoctorProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Professional Information
+  specialization  String?
+  bio             String? @db.Text
+  profileImageUrl String?
+
+  // Practice Information
+  clinicAddress String? @db.Text
+  clinicPhone   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("doctor_profiles")
 }

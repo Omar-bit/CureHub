@@ -10,6 +10,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { EmailModule } from '../email/email.module';
 import { OtpModule } from '../otp/otp.module';
+import { DoctorProfileService } from '../doctor-profile/doctor-profile.service';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { OtpModule } from '../otp/otp.module';
     PrismaService,
     JwtStrategy,
     JwtAuthGuard,
+    DoctorProfileService,
   ],
   exports: [AuthService, JwtAuthGuard],
 })

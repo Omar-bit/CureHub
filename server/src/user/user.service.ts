@@ -34,12 +34,18 @@ export class UserService {
   async findOne(id: string): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: { id },
+      include: {
+        doctorProfile: true,
+      },
     });
   }
 
   async findByEmail(email: string): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: { email },
+      include: {
+        doctorProfile: true,
+      },
     });
   }
 
@@ -71,7 +77,26 @@ export class UserService {
   async findAll(): Promise<User[]> {
     return this.prisma.user.findMany({
       where: { isActive: true },
+      include: {
+        doctorProfile: true,
+      },
     });
+  }
+
+  async findByRole(role: UserRole): Promise<User[]> {
+    return this.prisma.user.findMany({
+      where: {
+        role,
+        isActive: true,
+      },
+      include: {
+        doctorProfile: true,
+      },
+    });
+  }
+
+  async findDoctors(): Promise<User[]> {
+    return this.findByRole(UserRole.DOCTOR);
   }
 
   // Email verification methods

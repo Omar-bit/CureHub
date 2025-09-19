@@ -10,6 +10,7 @@ import { UserService, CreateUserDto } from '../user/user.service';
 import { User, UserRole } from '@prisma/client';
 import { EmailService } from '../email/email.service';
 import { OtpService } from '../otp/otp.service';
+import { DoctorProfileService } from '../doctor-profile/doctor-profile.service';
 import { VerifyEmailDto, ResendVerificationDto } from './dto/auth.dto';
 
 export interface LoginDto {
@@ -39,6 +40,7 @@ export class AuthService {
     private i18n: I18nService,
     private emailService: EmailService,
     private otpService: OtpService,
+    private doctorProfileService: DoctorProfileService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<User | null> {
@@ -122,6 +124,17 @@ export class AuthService {
       ...registerDto,
       // User starts as unverified
     });
+
+    // If the user is a doctor, create a default doctor profile
+    if (user.role === UserRole.DOCTOR) {
+      try {
+        await this.doctorProfileService.createDefaultProfile(user.id);
+      } catch (error) {
+        // Log the error but don't fail the registration
+        console.error('Failed to create doctor profile:', error);
+        // You might want to use a proper logger here
+      }
+    }
 
     // Send verification email
     await this.sendVerificationEmail(
