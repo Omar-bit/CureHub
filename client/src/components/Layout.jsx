@@ -1,15 +1,23 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useLocation } from 'react-router-dom';
 import { SidebarProvider, Sidebar, MobileHeader, useSidebar } from './Sidebar';
 import Navigation from './Navigation'; // Landing page navigation
+import AuthenticatedHeader from './AuthenticatedHeader';
 
 // Layout wrapper that decides which layout to use
 const LayoutContent = ({ children }) => {
   const { isAuthenticated } = useAuth();
+  const location = useLocation();
 
-  // Use sidebar layout for authenticated users, regular navigation for landing pages
+  // Use different layouts based on authentication and route
   if (isAuthenticated) {
-    return <DashboardLayout>{children}</DashboardLayout>;
+    // Special layout for agenda page
+    if (location.pathname.startsWith('/agenda')) {
+      return <AgendaLayout>{children}</AgendaLayout>;
+    }
+    // Standard authenticated layout for other pages
+    return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
   }
 
   return <LandingLayout>{children}</LandingLayout>;
@@ -25,18 +33,32 @@ const LandingLayout = ({ children }) => {
   );
 };
 
-// Dashboard layout (for authenticated users)
-const DashboardLayoutContent = ({ children }) => {
+// Standard authenticated layout (header + content)
+const AuthenticatedLayout = ({ children }) => {
+  return (
+    <div className='min-h-screen bg-background'>
+      <AuthenticatedHeader />
+      <main className='flex-1'>
+        <div className='h-full'>{children}</div>
+      </main>
+    </div>
+  );
+};
+
+// Special agenda layout (header + sidebar + two-section content)
+const AgendaLayoutContent = ({ children }) => {
   const { isCollapsed } = useSidebar();
 
   return (
     <div className='min-h-screen bg-background'>
-      <MobileHeader />
-      <div className='flex'>
-        <Sidebar />
+      <AuthenticatedHeader />
+      <div className='flex h-[calc(100vh-4rem)]'>
+        {' '}
+        {/* 4rem = header height */}
+        {/* <Sidebar /> */}
         <main
           className={`
-          flex-1 min-h-screen transition-all duration-300 ease-in-out
+          flex-1 transition-all duration-300 ease-in-out
           ${isCollapsed ? 'lg:ml-0' : 'lg:ml-0'}
         `}
         >
@@ -47,10 +69,10 @@ const DashboardLayoutContent = ({ children }) => {
   );
 };
 
-const DashboardLayout = ({ children }) => {
+const AgendaLayout = ({ children }) => {
   return (
     <SidebarProvider>
-      <DashboardLayoutContent>{children}</DashboardLayoutContent>
+      <AgendaLayoutContent>{children}</AgendaLayoutContent>
     </SidebarProvider>
   );
 };

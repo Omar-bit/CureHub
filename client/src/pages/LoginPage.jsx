@@ -27,7 +27,7 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = location.state?.from?.pathname || '/dashboard';
+  const from = location.state?.from?.pathname || '/agenda';
 
   const loginSchema = z.object({
     email: z.string().email(t('auth.login.errors.invalidEmail')),

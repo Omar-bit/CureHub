@@ -12,6 +12,9 @@ import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
+import AgendaPage from './pages/AgendaPage';
+import SettingsPage from './pages/SettingsPage';
+import MessagingPage from './pages/MessagingPage';
 import HeroSection from './components/HeroSection';
 import FeaturesSection from './components/FeaturesSection';
 import PricingSection from './components/PricingSection';
@@ -44,6 +47,30 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/agenda'
+              element={
+                <ProtectedRoute>
+                  <AgendaPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/settings'
+              element={
+                <ProtectedRoute>
+                  <SettingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/messagery'
+              element={
+                <ProtectedRoute>
+                  <MessagingPage />
                 </ProtectedRoute>
               }
             />
