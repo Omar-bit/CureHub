@@ -4,7 +4,8 @@
       "notFound": "User not found",
       "emailExists": "Email already exists",
       "invalidCredentials": "Invalid email or password",
-      "unauthorized": "Unauthorized access"
+      "unauthorized": "Unauthorized access",
+      "cannotRegisterPatient": "Patients cannot register directly"
     },
     "validation": {
       "required": "This field is required",

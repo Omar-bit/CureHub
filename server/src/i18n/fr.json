@@ -4,7 +4,8 @@
       "notFound": "Utilisateur non trouvé",
       "emailExists": "L'email existe déjà",
       "invalidCredentials": "Email ou mot de passe invalide",
-      "unauthorized": "Accès non autorisé"
+      "unauthorized": "Accès non autorisé",
+      "cannotRegisterPatient": "Patients ne peuvent pas s'inscrire directement"
     },
     "validation": {
       "required": "Ce champ est requis",

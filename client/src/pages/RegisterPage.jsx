@@ -37,7 +37,7 @@ const RegisterPage = () => {
       firstName: z.string().min(1, t('auth.register.errors.firstNameRequired')),
       lastName: z.string().min(1, t('auth.register.errors.lastNameRequired')),
       phone: z.string().optional(),
-      role: z.enum(['DOCTOR', 'ASSISTANT', 'PATIENT']).default('PATIENT'),
+      role: z.enum(['DOCTOR', 'ASSISTANT']).default('ASSISTANT'),
     })
     .refine((data) => data.password === data.confirmPassword, {
       message: t('auth.register.errors.passwordsMustMatch'),

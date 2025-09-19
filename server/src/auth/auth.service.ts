@@ -90,7 +90,14 @@ export class AuthService {
     const existingUser = await this.userService.findByEmail(registerDto.email);
 
     if (existingUser) {
-      const message = await this.i18n.t('errors.user.emailExists', { lang });
+      const message = this.i18n.t('errors.user.emailExists', { lang });
+      throw new ConflictException(message);
+    }
+    if (registerDto.role === 'PATIENT') {
+      // return error where patient cannot register directly
+      const message = this.i18n.t('errors.user.cannotRegisterPatient', {
+        lang,
+      });
       throw new ConflictException(message);
     }
 
