@@ -8,6 +8,8 @@ import {
   Stethoscope,
   CreditCard,
   ChevronRight,
+  Menu,
+  X,
 } from 'lucide-react';
 
 // Agenda sidebar navigation items
@@ -107,14 +109,14 @@ const mockAgendaData = [
 // Agenda Component
 const AgendaSection = () => {
   return (
-    <div className='h-full bg-white border-r border-gray-200'>
+    <div className='h-full bg-white lg:border-r border-gray-200'>
       {/* Agenda Header */}
       <div className='p-4 border-b border-gray-200'>
-        <div className='flex items-center justify-between'>
+        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2'>
           <h2 className='text-lg font-semibold text-gray-900'>
             Mardi 3 octobre 2023
           </h2>
-          <button className='text-blue-600 text-sm hover:text-blue-800'>
+          <button className='text-blue-600 text-sm hover:text-blue-800 self-start sm:self-auto'>
             Choisir une date
           </button>
         </div>
@@ -123,24 +125,30 @@ const AgendaSection = () => {
       {/* Time slots */}
       <div className='overflow-y-auto h-[calc(100%-4rem)]'>
         {/* Morning hours */}
-        <div className='p-4 space-y-1'>
+        <div className='p-2 sm:p-4 space-y-1'>
           <div className='text-xs text-gray-500 mb-2'>8h</div>
 
           {mockAgendaData.map((appointment, index) => (
             <div key={index} className='flex items-start space-x-2 py-1'>
-              <div className='text-xs text-gray-500 w-12 flex-shrink-0'>
+              <div className='text-xs text-gray-500 w-10 sm:w-12 flex-shrink-0'>
                 {appointment.time}
               </div>
               <div className='flex-1 min-w-0'>
                 <div
                   className={`p-2 rounded text-xs text-white ${appointment.color}`}
                 >
-                  <div className='font-medium'>{appointment.patient}</div>
+                  <div className='font-medium text-sm sm:text-xs'>
+                    {appointment.patient}
+                  </div>
                   {appointment.type && (
-                    <div className='mt-1 opacity-90'>{appointment.type}</div>
+                    <div className='mt-1 opacity-90 text-xs leading-tight'>
+                      {appointment.type}
+                    </div>
                   )}
                   {appointment.status && (
-                    <div className='mt-1 opacity-90'>{appointment.status}</div>
+                    <div className='mt-1 opacity-90 text-xs leading-tight'>
+                      {appointment.status}
+                    </div>
                   )}
                 </div>
               </div>
@@ -177,7 +185,7 @@ const TabContent = ({ activeTab }) => {
     switch (activeTab) {
       case 'patients':
         return (
-          <div className='p-6'>
+          <div className='p-4 sm:p-6'>
             <h3 className='text-lg font-semibold mb-4'>Patients</h3>
             <div className='space-y-4'>
               <div className='p-4 border border-gray-200 rounded-lg'>
@@ -191,7 +199,7 @@ const TabContent = ({ activeTab }) => {
         );
       case 'meetings':
         return (
-          <div className='p-6'>
+          <div className='p-4 sm:p-6'>
             <h3 className='text-lg font-semibold mb-4'>Meetings</h3>
             <div className='space-y-4'>
               <div className='p-4 border border-gray-200 rounded-lg'>
@@ -205,7 +213,7 @@ const TabContent = ({ activeTab }) => {
         );
       case 'tasks':
         return (
-          <div className='p-6'>
+          <div className='p-4 sm:p-6'>
             <h3 className='text-lg font-semibold mb-4'>Tasks</h3>
             <div className='space-y-4'>
               <div className='p-4 border border-gray-200 rounded-lg'>
@@ -219,7 +227,7 @@ const TabContent = ({ activeTab }) => {
         );
       case 'consultations':
         return (
-          <div className='p-6'>
+          <div className='p-4 sm:p-6'>
             <h3 className='text-lg font-semibold mb-4'>Consultations</h3>
             <div className='space-y-4'>
               <div className='p-4 border border-gray-200 rounded-lg'>
@@ -233,7 +241,7 @@ const TabContent = ({ activeTab }) => {
         );
       case 'payments':
         return (
-          <div className='p-6'>
+          <div className='p-4 sm:p-6'>
             <h3 className='text-lg font-semibold mb-4'>Payments</h3>
             <div className='space-y-4'>
               <div className='p-4 border border-gray-200 rounded-lg'>
@@ -251,43 +259,114 @@ const TabContent = ({ activeTab }) => {
   };
 
   return (
-    <div className='h-full bg-white overflow-y-auto'>{renderTabContent()}</div>
+    <div className='h-full bg-white overflow-y-auto border-l lg:border-l-0 border-gray-200'>
+      {/* Mobile header for tab content */}
+      <div className='lg:hidden bg-gray-50 border-b border-gray-200 p-4'>
+        <h2 className='text-lg font-semibold text-gray-900 capitalize'>
+          {activeTab}
+        </h2>
+      </div>
+      {renderTabContent()}
+    </div>
   );
 };
 
 // Agenda Sidebar Component
-const AgendaSidebar = ({ activeTab, setActiveTab }) => {
+const AgendaSidebar = ({ activeTab, setActiveTab, isVisible, onClose }) => {
   return (
-    <div className='w-[15%] bg-gray-50 border-r border-gray-200 h-full'>
-      <div className='p-4'>
-        <h3 className='text-sm font-medium text-gray-700 mb-4'>Navigation</h3>
-        <nav className='space-y-1'>
-          {agendaSidebarItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
+    <>
+      {/* Mobile overlay */}
+      {isVisible && (
+        <div
+          className='fixed inset-0 bg-black/50 z-40 lg:hidden'
+          onClick={onClose}
+        />
+      )}
 
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`
-                  w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
-                  ${
-                    isActive
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:bg-white hover:text-gray-900'
-                  }
-                `}
-              >
-                <Icon className='h-4 w-4 mr-3 flex-shrink-0' />
-                {item.label}
-                {isActive && <ChevronRight className='h-4 w-4 ml-auto' />}
-              </button>
-            );
-          })}
-        </nav>
+      {/* Desktop sidebar */}
+      <div className='hidden lg:block w-[15%] bg-gray-50 border-r border-gray-200 h-full'>
+        <div className='p-4'>
+          <h3 className='text-sm font-medium text-gray-700 mb-4'>Navigation</h3>
+          <nav className='space-y-1'>
+            {agendaSidebarItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`
+                    w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
+                    ${
+                      isActive
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:bg-white hover:text-gray-900'
+                    }
+                  `}
+                >
+                  <Icon className='h-4 w-4 mr-3 flex-shrink-0' />
+                  {item.label}
+                  {isActive && <ChevronRight className='h-4 w-4 ml-auto' />}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
       </div>
-    </div>
+
+      {/* Mobile sidebar */}
+      <div
+        className={`
+          fixed inset-y-0 left-0 z-50 w-80 bg-gray-50 border-r border-gray-200
+          transform transition-transform duration-300 ease-in-out lg:hidden
+          ${isVisible ? 'translate-x-0' : '-translate-x-full'}
+        `}
+      >
+        <div className='flex flex-col h-full'>
+          {/* Mobile header */}
+          <div className='flex items-center justify-between p-4 border-b border-gray-200'>
+            <h3 className='text-lg font-semibold text-gray-900'>Navigation</h3>
+            <button
+              onClick={onClose}
+              className='p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+            >
+              <X className='h-5 w-5' />
+            </button>
+          </div>
+
+          {/* Mobile navigation */}
+          <nav className='flex-1 p-4 space-y-1'>
+            {agendaSidebarItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    onClose();
+                  }}
+                  className={`
+                    w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
+                    ${
+                      isActive
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:bg-white hover:text-gray-900'
+                    }
+                  `}
+                >
+                  <Icon className='h-4 w-4 mr-3 flex-shrink-0' />
+                  {item.label}
+                  {isActive && <ChevronRight className='h-4 w-4 ml-auto' />}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+      </div>
+    </>
   );
 };
 
@@ -296,26 +375,52 @@ const AgendaPage = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
     <div className='flex h-full'>
       {/* Left sidebar for agenda navigation */}
-      <AgendaSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <AgendaSidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        isVisible={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
 
       {/* Main content area */}
-      <div className='flex-1 flex'>
-        {/* Agenda section (always visible) */}
+      <div className='flex-1 flex flex-col lg:flex-row'>
+        {/* Mobile header with navigation toggle */}
+        <div className='lg:hidden bg-white border-b border-gray-200 p-4 flex items-center justify-between'>
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className='p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+          >
+            <Menu className='h-5 w-5' />
+          </button>
+          <h1 className='text-lg font-semibold text-gray-900'>Agenda</h1>
+          {activeTab && (
+            <button
+              onClick={() => setActiveTab(null)}
+              className='p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            >
+              <X className='h-5 w-5' />
+            </button>
+          )}
+        </div>
+
+        {/* Agenda section */}
         <div
-          className={`${
-            activeTab ? 'w-1/2' : 'w-full'
-          } transition-all duration-300`}
+          className={`
+            ${activeTab ? 'hidden lg:block lg:w-1/2' : 'flex-1'} 
+            transition-all duration-300
+          `}
         >
           <AgendaSection />
         </div>
 
-        {/* Tab content section (only visible when tab is selected) */}
+        {/* Tab content section */}
         {activeTab && (
-          <div className='w-1/2 transition-all duration-300'>
+          <div className='flex-1 lg:w-1/2 transition-all duration-300'>
             <TabContent activeTab={activeTab} />
           </div>
         )}

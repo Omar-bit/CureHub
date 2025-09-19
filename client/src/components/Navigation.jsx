@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
@@ -10,6 +10,9 @@ const Navigation = () => {
   const { isAuthenticated, user, logout } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  //get current pathname using router
+  const location = useLocation();
+  const pathname = location.pathname;
 
   const handleLogout = async () => {
     await logout();
@@ -35,34 +38,36 @@ const Navigation = () => {
           </div>
 
           {/* Desktop Navigation */}
-          <div className='hidden md:block'>
-            <div className='ml-10 flex items-baseline space-x-8'>
-              <a
-                href='#features'
-                className='text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium'
-              >
-                {t('navigation.features')}
-              </a>
-              <a
-                href='#pricing'
-                className='text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium'
-              >
-                {t('navigation.pricing')}
-              </a>
-              <a
-                href='#about'
-                className='text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium'
-              >
-                About
-              </a>
-              <a
-                href='#contact'
-                className='text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium'
-              >
-                Contact
-              </a>
+          {pathname === '/' && (
+            <div className='hidden md:block'>
+              <div className='ml-10 flex items-baseline space-x-8'>
+                <a
+                  href='#features'
+                  className='text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium'
+                >
+                  {t('navigation.features')}
+                </a>
+                <a
+                  href='#pricing'
+                  className='text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium'
+                >
+                  {t('navigation.pricing')}
+                </a>
+                <a
+                  href='#about'
+                  className='text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium'
+                >
+                  About
+                </a>
+                <a
+                  href='#contact'
+                  className='text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium'
+                >
+                  Contact
+                </a>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Desktop Auth Buttons */}
           <div className='hidden md:flex items-center space-x-4'>
@@ -140,30 +145,35 @@ const Navigation = () => {
       {isMenuOpen && (
         <div className='md:hidden'>
           <div className='px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t border-gray-200'>
-            <a
-              href='#features'
-              className='text-gray-600 hover:text-gray-900 block px-3 py-2 text-base font-medium'
-            >
-              Features
-            </a>
-            <a
-              href='#pricing'
-              className='text-gray-600 hover:text-gray-900 block px-3 py-2 text-base font-medium'
-            >
-              Pricing
-            </a>
-            <a
-              href='#about'
-              className='text-gray-600 hover:text-gray-900 block px-3 py-2 text-base font-medium'
-            >
-              About
-            </a>
-            <a
-              href='#contact'
-              className='text-gray-600 hover:text-gray-900 block px-3 py-2 text-base font-medium'
-            >
-              Contact
-            </a>
+            {pathname === '/' && (
+              <>
+                {' '}
+                <a
+                  href='#features'
+                  className='text-gray-600 hover:text-gray-900 block px-3 py-2 text-base font-medium'
+                >
+                  Features
+                </a>
+                <a
+                  href='#pricing'
+                  className='text-gray-600 hover:text-gray-900 block px-3 py-2 text-base font-medium'
+                >
+                  Pricing
+                </a>
+                <a
+                  href='#about'
+                  className='text-gray-600 hover:text-gray-900 block px-3 py-2 text-base font-medium'
+                >
+                  About
+                </a>
+                <a
+                  href='#contact'
+                  className='text-gray-600 hover:text-gray-900 block px-3 py-2 text-base font-medium'
+                >
+                  Contact
+                </a>
+              </>
+            )}
             <div className='flex flex-col space-y-2 px-3 pt-4'>
               {isAuthenticated ? (
                 <>

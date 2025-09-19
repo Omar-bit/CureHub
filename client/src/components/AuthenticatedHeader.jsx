@@ -11,10 +11,14 @@ const AuthenticatedHeader = () => {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   const handleLogout = async () => {
     await logout();
     navigate('/');
+  };
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen((prev) => !prev);
   };
 
   const navigationItems = [
@@ -118,7 +122,12 @@ const AuthenticatedHeader = () => {
 
           {/* Mobile menu button */}
           <div className='md:hidden'>
-            <Button variant='ghost' size='sm' className='h-8 w-8 p-0'>
+            <Button
+              variant='ghost'
+              size='sm'
+              className='h-8 w-8 p-0'
+              onClick={toggleMobileMenu}
+            >
               <svg
                 className='h-6 w-6'
                 fill='none'
@@ -137,7 +146,11 @@ const AuthenticatedHeader = () => {
         </div>
 
         {/* Mobile Navigation */}
-        <div className='md:hidden py-4 border-t border-gray-200'>
+        <div
+          className={`md:hidden ${
+            isMobileMenuOpen ? 'block' : 'hidden'
+          } md:hidden py-4 border-t border-gray-200`}
+        >
           <div className='space-y-2'>
             {navigationItems.map((item) => {
               const Icon = item.icon;

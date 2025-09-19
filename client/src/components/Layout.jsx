@@ -13,9 +13,9 @@ const LayoutContent = ({ children }) => {
   // Use different layouts based on authentication and route
   if (isAuthenticated) {
     // Special layout for agenda page
-    if (location.pathname.startsWith('/agenda')) {
-      return <AgendaLayout>{children}</AgendaLayout>;
-    }
+    // if (location.pathname.startsWith('/agenda')) {
+    //   return <AgendaLayout>{children}</AgendaLayout>;
+    // }
     // Standard authenticated layout for other pages
     return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
   }
@@ -51,17 +51,19 @@ const AgendaLayoutContent = ({ children }) => {
 
   return (
     <div className='min-h-screen bg-background'>
-      <AuthenticatedHeader />
-      <div className='flex h-[calc(100vh-4rem)]'>
+      {/* Show AuthenticatedHeader only on desktop, hide on mobile */}
+      <div className='hidden lg:block'>
+        <AuthenticatedHeader />
+      </div>
+      {/* Show MobileHeader only on mobile */}
+      <div className='lg:hidden'>
+        <MobileHeader />
+      </div>
+
+      <div className='flex h-[calc(100vh-4rem)] lg:h-[calc(100vh-4rem)]'>
         {' '}
         {/* 4rem = header height */}
-        {/* <Sidebar /> */}
-        <main
-          className={`
-          flex-1 transition-all duration-300 ease-in-out
-          ${isCollapsed ? 'lg:ml-0' : 'lg:ml-0'}
-        `}
-        >
+        <main className='flex-1 transition-all duration-300 ease-in-out'>
           <div className='h-full'>{children}</div>
         </main>
       </div>
