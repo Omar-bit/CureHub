@@ -1,7 +1,6 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocation } from 'react-router-dom';
-import { SidebarProvider, Sidebar, MobileHeader, useSidebar } from './Sidebar';
 import Navigation from './Navigation'; // Landing page navigation
 import AuthenticatedHeader from './AuthenticatedHeader';
 
@@ -12,11 +11,6 @@ const LayoutContent = ({ children }) => {
 
   // Use different layouts based on authentication and route
   if (isAuthenticated) {
-    // Special layout for agenda page
-    // if (location.pathname.startsWith('/agenda')) {
-    //   return <AgendaLayout>{children}</AgendaLayout>;
-    // }
-    // Standard authenticated layout for other pages
     return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
   }
 
@@ -42,40 +36,6 @@ const AuthenticatedLayout = ({ children }) => {
         <div className='h-full'>{children}</div>
       </main>
     </div>
-  );
-};
-
-// Special agenda layout (header + sidebar + two-section content)
-const AgendaLayoutContent = ({ children }) => {
-  const { isCollapsed } = useSidebar();
-
-  return (
-    <div className='min-h-screen bg-background'>
-      {/* Show AuthenticatedHeader only on desktop, hide on mobile */}
-      <div className='hidden lg:block'>
-        <AuthenticatedHeader />
-      </div>
-      {/* Show MobileHeader only on mobile */}
-      <div className='lg:hidden'>
-        <MobileHeader />
-      </div>
-
-      <div className='flex h-[calc(100vh-4rem)] lg:h-[calc(100vh-4rem)]'>
-        {' '}
-        {/* 4rem = header height */}
-        <main className='flex-1 transition-all duration-300 ease-in-out'>
-          <div className='h-full'>{children}</div>
-        </main>
-      </div>
-    </div>
-  );
-};
-
-const AgendaLayout = ({ children }) => {
-  return (
-    <SidebarProvider>
-      <AgendaLayoutContent>{children}</AgendaLayoutContent>
-    </SidebarProvider>
   );
 };
 
