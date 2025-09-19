@@ -378,7 +378,7 @@ const AgendaPage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className='flex h-full'>
+    <div className='flex h-[calc(100vh-10vh)] overflow-hidden'>
       {/* Left sidebar for agenda navigation */}
       <AgendaSidebar
         activeTab={activeTab}
