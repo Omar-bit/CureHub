@@ -388,7 +388,7 @@ const AgendaPage = () => {
       />
 
       {/* Main content area */}
-      <div className='flex-1 flex flex-col lg:flex-row'>
+      <div className='flex-1 flex flex-col lg:flex-row max-h-screen overflow-y-auto'>
         {/* Mobile header with navigation toggle */}
         <div className='lg:hidden bg-white border-b border-gray-200 p-4 flex items-center justify-between'>
           <button
