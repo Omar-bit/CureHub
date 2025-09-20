@@ -6,6 +6,7 @@ import React, {
   useCallback,
 } from 'react';
 import { authAPI } from '../services/api';
+import { showSuccess, showError, showInfo, TOAST_MESSAGES } from '../lib/toast';
 
 const AuthContext = createContext(null);
 
@@ -63,12 +64,17 @@ export const AuthProvider = ({ children }) => {
       setUser(response.user);
       setIsAuthenticated(true);
 
+      showSuccess(TOAST_MESSAGES.LOGIN_SUCCESS);
+
       return { success: true, user: response.user };
     } catch (error) {
       console.error('Login failed:', error);
+      const errorMessage =
+        error.response?.data?.message || TOAST_MESSAGES.LOGIN_ERROR;
+      showError(errorMessage);
       return {
         success: false,
-        error: error.response?.data?.message || 'Login failed',
+        error: errorMessage,
       };
     }
   };
@@ -79,19 +85,23 @@ export const AuthProvider = ({ children }) => {
 
       // Registration now returns a message instead of immediate login
       // User needs to verify email before logging in
+      const message = response.message || TOAST_MESSAGES.REGISTER_SUCCESS;
+      showSuccess(message);
+
       return {
         success: true,
         requiresVerification: true,
         email: userData.email,
-        message:
-          response.message ||
-          'Registration successful! Please check your email to verify your account.',
+        message,
       };
     } catch (error) {
       console.error('Registration failed:', error);
+      const errorMessage =
+        error.response?.data?.message || TOAST_MESSAGES.REGISTER_ERROR;
+      showError(errorMessage);
       return {
         success: false,
-        error: error.response?.data?.message || 'Registration failed',
+        error: errorMessage,
       };
     }
   };
@@ -100,6 +110,7 @@ export const AuthProvider = ({ children }) => {
     try {
       // Call logout endpoint to clear server-side cookie
       await authAPI.logout();
+      showSuccess(TOAST_MESSAGES.LOGOUT_SUCCESS);
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -113,15 +124,22 @@ export const AuthProvider = ({ children }) => {
   const verifyEmail = async (email, code) => {
     try {
       const response = await authAPI.verifyEmail({ email, code });
+      const message =
+        response.message || TOAST_MESSAGES.EMAIL_VERIFICATION_SUCCESS;
+      showSuccess(message);
       return {
         success: true,
-        message: response.message || 'Email verified successfully!',
+        message,
       };
     } catch (error) {
       console.error('Email verification failed:', error);
+      const errorMessage =
+        error.response?.data?.message ||
+        TOAST_MESSAGES.EMAIL_VERIFICATION_ERROR;
+      showError(errorMessage);
       return {
         success: false,
-        error: error.response?.data?.message || 'Email verification failed',
+        error: errorMessage,
       };
     }
   };
@@ -129,16 +147,21 @@ export const AuthProvider = ({ children }) => {
   const resendVerification = async (email) => {
     try {
       const response = await authAPI.resendVerification({ email });
+      const message =
+        response.message || TOAST_MESSAGES.EMAIL_VERIFICATION_SENT;
+      showInfo(message);
       return {
         success: true,
-        message: response.message || 'Verification code sent successfully!',
+        message,
       };
     } catch (error) {
       console.error('Resend verification failed:', error);
+      const errorMessage =
+        error.response?.data?.message || 'Failed to resend verification code';
+      showError(errorMessage);
       return {
         success: false,
-        error:
-          error.response?.data?.message || 'Failed to resend verification code',
+        error: errorMessage,
       };
     }
   };

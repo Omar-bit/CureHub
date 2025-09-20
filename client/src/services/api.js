@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { showError, TOAST_MESSAGES } from '../lib/toast';
 
 const API_BASE_URL = 'http://localhost:3000';
 
@@ -8,18 +9,39 @@ export const api = axios.create({
   withCredentials: true, // Include cookies in requests
 });
 
-// Response interceptor to handle auth errors
+// Response interceptor to handle auth errors and network issues
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Clear any stored user data
-      localStorage.removeItem('user');
+    // Handle network errors
+    if (!error.response) {
+      showError(TOAST_MESSAGES.NETWORK_ERROR);
+    } else {
+      // Handle specific HTTP errors
+      switch (error.response.status) {
+        case 401:
+          // Clear any stored user data
+          localStorage.removeItem('user');
+          showError(TOAST_MESSAGES.SESSION_EXPIRED);
 
-      // Only redirect if not already on login or register page
-      const currentPath = window.location.pathname;
-      if (currentPath !== '/login' && currentPath !== '/register') {
-        window.location.href = '/login';
+          // Only redirect if not already on login or register page
+          const currentPath = window.location.pathname;
+          if (currentPath !== '/login' && currentPath !== '/register') {
+            window.location.href = '/login';
+          }
+          break;
+        case 403:
+          showError(TOAST_MESSAGES.PERMISSION_ERROR);
+          break;
+        case 500:
+        case 502:
+        case 503:
+        case 504:
+          showError('Server error. Please try again later.');
+          break;
+        // Don't show toast for other errors as they should be handled specifically
+        default:
+          break;
       }
     }
     return Promise.reject(error);

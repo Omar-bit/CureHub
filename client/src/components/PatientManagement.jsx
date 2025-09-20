@@ -12,6 +12,12 @@ import {
   Users,
 } from 'lucide-react';
 import { api, patientAPI } from '../services/api';
+import {
+  showSuccess,
+  showError,
+  showApiError,
+  TOAST_MESSAGES,
+} from '../lib/toast';
 import { Button } from './ui/button';
 import { SheetContent } from './ui/sheet';
 import { ConfirmDialog } from './ui/confirm-dialog';
@@ -67,7 +73,9 @@ const PatientManagement = () => {
       setPatients(response);
       setError('');
     } catch (error) {
-      setError('Failed to load patients');
+      const errorMessage = 'Failed to load patients';
+      setError(errorMessage);
+      showApiError(error, errorMessage);
       console.error('Error loading patients:', error);
     } finally {
       setIsLoading(false);
@@ -103,9 +111,10 @@ const PatientManagement = () => {
       await loadPatients();
       setShowDetails(false);
       setPatientToDelete(null);
+      showSuccess(TOAST_MESSAGES.PATIENT_DELETED);
     } catch (error) {
       console.error('Error deleting patient:', error);
-      setError('Failed to delete patient');
+      showApiError(error, TOAST_MESSAGES.PATIENT_ERROR);
     } finally {
       setIsDeleting(false);
     }
@@ -115,11 +124,14 @@ const PatientManagement = () => {
     try {
       if (editingPatient) {
         await patientAPI.update(editingPatient.id, patientData);
+        showSuccess(TOAST_MESSAGES.PATIENT_UPDATED);
       } else {
         await patientAPI.create(patientData);
+        showSuccess(TOAST_MESSAGES.PATIENT_CREATED);
       }
       await loadPatients();
     } catch (error) {
+      showApiError(error, TOAST_MESSAGES.PATIENT_ERROR);
       throw new Error(
         error.response?.data?.message || 'Failed to save patient'
       );

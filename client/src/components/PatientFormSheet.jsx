@@ -62,6 +62,7 @@ const PatientFormSheet = ({ patient, isOpen, onClose, onSave }) => {
       await onSave(payload);
       onClose();
     } catch (error) {
+      // Error handling is now done in the parent component with toasts
       setErrors({ general: error.message || 'Failed to save patient' });
     } finally {
       setIsLoading(false);
