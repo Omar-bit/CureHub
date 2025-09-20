@@ -174,4 +174,168 @@ export class EmailTemplateService {
       text: 'Welcome email functionality coming soon...',
     };
   }
+
+  /**
+   * Generate patient welcome email with login credentials
+   */
+  generatePatientWelcomeEmail(data: {
+    firstName: string;
+    email: string;
+    password: string;
+  }): EmailTemplate {
+    const { firstName, email, password } = data;
+
+    const subject = 'Welcome to CureHub - Your Login Credentials';
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome to CureHub</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9fafb;
+          }
+          .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 40px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+          }
+          .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2563eb;
+            margin-bottom: 10px;
+          }
+          .credentials-container {
+            background-color: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+          }
+          .credential-item {
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+          }
+          .credential-item:last-child {
+            border-bottom: none;
+          }
+          .credential-label {
+            font-weight: bold;
+            color: #374151;
+          }
+          .credential-value {
+            font-family: 'Courier New', monospace;
+            background-color: #f3f4f6;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-top: 4px;
+          }
+          .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 14px;
+            color: #6b7280;
+            text-align: center;
+          }
+          .warning {
+            background-color: #fef3cd;
+            border: 1px solid #fde047;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 20px 0;
+            font-size: 14px;
+          }
+          .cta-button {
+            display: inline-block;
+            background-color: #2563eb;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 20px 0;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">CureHub</div>
+            <h1>Welcome to CureHub!</h1>
+          </div>
+          
+          <p>Hello ${firstName},</p>
+          
+          <p>Your doctor has created a patient account for you on CureHub. You can now access our platform to manage your appointments, view your medical records, and communicate with your healthcare provider.</p>
+          
+          <div class="credentials-container">
+            <h3>Your Login Credentials:</h3>
+            <div class="credential-item">
+              <div class="credential-label">Email:</div>
+              <div class="credential-value">${email}</div>
+            </div>
+            <div class="credential-item">
+              <div class="credential-label">Temporary Password:</div>
+              <div class="credential-value">${password}</div>
+            </div>
+          </div>
+          
+          <div class="warning">
+            <strong>⚠️ Important Security Notice:</strong>
+            <ul>
+              <li>Please change your password after your first login</li>
+              <li>Keep your login credentials secure and don't share them with anyone</li>
+              <li>If you didn't expect this account creation, please contact your doctor immediately</li>
+            </ul>
+          </div>
+          
+          <p>You can log in to your account using the credentials above. We recommend changing your password during your first login for security purposes.</p>
+          
+          <div class="footer">
+            <p>If you have any questions about your account, please contact your healthcare provider.<br>
+            This is an automated message from CureHub.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `
+      Hello ${firstName},
+      
+      Your doctor has created a patient account for you on CureHub.
+      
+      Your Login Credentials:
+      Email: ${email}
+      Temporary Password: ${password}
+      
+      IMPORTANT SECURITY NOTICE:
+      - Please change your password after your first login
+      - Keep your login credentials secure and don't share them with anyone
+      - If you didn't expect this account creation, please contact your doctor immediately
+      
+      You can log in to your account using the credentials above.
+      
+      ---
+      CureHub Team
+    `;
+
+    return { subject, html, text };
+  }
 }

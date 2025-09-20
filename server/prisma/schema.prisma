@@ -58,5 +58,37 @@ model DoctorProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Relations
+  patients Patient[]
+
   @@map("doctor_profiles")
+}
+
+// Gender enum for patients
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+// Patient model managed by doctors
+model Patient {
+  id           String   @id @default(cuid())
+  name         String
+  dateOfBirth  DateTime
+  profileImage String?
+  gender       Gender
+  email        String?  @unique
+  password     String?
+  phoneNumber  String?
+  address      String?  @db.Text
+  isDeleted    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  doctorId String
+  doctor   DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@map("patients")
 }

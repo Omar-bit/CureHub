@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
+import PatientManagement from '../components/PatientManagement';
 import {
   Users,
   Calendar,
@@ -184,19 +185,7 @@ const TabContent = ({ activeTab }) => {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'patients':
-        return (
-          <div className='p-4 sm:p-6'>
-            <h3 className='text-lg font-semibold mb-4'>Patients</h3>
-            <div className='space-y-4'>
-              <div className='p-4 border border-gray-200 rounded-lg'>
-                <h4 className='font-medium'>Recent Patients</h4>
-                <p className='text-sm text-gray-600 mt-2'>
-                  Manage your patient records and medical history.
-                </p>
-              </div>
-            </div>
-          </div>
-        );
+        return <PatientManagement />;
       case 'meetings':
         return (
           <div className='p-4 sm:p-6'>

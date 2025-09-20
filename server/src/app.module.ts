@@ -10,6 +10,7 @@ import { UserModule } from './user/user.module';
 import { EmailModule } from './email/email.module';
 import { OtpModule } from './otp/otp.module';
 import { DoctorProfileModule } from './doctor-profile/doctor-profile.module';
+import { PatientModule } from './patient/patient.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { DoctorProfileModule } from './doctor-profile/doctor-profile.module';
     EmailModule,
     OtpModule,
     DoctorProfileModule,
+    PatientModule,
   ],
   controllers: [AppController],
   providers: [AppService],

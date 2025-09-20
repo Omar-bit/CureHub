@@ -192,6 +192,34 @@ export class EmailService {
   }
 
   /**
+   * Send patient welcome email with login credentials
+   */
+  async sendPatientWelcomeEmail(
+    email: string,
+    firstName: string,
+    password: string,
+  ): Promise<boolean> {
+    try {
+      const template = this.emailTemplateService.generatePatientWelcomeEmail({
+        firstName,
+        email,
+        password,
+      });
+
+      return await this.sendEmail({
+        to: email,
+        template,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to send patient welcome email to ${email}:`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  /**
    * Test email configuration
    */
   async testEmailConfig(): Promise<boolean> {
