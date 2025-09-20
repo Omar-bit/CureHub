@@ -1,0 +1,12 @@
+Patients management 0.5d
+Doctor consultation types 0.5d
+Timeplan config 0.5d
+Doctor meetings management 0.5d
+Doctor landing page 0.5d
+Patient consultation request 0.5d
+Doctor task management 0.5d
+User profile settings 0.5d
+Assistant func 2d
+*******************
+Docs management 1d
+Payment 2d
