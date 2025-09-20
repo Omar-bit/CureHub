@@ -255,7 +255,7 @@ const TabContent = ({ activeTab }) => {
           {activeTab}
         </h2>
       </div>
-      {renderTabContent()}
+      <div className='relative h-full '>{renderTabContent()}</div>
     </div>
   );
 };

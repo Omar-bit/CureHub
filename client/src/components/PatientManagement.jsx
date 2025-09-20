@@ -11,7 +11,7 @@ import {
   MapPin,
   Users,
 } from 'lucide-react';
-import { api } from '../services/api';
+import { api, patientAPI } from '../services/api';
 import { Button } from './ui/button';
 import { SheetContent } from './ui/sheet';
 import { ConfirmDialog } from './ui/confirm-dialog';
@@ -63,8 +63,8 @@ const PatientManagement = () => {
   const loadPatients = async () => {
     try {
       setIsLoading(true);
-      const response = await api.get('/patients');
-      setPatients(response.data);
+      const response = await patientAPI.getAll();
+      setPatients(response);
       setError('');
     } catch (error) {
       setError('Failed to load patients');
@@ -99,7 +99,7 @@ const PatientManagement = () => {
 
     try {
       setIsDeleting(true);
-      await api.delete(`/patients/${patientToDelete.id}`);
+      await patientAPI.delete(patientToDelete.id);
       await loadPatients();
       setShowDetails(false);
       setPatientToDelete(null);
@@ -114,9 +114,9 @@ const PatientManagement = () => {
   const handleSavePatient = async (patientData) => {
     try {
       if (editingPatient) {
-        await api.put(`/patients/${editingPatient.id}`, patientData);
+        await patientAPI.update(editingPatient.id, patientData);
       } else {
-        await api.post('/patients', patientData);
+        await patientAPI.create(patientData);
       }
       await loadPatients();
     } catch (error) {
@@ -135,7 +135,7 @@ const PatientManagement = () => {
   };
 
   return (
-    <div className='h-full flex flex-col relative'>
+    <div className=' flex flex-col '>
       {/* Header */}
       <div className='flex-shrink-0 p-4 sm:p-6 border-b border-border'>
         <div className='flex items-center justify-between mb-4'>

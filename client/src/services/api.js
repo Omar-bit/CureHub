@@ -43,3 +43,29 @@ export const authAPI = {
 
   getCurrentUser: () => api.get('/auth/me').then((res) => res.data),
 };
+
+export const patientAPI = {
+  // Get all patients with optional query parameters
+  getAll: (query = {}) => {
+    const params = new URLSearchParams(query).toString();
+    const url = params ? `/patients?${params}` : '/patients';
+    return api.get(url).then((res) => res.data);
+  },
+
+  // Get a specific patient by ID
+  getById: (id) => api.get(`/patients/${id}`).then((res) => res.data),
+
+  // Create a new patient
+  create: (patientData) =>
+    api.post('/patients', patientData).then((res) => res.data),
+
+  // Update an existing patient
+  update: (id, patientData) =>
+    api.patch(`/patients/${id}`, patientData).then((res) => res.data),
+
+  // Delete a patient (soft delete)
+  delete: (id) => api.delete(`/patients/${id}`).then((res) => res.data),
+
+  // Restore a deleted patient
+  restore: (id) => api.patch(`/patients/${id}/restore`).then((res) => res.data),
+};
