@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
 import LanguageSwitcher from './LanguageSwitcher';
-
+import Logo from '../assets/logo.png';
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { isAuthenticated, user, logout } = useAuth();
@@ -26,13 +26,10 @@ const Navigation = () => {
           {/* Logo */}
           <div className='flex items-center'>
             <div className='flex-shrink-0'>
-              <Link to='/' className='flex items-center'>
-                <div className='h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center'>
-                  <span className='text-white font-bold text-lg'>C</span>
+              <Link to='/dashboard' className='flex items-center'>
+                <div className='size-52  rounded-lg flex items-center justify-center'>
+                  <img src={Logo} alt='curehub' />
                 </div>
-                <span className='ml-2 text-xl font-bold text-gray-900'>
-                  CureHub
-                </span>
               </Link>
             </div>
           </div>

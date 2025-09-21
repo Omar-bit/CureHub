@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
 import LanguageSwitcher from './LanguageSwitcher';
 import { Settings, Calendar, MessageCircle, LogOut, User } from 'lucide-react';
+import Logo from '../assets/logo.png';
 
 const AuthenticatedHeader = () => {
   const { user, logout } = useAuth();
@@ -50,12 +51,9 @@ const AuthenticatedHeader = () => {
           <div className='flex items-center'>
             <div className='flex-shrink-0'>
               <Link to='/dashboard' className='flex items-center'>
-                <div className='h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center'>
-                  <span className='text-white font-bold text-lg'>C</span>
+                <div className='size-52  rounded-lg flex items-center justify-center'>
+                  <img src={Logo} alt='curehub' />
                 </div>
-                <span className='ml-2 text-xl font-bold text-gray-900'>
-                  CureHub
-                </span>
               </Link>
             </div>
           </div>
