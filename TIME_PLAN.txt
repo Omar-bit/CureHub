@@ -13,4 +13,5 @@ PTO management 0.5d
 Docs management 1d
 Patient group type 0.5d
 Messagery 1.5d
+Reminders 0.5d
 Payment 2d
