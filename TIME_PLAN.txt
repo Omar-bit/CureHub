@@ -6,6 +6,8 @@ Doctor task management 0.5d
 User profile settings 0.5d
 Assistant func 2d
 *******************
+Events management 0.5d
+PTO management 0.5d
 Docs management 1d
 Payment 2d
 Consultation file management 0.5d
