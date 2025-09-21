@@ -8,12 +8,15 @@ import {
   DollarSign,
   Eye,
   EyeOff,
+  Grid3X3,
+  List,
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { ConfirmDialog } from '../components/ui/confirm-dialog';
 import { SearchBar } from '../components/ui/search-bar';
 import ConsultationTypeForm from '../components/ConsultationTypeForm';
+import DataTable from '../components/DataTable';
 import { consultationTypesAPI } from '../services/api';
 import { showSuccess, showError } from '../lib/toast';
 
@@ -24,6 +27,8 @@ const ConsultationTypesPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingType, setEditingType] = useState(null);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
+  const [selectedRows, setSelectedRows] = useState([]);
   const [deleteDialog, setDeleteDialog] = useState({
     isOpen: false,
     type: null,
@@ -131,6 +136,123 @@ const ConsultationTypesPage = () => {
     }
   };
 
+  // Table columns definition
+  const tableColumns = [
+    {
+      key: 'name',
+      title: 'Name',
+      render: (value, row) => (
+        <div className='flex items-center gap-3'>
+          <div
+            className='w-3 h-3 rounded-full border border-gray-300'
+            style={{ backgroundColor: row.color }}
+          />
+          <span className='font-medium'>{value}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'location',
+      title: 'Location',
+      render: (value) => (
+        <div className='flex items-center gap-2'>
+          <span>{getLocationIcon(value)}</span>
+          <span>{getLocationDisplay(value)}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'type',
+      title: 'Type',
+      render: (value) => getTypeDisplay(value),
+    },
+    {
+      key: 'duration',
+      title: 'Duration',
+      render: (value, row) => (
+        <div className='flex items-center gap-1'>
+          <Clock className='h-4 w-4 text-muted-foreground' />
+          <span>{value} min</span>
+          {row.restAfter > 0 && (
+            <span className='text-muted-foreground text-sm'>
+              + {row.restAfter} min
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'price',
+      title: 'Price',
+      render: (value) => (
+        <div className='flex items-center gap-1'>
+          <DollarSign className='h-4 w-4 text-muted-foreground' />
+          <span className='font-medium'>${value}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'enabled',
+      title: 'Status',
+      render: (value) => (
+        <div className='flex items-center gap-2'>
+          {value ? (
+            <>
+              <Eye className='h-4 w-4 text-green-600' />
+              <span className='text-green-600'>Enabled</span>
+            </>
+          ) : (
+            <>
+              <EyeOff className='h-4 w-4 text-red-600' />
+              <span className='text-red-600'>Disabled</span>
+            </>
+          )}
+        </div>
+      ),
+    },
+  ];
+
+  // Handle bulk delete
+  const handleBulkDelete = async () => {
+    if (selectedRows.length === 0) return;
+
+    try {
+      await Promise.all(
+        selectedRows.map((id) => consultationTypesAPI.delete(id))
+      );
+      showSuccess(
+        `${selectedRows.length} consultation type(s) deleted successfully`
+      );
+      setSelectedRows([]);
+      loadConsultationTypes();
+    } catch (error) {
+      console.error('Error deleting consultation types:', error);
+      showError('Failed to delete consultation types');
+    }
+  };
+
+  // Handle table row actions
+  const renderRowActions = (row) => [
+    <Button
+      key='edit'
+      variant='ghost'
+      size='sm'
+      onClick={() => handleEdit(row)}
+      className='h-8 w-8 p-0'
+    >
+      <Edit className='h-4 w-4' />
+    </Button>,
+    <Button
+      key='delete'
+      variant='ghost'
+      size='sm'
+      onClick={() => handleDelete(row)}
+      className='h-8 w-8 p-0 text-red-600 hover:text-red-700'
+    >
+      <Trash2 className='h-4 w-4' />
+    </Button>,
+  ];
+
   if (loading) {
     return (
       <div className='p-6 space-y-6'>
@@ -162,26 +284,62 @@ const ConsultationTypesPage = () => {
             Manage the types of consultations you offer to patients
           </p>
         </div>
-        <Button onClick={handleAddNew} className='flex items-center gap-2'>
-          <Plus className='h-4 w-4' />
-          Add New Type
-        </Button>
+        <div className='flex items-center gap-3'>
+          {/* View Toggle */}
+          <div className='flex items-center border rounded-lg p-1'>
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size='sm'
+              onClick={() => setViewMode('grid')}
+              className='h-8 px-3'
+            >
+              <Grid3X3 className='h-4 w-4' />
+            </Button>
+            <Button
+              variant={viewMode === 'table' ? 'default' : 'ghost'}
+              size='sm'
+              onClick={() => setViewMode('table')}
+              className='h-8 px-3'
+            >
+              <List className='h-4 w-4' />
+            </Button>
+          </div>
+          <Button onClick={handleAddNew} className='flex items-center gap-2'>
+            <Plus className='h-4 w-4' />
+            Add New Type
+          </Button>
+        </div>
       </div>
 
-      {/* Search */}
+      {/* Search and Actions */}
       <div className='flex justify-between items-center'>
-        <SearchBar
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder='Search consultation types...'
-          className='max-w-md'
-        />
+        <div className='flex items-center gap-4'>
+          <SearchBar
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder='Search consultation types...'
+            className='max-w-md'
+          />
+          {viewMode === 'table' && selectedRows.length > 0 && (
+            <div className='flex items-center gap-2'>
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={handleBulkDelete}
+                className='text-red-600 hover:text-red-700'
+              >
+                <Trash2 className='h-4 w-4 mr-1' />
+                Delete Selected ({selectedRows.length})
+              </Button>
+            </div>
+          )}
+        </div>
         <div className='text-sm text-muted-foreground'>
           {filteredTypes.length} of {consultationTypes.length} types
         </div>
       </div>
 
-      {/* Consultation Types Grid */}
+      {/* Consultation Types Content */}
       {filteredTypes.length === 0 ? (
         <Card className='p-12 text-center'>
           <div className='mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4'>
@@ -205,90 +363,119 @@ const ConsultationTypesPage = () => {
           )}
         </Card>
       ) : (
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-          {filteredTypes.map((consultationType) => (
-            <Card
-              key={consultationType.id}
-              className='p-6 hover:shadow-md transition-shadow'
-            >
-              {/* Header with color indicator */}
-              <div className='flex items-start justify-between mb-4'>
-                <div className='flex items-center gap-3'>
-                  <div
-                    className='w-4 h-4 rounded-full border-2 border-white shadow-sm'
-                    style={{ backgroundColor: consultationType.color }}
-                  />
-                  <div>
-                    <h3 className='font-semibold text-lg'>
-                      {consultationType.name}
-                    </h3>
-                    <div className='flex items-center gap-1 text-sm text-muted-foreground'>
-                      <span>{getLocationIcon(consultationType.location)}</span>
-                      <span>
-                        {getLocationDisplay(consultationType.location)}
-                      </span>
-                      <span className='mx-1'>•</span>
-                      <span>{getTypeDisplay(consultationType.type)}</span>
+        <>
+          {viewMode === 'grid' ? (
+            // Grid View
+            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+              {filteredTypes.map((consultationType) => (
+                <Card
+                  key={consultationType.id}
+                  className='p-6 hover:shadow-md transition-shadow'
+                >
+                  {/* Header with color indicator */}
+                  <div className='flex items-start justify-between mb-4'>
+                    <div className='flex items-center gap-3'>
+                      <div
+                        className='w-4 h-4 rounded-full border-2 border-white shadow-sm'
+                        style={{ backgroundColor: consultationType.color }}
+                      />
+                      <div>
+                        <h3 className='font-semibold text-lg'>
+                          {consultationType.name}
+                        </h3>
+                        <div className='flex items-center gap-1 text-sm text-muted-foreground'>
+                          <span>
+                            {getLocationIcon(consultationType.location)}
+                          </span>
+                          <span>
+                            {getLocationDisplay(consultationType.location)}
+                          </span>
+                          <span className='mx-1'>•</span>
+                          <span>{getTypeDisplay(consultationType.type)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className='flex items-center gap-1'>
+                      {consultationType.enabled ? (
+                        <Eye
+                          className='h-4 w-4 text-green-600'
+                          title='Enabled'
+                        />
+                      ) : (
+                        <EyeOff
+                          className='h-4 w-4 text-red-600'
+                          title='Disabled'
+                        />
+                      )}
                     </div>
                   </div>
-                </div>
-                <div className='flex items-center gap-1'>
-                  {consultationType.enabled ? (
-                    <Eye className='h-4 w-4 text-green-600' title='Enabled' />
-                  ) : (
-                    <EyeOff className='h-4 w-4 text-red-600' title='Disabled' />
-                  )}
-                </div>
-              </div>
 
-              {/* Details */}
-              <div className='space-y-3 mb-6'>
-                <div className='flex items-center gap-2 text-sm'>
-                  <Clock className='h-4 w-4 text-muted-foreground' />
-                  <span>{consultationType.duration} min duration</span>
-                  {consultationType.restAfter > 0 && (
-                    <span className='text-muted-foreground'>
-                      + {consultationType.restAfter} min rest
-                    </span>
-                  )}
-                </div>
+                  {/* Details */}
+                  <div className='space-y-3 mb-6'>
+                    <div className='flex items-center gap-2 text-sm'>
+                      <Clock className='h-4 w-4 text-muted-foreground' />
+                      <span>{consultationType.duration} min duration</span>
+                      {consultationType.restAfter > 0 && (
+                        <span className='text-muted-foreground'>
+                          + {consultationType.restAfter} min rest
+                        </span>
+                      )}
+                    </div>
 
-                <div className='flex items-center gap-2 text-sm'>
-                  <DollarSign className='h-4 w-4 text-muted-foreground' />
-                  <span className='font-medium'>${consultationType.price}</span>
-                </div>
+                    <div className='flex items-center gap-2 text-sm'>
+                      <DollarSign className='h-4 w-4 text-muted-foreground' />
+                      <span className='font-medium'>
+                        ${consultationType.price}
+                      </span>
+                    </div>
 
-                {consultationType.canBookBefore > 0 && (
-                  <div className='text-sm text-muted-foreground'>
-                    Can book {consultationType.canBookBefore} min before
+                    {consultationType.canBookBefore > 0 && (
+                      <div className='text-sm text-muted-foreground'>
+                        Can book {consultationType.canBookBefore} min before
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
 
-              {/* Actions */}
-              <div className='flex justify-end gap-2'>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  onClick={() => handleEdit(consultationType)}
-                  className='flex items-center gap-1'
-                >
-                  <Edit className='h-3 w-3' />
-                  Edit
-                </Button>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  onClick={() => handleDelete(consultationType)}
-                  className='flex items-center gap-1 text-red-600 hover:text-red-700 hover:border-red-300'
-                >
-                  <Trash2 className='h-3 w-3' />
-                  Delete
-                </Button>
-              </div>
-            </Card>
-          ))}
-        </div>
+                  {/* Actions */}
+                  <div className='flex justify-end gap-2'>
+                    <Button
+                      variant='outline'
+                      size='sm'
+                      onClick={() => handleEdit(consultationType)}
+                      className='flex items-center gap-1'
+                    >
+                      <Edit className='h-3 w-3' />
+                      Edit
+                    </Button>
+                    <Button
+                      variant='outline'
+                      size='sm'
+                      onClick={() => handleDelete(consultationType)}
+                      className='flex items-center gap-1 text-red-600 hover:text-red-700 hover:border-red-300'
+                    >
+                      <Trash2 className='h-3 w-3' />
+                      Delete
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            // Table View
+            <DataTable
+              data={filteredTypes}
+              columns={tableColumns}
+              selectable={true}
+              sortable={true}
+              pagination={true}
+              pageSize={10}
+              selectedRows={selectedRows}
+              onMultiSelect={setSelectedRows}
+              rowActions={renderRowActions}
+              emptyMessage='No consultation types found'
+            />
+          )}
+        </>
       )}
 
       {/* Form Modal */}
