@@ -78,7 +78,7 @@ model Patient {
   dateOfBirth  DateTime
   profileImage String?
   gender       Gender
-  email        String?  @unique
+  email        String?
   password     String?
   phoneNumber  String?
   address      String?  @db.Text

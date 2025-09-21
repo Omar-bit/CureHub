@@ -1,4 +1,3 @@
-Doctor consultation types 0.5d
 Timeplan config 0.5d
 Doctor meetings management 0.5d
 Doctor landing page 0.5d
