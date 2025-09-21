@@ -59,7 +59,8 @@ model DoctorProfile {
   updatedAt DateTime @updatedAt
 
   // Relations
-  patients Patient[]
+  patients          Patient[]
+  consultationTypes DoctorConsultationType[]
 
   @@map("doctor_profiles")
 }
@@ -69,6 +70,19 @@ enum Gender {
   MALE
   FEMALE
   OTHER
+}
+
+// Consultation location enum
+enum ConsultationLocation {
+  ONSITE
+  ONLINE
+  ATHOME
+}
+
+// Consultation type enum
+enum ConsultationType {
+  REGULAR
+  URGENT
 }
 
 // Patient model managed by doctors
@@ -91,4 +105,26 @@ model Patient {
   doctor   DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
 
   @@map("patients")
+}
+
+// Consultation Type model for doctors to define their consultation offerings
+model DoctorConsultationType {
+  id            String               @id @default(cuid())
+  name          String
+  color         String // Hex color code for UI display
+  location      ConsultationLocation
+  duration      Int // Duration in minutes
+  restAfter     Int // Rest time after consultation in minutes
+  type          ConsultationType
+  canBookBefore Int // How many minutes before consultation can be booked
+  price         Float // Price in the doctor's currency
+  enabled       Boolean              @default(true)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  // Relations
+  doctorId String
+  doctor   DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@map("doctor_consultation_types")
 }

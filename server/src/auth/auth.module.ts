@@ -11,6 +11,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { EmailModule } from '../email/email.module';
 import { OtpModule } from '../otp/otp.module';
 import { DoctorProfileService } from '../doctor-profile/doctor-profile.service';
+import { ConsultationTypesService } from '../consultation-types/consultation-types.service';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { DoctorProfileService } from '../doctor-profile/doctor-profile.service';
     JwtStrategy,
     JwtAuthGuard,
     DoctorProfileService,
+    ConsultationTypesService,
   ],
   exports: [AuthService, JwtAuthGuard],
 })

@@ -11,6 +11,7 @@ import { EmailModule } from './email/email.module';
 import { OtpModule } from './otp/otp.module';
 import { DoctorProfileModule } from './doctor-profile/doctor-profile.module';
 import { PatientModule } from './patient/patient.module';
+import { ConsultationTypesModule } from './consultation-types/consultation-types.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { PatientModule } from './patient/patient.module';
     OtpModule,
     DoctorProfileModule,
     PatientModule,
+    ConsultationTypesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

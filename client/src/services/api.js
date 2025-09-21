@@ -91,3 +91,29 @@ export const patientAPI = {
   // Restore a deleted patient
   restore: (id) => api.patch(`/patients/${id}/restore`).then((res) => res.data),
 };
+
+export const consultationTypesAPI = {
+  // Get all consultation types with optional query parameters
+  getAll: (query = {}) => {
+    const params = new URLSearchParams(query).toString();
+    const url = params
+      ? `/consultation-types?${params}`
+      : '/consultation-types';
+    return api.get(url).then((res) => res.data);
+  },
+
+  // Get a specific consultation type by ID
+  getById: (id) => api.get(`/consultation-types/${id}`).then((res) => res.data),
+
+  // Create a new consultation type
+  create: (data) =>
+    api.post('/consultation-types', data).then((res) => res.data),
+
+  // Update an existing consultation type
+  update: (id, data) =>
+    api.patch(`/consultation-types/${id}`, data).then((res) => res.data),
+
+  // Delete a consultation type
+  delete: (id) =>
+    api.delete(`/consultation-types/${id}`).then((res) => res.data),
+};

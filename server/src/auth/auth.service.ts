@@ -11,6 +11,7 @@ import { User, UserRole } from '@prisma/client';
 import { EmailService } from '../email/email.service';
 import { OtpService } from '../otp/otp.service';
 import { DoctorProfileService } from '../doctor-profile/doctor-profile.service';
+import { ConsultationTypesService } from '../consultation-types/consultation-types.service';
 import { VerifyEmailDto, ResendVerificationDto } from './dto/auth.dto';
 
 export interface LoginDto {
@@ -41,6 +42,7 @@ export class AuthService {
     private emailService: EmailService,
     private otpService: OtpService,
     private doctorProfileService: DoctorProfileService,
+    private consultationTypesService: ConsultationTypesService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<User | null> {
@@ -125,10 +127,24 @@ export class AuthService {
       // User starts as unverified
     });
 
-    // If the user is a doctor, create a default doctor profile
+    // If the user is a doctor, create a default doctor profile and consultation types
     if (user.role === UserRole.DOCTOR) {
       try {
-        await this.doctorProfileService.createDefaultProfile(user.id);
+        const doctorProfile =
+          await this.doctorProfileService.createDefaultProfile(user.id);
+
+        // Create default consultation types for the new doctor
+        try {
+          await this.consultationTypesService.createDefaultConsultationTypes(
+            doctorProfile.id,
+          );
+        } catch (consultationTypesError) {
+          // Log the error but don't fail the registration
+          console.error(
+            'Failed to create default consultation types:',
+            consultationTypesError,
+          );
+        }
       } catch (error) {
         // Log the error but don't fail the registration
         console.error('Failed to create doctor profile:', error);

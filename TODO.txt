@@ -1,2 +1,12 @@
 Doctor consultation types 0.5d
-    
+    as a Doctor i want to manage my consultation types so that i can define different types of consultations with their respective details so that my patients can choose the appropriate type when booking an appointment or when i am scheduling appointments for them
+
+consultation_types (name,color,location[onsite,online,athome],duration,rest_after(minutes),type[regular,urgent],can_book_before(minutes),price,enabled[true,false]) 
+
+in the Doctor settings add a section for Consultation Types (/settings/consultation-types) with the following functionalities:
+- Add Consultation Type: A form to add a new consultation type.
+- Edit Consultation Type: Ability to edit existing consultation types.
+- Delete Consultation Type: Ability to delete a consultation type.
+- List Consultation Types: Display a list of all consultation types with their details.
+
+also when a new Doctor signup we need to give him 3 default consultation types (ofcourse he can delete and edit  them)
