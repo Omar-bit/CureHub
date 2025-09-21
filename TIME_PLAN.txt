@@ -11,3 +11,4 @@ PTO management 0.5d
 Docs management 1d
 Payment 2d
 Consultation file management 0.5d
+Doctor statistics 1d
