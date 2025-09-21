@@ -32,7 +32,7 @@ const AuthenticatedLayout = ({ children }) => {
   return (
     <div className='min-h-screen bg-background'>
       <AuthenticatedHeader />
-      <main className='flex-1 max-h-screen overflow-y-hidden'>
+      <main className='flex-1 max-h-screen '>
         <div className='h-full'>{children}</div>
       </main>
     </div>
