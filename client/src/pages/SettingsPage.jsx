@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { ContentContainer, PageHeader, Section } from '../components/Layout';
@@ -9,11 +10,20 @@ import {
   CardHeader,
   CardTitle,
 } from '../components/ui/card';
-import { User, Bell, Lock, Globe, Palette, Database } from 'lucide-react';
+import {
+  User,
+  Bell,
+  Lock,
+  Globe,
+  Palette,
+  Database,
+  Calendar,
+} from 'lucide-react';
 
 const SettingsPage = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   const settingsCategories = [
     {
@@ -21,6 +31,7 @@ const SettingsPage = () => {
       title: 'Profile Settings',
       description: 'Manage your personal information and preferences',
       icon: User,
+      onClick: () => navigate('/settings/profile'),
       items: [
         'Personal Information',
         'Professional Details',
@@ -28,11 +39,29 @@ const SettingsPage = () => {
         'Contact Information',
       ],
     },
+    ...(user?.role === 'DOCTOR'
+      ? [
+          {
+            id: 'consultation-types',
+            title: 'Consultation Types',
+            description: 'Manage the types of consultations you offer',
+            icon: Calendar,
+            onClick: () => navigate('/settings/consultation-types'),
+            items: [
+              'Add New Types',
+              'Edit Existing Types',
+              'Set Pricing',
+              'Configure Duration',
+            ],
+          },
+        ]
+      : []),
     {
       id: 'notifications',
       title: 'Notifications',
       description: 'Configure how you receive notifications',
       icon: Bell,
+      onClick: () => navigate('/settings/notifications'),
       items: [
         'Email Notifications',
         'SMS Alerts',
@@ -45,6 +74,7 @@ const SettingsPage = () => {
       title: 'Security & Privacy',
       description: 'Manage your account security and privacy settings',
       icon: Lock,
+      onClick: () => navigate('/settings/security'),
       items: [
         'Change Password',
         'Two-Factor Authentication',
@@ -57,6 +87,7 @@ const SettingsPage = () => {
       title: 'Language & Region',
       description: 'Set your preferred language and regional settings',
       icon: Globe,
+      onClick: () => navigate('/settings/language'),
       items: ['Interface Language', 'Date Format', 'Time Zone', 'Currency'],
     },
     {
@@ -64,6 +95,7 @@ const SettingsPage = () => {
       title: 'Appearance',
       description: 'Customize the look and feel of your workspace',
       icon: Palette,
+      onClick: () => navigate('/settings/appearance'),
       items: [
         'Theme Selection',
         'Color Scheme',
@@ -76,6 +108,7 @@ const SettingsPage = () => {
       title: 'Data Management',
       description: 'Manage your data backup and export options',
       icon: Database,
+      onClick: () => navigate('/settings/data'),
       items: [
         'Data Export',
         'Backup Settings',
@@ -101,6 +134,7 @@ const SettingsPage = () => {
               <Card
                 key={category.id}
                 className='hover:shadow-lg transition-shadow cursor-pointer'
+                onClick={category.onClick}
               >
                 <CardHeader>
                   <CardTitle className='flex items-center space-x-3'>
@@ -125,7 +159,12 @@ const SettingsPage = () => {
                       </li>
                     ))}
                   </ul>
-                  <Button variant='outline' size='sm' className='mt-4 w-full'>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    className='mt-4 w-full'
+                    onClick={category.onClick}
+                  >
                     Configure
                   </Button>
                 </CardContent>

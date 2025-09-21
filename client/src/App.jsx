@@ -16,6 +16,7 @@ import EmailVerificationPage from './pages/EmailVerificationPage';
 import DashboardPage from './pages/DashboardPage';
 import AgendaPage from './pages/AgendaPage';
 import SettingsPage from './pages/SettingsPage';
+import ConsultationTypesPage from './pages/ConsultationTypesPage';
 import MessagingPage from './pages/MessagingPage';
 import HeroSection from './components/HeroSection';
 import FeaturesSection from './components/FeaturesSection';
@@ -66,6 +67,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <SettingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/settings/consultation-types'
+              element={
+                <ProtectedRoute>
+                  <ConsultationTypesPage />
                 </ProtectedRoute>
               }
             />
