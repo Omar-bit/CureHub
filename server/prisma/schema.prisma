@@ -62,6 +62,7 @@ model DoctorProfile {
   patients          Patient[]
   consultationTypes DoctorConsultationType[]
   timeplans         DoctorTimeplan[]
+  appointments      Appointment[]
 
   @@map("doctor_profiles")
 }
@@ -102,8 +103,9 @@ model Patient {
   updatedAt    DateTime @updatedAt
 
   // Relations
-  doctorId String
-  doctor   DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  doctorId     String
+  doctor       DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
 
   @@map("patients")
 }
@@ -129,6 +131,7 @@ model DoctorConsultationType {
 
   // Timeplan relations
   timeSlotConsultationTypes TimeSlotConsultationType[]
+  appointments              Appointment[]
 
   @@map("doctor_consultation_types")
 }
@@ -189,4 +192,41 @@ model TimeSlotConsultationType {
 
   @@unique([timeSlotId, consultationTypeId]) // Prevent duplicate associations
   @@map("time_slot_consultation_types")
+}
+
+// Appointment status enum
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+// Appointment model for doctor-patient meetings
+model Appointment {
+  id          String            @id @default(cuid())
+  title       String? // Optional appointment title
+  description String?           @db.Text // Optional notes or description
+  startTime   DateTime // Start date and time of the appointment
+  endTime     DateTime // End date and time of the appointment
+  status      AppointmentStatus @default(SCHEDULED)
+  location    String?           @db.Text // Physical location or meeting link
+  notes       String?           @db.Text // Doctor's notes about the appointment
+
+  // Relations
+  doctorId String
+  doctor   DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  consultationTypeId String?
+  consultationType   DoctorConsultationType? @relation(fields: [consultationTypeId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("appointments")
 }

@@ -13,6 +13,7 @@ import { DoctorProfileModule } from './doctor-profile/doctor-profile.module';
 import { PatientModule } from './patient/patient.module';
 import { ConsultationTypesModule } from './consultation-types/consultation-types.module';
 import { TimeplanModule } from './timeplan/timeplan.module';
+import { AppointmentModule } from './appointment/appointment.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { TimeplanModule } from './timeplan/timeplan.module';
     PatientModule,
     ConsultationTypesModule,
     TimeplanModule,
+    AppointmentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -141,3 +141,70 @@ export const timeplanAPI = {
   deleteTimeSlot: (timeSlotId) =>
     api.delete(`/timeplan/time-slot/${timeSlotId}`).then((res) => res.data),
 };
+
+export const appointmentAPI = {
+  // Get all appointments for the authenticated doctor
+  getAll: (params = {}) => {
+    const query = params ? `?${new URLSearchParams(params).toString()}` : '';
+    return api.get(`/appointments${query}`).then((res) => res.data);
+  },
+
+  // Get upcoming appointments
+  getUpcoming: (limit = 5) =>
+    api.get(`/appointments/upcoming?limit=${limit}`).then((res) => res.data),
+
+  // Get appointments for a specific date
+  getByDate: (date) => {
+    const dateStr =
+      date instanceof Date ? date.toISOString().split('T')[0] : date;
+    return api.get(`/appointments/by-date/${dateStr}`).then((res) => res.data);
+  },
+
+  // Get a specific appointment by ID
+  getById: (id) => api.get(`/appointments/${id}`).then((res) => res.data),
+
+  // Create a new appointment
+  create: (data) => api.post('/appointments', data).then((res) => res.data),
+
+  // Update an existing appointment
+  update: (id, data) =>
+    api.patch(`/appointments/${id}`, data).then((res) => res.data),
+
+  // Delete an appointment
+  delete: (id) => api.delete(`/appointments/${id}`).then((res) => res.data),
+
+  // Get appointments for a date range
+  getByDateRange: (startDate, endDate, additionalParams = {}) => {
+    const params = new URLSearchParams({
+      startDate:
+        startDate instanceof Date ? startDate.toISOString() : startDate,
+      endDate: endDate instanceof Date ? endDate.toISOString() : endDate,
+      ...additionalParams,
+    });
+    return api
+      .get(`/appointments?${params.toString()}`)
+      .then((res) => res.data);
+  },
+
+  // Get appointments by status
+  getByStatus: (status, additionalParams = {}) => {
+    const params = new URLSearchParams({
+      status,
+      ...additionalParams,
+    });
+    return api
+      .get(`/appointments?${params.toString()}`)
+      .then((res) => res.data);
+  },
+
+  // Get appointments for a specific patient
+  getByPatient: (patientId, additionalParams = {}) => {
+    const params = new URLSearchParams({
+      patientId,
+      ...additionalParams,
+    });
+    return api
+      .get(`/appointments?${params.toString()}`)
+      .then((res) => res.data);
+  },
+};

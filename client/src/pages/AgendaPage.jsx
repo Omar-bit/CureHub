@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import PatientManagement from '../components/PatientManagement';
+import CalendarSection from '../components/CalendarSection';
+import AppointmentPanel from '../components/AppointmentPanel';
 import {
   Users,
   Calendar,
@@ -47,158 +49,23 @@ const agendaSidebarItems = [
   },
 ];
 
-// Mock agenda data
-const mockAgendaData = [
-  {
-    time: '09:00',
-    patient: 'PULIN Daniel',
-    type: 'douleur au niveau du dos',
-    status: "renouvellement d'ordonnance",
-    color: 'bg-blue-500',
-  },
-  {
-    time: '09:15',
-    patient: 'AUDBOUIN Alexandre',
-    type: "renouvellement d'ordonnance",
-    status: 'fièvre',
-    color: 'bg-red-500',
-  },
-  {
-    time: '09:30',
-    patient: 'BLOU Patrick',
-    type: 'fièvre',
-    status: '',
-    color: 'bg-yellow-500',
-  },
-  {
-    time: '10:00',
-    patient: 'PERALTA Patrick',
-    type: 'Malaises en me réveillant avec chutes et douleurs violentes jambe droite impossible de me lever',
-    status: '',
-    color: 'bg-green-500',
-  },
-  {
-    time: '10:45',
-    patient: 'BEDOS Antoine',
-    type: '',
-    status: '',
-    color: 'bg-green-600',
-  },
-  {
-    time: '11:00',
-    patient: 'JORISSEN Maxime',
-    type: 'Acouphène',
-    status: 'hémorroïdes',
-    color: 'bg-red-500',
-  },
-  {
-    time: '11:15',
-    patient: 'PERALTA Patrick',
-    type: '',
-    status: '',
-    color: 'bg-blue-500',
-  },
-  {
-    time: '11:30',
-    patient: 'MERCIER Elisabeth',
-    type: '',
-    status: '',
-    color: 'bg-blue-500',
-  },
-];
-
-// Agenda Component
-const AgendaSection = () => {
-  return (
-    <div className='h-full bg-white lg:border-r border-gray-200'>
-      {/* Agenda Header */}
-      <div className='p-4 border-b border-gray-200'>
-        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2'>
-          <h2 className='text-lg font-semibold text-gray-900'>
-            Mardi 3 octobre 2023
-          </h2>
-          <button className='text-blue-600 text-sm hover:text-blue-800 self-start sm:self-auto'>
-            Choisir une date
-          </button>
-        </div>
-      </div>
-
-      {/* Time slots */}
-      <div className='overflow-y-auto h-[calc(100%-4rem)]'>
-        {/* Morning hours */}
-        <div className='p-2 sm:p-4 space-y-1'>
-          <div className='text-xs text-gray-500 mb-2'>8h</div>
-
-          {mockAgendaData.map((appointment, index) => (
-            <div key={index} className='flex items-start space-x-2 py-1'>
-              <div className='text-xs text-gray-500 w-10 sm:w-12 flex-shrink-0'>
-                {appointment.time}
-              </div>
-              <div className='flex-1 min-w-0'>
-                <div
-                  className={`p-2 rounded text-xs text-white ${appointment.color}`}
-                >
-                  <div className='font-medium text-sm sm:text-xs'>
-                    {appointment.patient}
-                  </div>
-                  {appointment.type && (
-                    <div className='mt-1 opacity-90 text-xs leading-tight'>
-                      {appointment.type}
-                    </div>
-                  )}
-                  {appointment.status && (
-                    <div className='mt-1 opacity-90 text-xs leading-tight'>
-                      {appointment.status}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {/* Additional time slots */}
-          <div className='space-y-4 mt-8'>
-            {[
-              '12h',
-              '13h',
-              '14h',
-              '15h',
-              '16h',
-              '17h',
-              '18h',
-              '19h',
-              '20h',
-            ].map((hour) => (
-              <div key={hour} className='text-xs text-gray-500'>
-                {hour}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // Tab Content Component
-const TabContent = ({ activeTab }) => {
+const TabContent = ({
+  activeTab,
+  appointmentPanelProps,
+  onCloseAppointmentPanel,
+}) => {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'patients':
         return <PatientManagement />;
       case 'meetings':
         return (
-          <div className='p-4 sm:p-6'>
-            <h3 className='text-lg font-semibold mb-4'>Meetings</h3>
-            <div className='space-y-4'>
-              <div className='p-4 border border-gray-200 rounded-lg'>
-                <h4 className='font-medium'>Upcoming Meetings</h4>
-                <p className='text-sm text-gray-600 mt-2'>
-                  Schedule and manage your appointments.
-                </p>
-              </div>
-            </div>
-          </div>
+          <AppointmentPanel
+            mode='create'
+            onClose={onCloseAppointmentPanel}
+            {...appointmentPanelProps}
+          />
         );
       case 'tasks':
         return (
@@ -366,18 +233,61 @@ const AgendaPage = () => {
   const [activeTab, setActiveTab] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  // Appointment panel state
+  const [appointmentPanelMode, setAppointmentPanelMode] = useState('create');
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [selectedDateTime, setSelectedDateTime] = useState(null);
+
+  // Handle calendar appointment click
+  const handleAppointmentClick = (appointment) => {
+    setSelectedAppointment(appointment);
+    setAppointmentPanelMode('view');
+    setActiveTab('meetings'); // Show the appointment panel
+  };
+
+  // Handle calendar time slot click
+  const handleTimeSlotClick = (dateTime) => {
+    setSelectedDateTime(dateTime);
+    setSelectedAppointment(null);
+    setAppointmentPanelMode('create');
+    setActiveTab('meetings'); // Show the appointment panel
+  };
+
+  // Handle closing appointment panel
+  const handleCloseAppointmentPanel = () => {
+    setActiveTab(null);
+    setSelectedAppointment(null);
+    setSelectedDateTime(null);
+  };
+
+  // When meetings tab is clicked, show create form
+  const handleTabClick = (tabId) => {
+    if (tabId === 'meetings') {
+      setAppointmentPanelMode('create');
+      setSelectedAppointment(null);
+      setSelectedDateTime(null);
+    }
+    setActiveTab(tabId);
+  };
+
+  const appointmentPanelProps = {
+    mode: appointmentPanelMode,
+    appointment: selectedAppointment,
+    selectedDateTime: selectedDateTime,
+  };
+
   return (
     <div className='flex h-[calc(100vh-10vh)] overflow-hidden'>
       {/* Left sidebar for agenda navigation */}
       <AgendaSidebar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleTabClick}
         isVisible={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
       />
 
       {/* Main content area */}
-      <div className='flex-1 flex flex-col lg:flex-row max-h-screen overflow-y-auto'>
+      <div className='flex-1 flex flex-col lg:flex-row max-h-screen overflow-hidden'>
         {/* Mobile header with navigation toggle */}
         <div className='lg:hidden bg-white border-b border-gray-200 p-4 flex items-center justify-between'>
           <button
@@ -397,20 +307,27 @@ const AgendaPage = () => {
           )}
         </div>
 
-        {/* Agenda section */}
+        {/* Calendar section - always visible on left */}
         <div
           className={`
             ${activeTab ? 'hidden lg:block lg:w-1/2' : 'flex-1'} 
             transition-all duration-300
           `}
         >
-          <AgendaSection />
+          <CalendarSection
+            onAppointmentClick={handleAppointmentClick}
+            onTimeSlotClick={handleTimeSlotClick}
+          />
         </div>
 
-        {/* Tab content section */}
+        {/* Tab content section - shows on right when a tab is active */}
         {activeTab && (
-          <div className='flex-1 lg:w-1/2 transition-all duration-300'>
-            <TabContent activeTab={activeTab} />
+          <div className='flex-1 lg:w-1/2 transition-all duration-300 overflow-hidden'>
+            <TabContent
+              activeTab={activeTab}
+              appointmentPanelProps={appointmentPanelProps}
+              onCloseAppointmentPanel={handleCloseAppointmentPanel}
+            />
           </div>
         )}
       </div>

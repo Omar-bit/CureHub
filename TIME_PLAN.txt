@@ -1,5 +1,3 @@
-
-Doctor meetings management 0.5d
 Doctor task management 0.5d
 Events management 0.5d
 User profile settings 0.5d
