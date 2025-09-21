@@ -8,3 +8,4 @@ Assistant func 2d
 *******************
 Docs management 1d
 Payment 2d
+Consultation file management 0.5d
