@@ -1,9 +1,9 @@
 Timeplan config(ask nabil how) 0.5d
 Doctor meetings management 0.5d
-Doctor landing page 0.5d
-Patient consultation request 0.5d
 Doctor task management 0.5d
 User profile settings 0.5d
+Doctor landing page 0.5d
+Patient consultation request 0.5d
 Assistant func 2d
 *******************
 Events management 0.5d
