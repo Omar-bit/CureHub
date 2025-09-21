@@ -17,6 +17,7 @@ import DashboardPage from './pages/DashboardPage';
 import AgendaPage from './pages/AgendaPage';
 import SettingsPage from './pages/SettingsPage';
 import ConsultationTypesPage from './pages/ConsultationTypesPage';
+import TimeplanPage from './pages/TimeplanPage';
 import MessagingPage from './pages/MessagingPage';
 import HeroSection from './components/HeroSection';
 import FeaturesSection from './components/FeaturesSection';
@@ -75,6 +76,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ConsultationTypesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/settings/timeplan'
+              element={
+                <ProtectedRoute>
+                  <TimeplanPage />
                 </ProtectedRoute>
               }
             />

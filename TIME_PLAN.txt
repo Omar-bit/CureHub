@@ -1,4 +1,4 @@
-Timeplan config(ask nabil how) 0.5d
+
 Doctor meetings management 0.5d
 Doctor task management 0.5d
 Events management 0.5d

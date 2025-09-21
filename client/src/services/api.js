@@ -117,3 +117,27 @@ export const consultationTypesAPI = {
   delete: (id) =>
     api.delete(`/consultation-types/${id}`).then((res) => res.data),
 };
+
+export const timeplanAPI = {
+  // Get all timeplans for the authenticated doctor
+  getAll: () => api.get('/timeplan').then((res) => res.data),
+
+  // Get timeplan for a specific day
+  getByDay: (dayOfWeek) =>
+    api.get(`/timeplan/${dayOfWeek}`).then((res) => res.data),
+
+  // Create or update timeplan for a specific day
+  createOrUpdate: (data) => api.post('/timeplan', data).then((res) => res.data),
+
+  // Update timeplan for a specific day
+  update: (dayOfWeek, data) =>
+    api.put(`/timeplan/${dayOfWeek}`, data).then((res) => res.data),
+
+  // Delete timeplan for a specific day
+  delete: (dayOfWeek) =>
+    api.delete(`/timeplan/${dayOfWeek}`).then((res) => res.data),
+
+  // Delete a specific time slot
+  deleteTimeSlot: (timeSlotId) =>
+    api.delete(`/timeplan/time-slot/${timeSlotId}`).then((res) => res.data),
+};

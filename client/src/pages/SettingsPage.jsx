@@ -18,6 +18,7 @@ import {
   Palette,
   Database,
   Calendar,
+  Clock,
 } from 'lucide-react';
 
 const SettingsPage = () => {
@@ -52,6 +53,19 @@ const SettingsPage = () => {
               'Edit Existing Types',
               'Set Pricing',
               'Configure Duration',
+            ],
+          },
+          {
+            id: 'timeplan',
+            title: 'Timeplan Configuration',
+            description: 'Set your availability and schedule for each day',
+            icon: Clock,
+            onClick: () => navigate('/settings/timeplan'),
+            items: [
+              'Weekly Schedule',
+              'Time Slots',
+              'Consultation Types',
+              'Availability Settings',
             ],
           },
         ]

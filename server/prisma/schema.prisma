@@ -61,6 +61,7 @@ model DoctorProfile {
   // Relations
   patients          Patient[]
   consultationTypes DoctorConsultationType[]
+  timeplans         DoctorTimeplan[]
 
   @@map("doctor_profiles")
 }
@@ -126,5 +127,66 @@ model DoctorConsultationType {
   doctorId String
   doctor   DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
 
+  // Timeplan relations
+  timeSlotConsultationTypes TimeSlotConsultationType[]
+
   @@map("doctor_consultation_types")
+}
+
+// Enum for days of the week
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+// Doctor's weekly timeplan configuration
+model DoctorTimeplan {
+  id        String        @id @default(cuid())
+  doctorId  String
+  doctor    DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  dayOfWeek DayOfWeek
+  isActive  Boolean       @default(true) // Allow doctors to temporarily disable a day
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  // Relations
+  timeSlots DoctorTimeSlot[]
+
+  @@unique([doctorId, dayOfWeek]) // One timeplan per doctor per day
+  @@map("doctor_timeplans")
+}
+
+// Individual time slots within a day
+model DoctorTimeSlot {
+  id         String         @id @default(cuid())
+  timeplanId String
+  timeplan   DoctorTimeplan @relation(fields: [timeplanId], references: [id], onDelete: Cascade)
+  startTime  String // Format: "HH:mm" (e.g., "09:00")
+  endTime    String // Format: "HH:mm" (e.g., "11:00")
+  isActive   Boolean        @default(true)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  // Relations
+  consultationTypes TimeSlotConsultationType[]
+
+  @@map("doctor_time_slots")
+}
+
+// Junction table for associating consultation types with time slots
+model TimeSlotConsultationType {
+  id                 String                 @id @default(cuid())
+  timeSlotId         String
+  timeSlot           DoctorTimeSlot         @relation(fields: [timeSlotId], references: [id], onDelete: Cascade)
+  consultationTypeId String
+  consultationType   DoctorConsultationType @relation(fields: [consultationTypeId], references: [id], onDelete: Cascade)
+  createdAt          DateTime               @default(now())
+
+  @@unique([timeSlotId, consultationTypeId]) // Prevent duplicate associations
+  @@map("time_slot_consultation_types")
 }
