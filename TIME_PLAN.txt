@@ -1,4 +1,4 @@
-Timeplan config 0.5d
+Timeplan config(ask nabil how) 0.5d
 Doctor meetings management 0.5d
 Doctor landing page 0.5d
 Patient consultation request 0.5d
