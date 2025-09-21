@@ -49,15 +49,15 @@ const Modal = React.forwardRef(
     };
 
     return (
-      <div className='fixed inset-0 z-50'>
+      <div className='fixed inset-0 z-50 '>
         {/* Backdrop */}
         <div
-          className='fixed inset-0 bg-black/50 backdrop-blur-sm'
+          className='fixed inset-0 bg-black/40 backdrop-blur-xs'
           onClick={closeOnBackdropClick ? onClose : undefined}
         />
 
         {/* Modal */}
-        <div className='fixed left-1/2 top-1/2 z-50 w-full -translate-x-1/2 -translate-y-1/2 transform'>
+        <div className='fixed left-1/2 top-1/2 z-50 w-full -translate-x-1/2 -translate-y-1/2 transform flex items-center justify-center'>
           <div
             className={cn(
               'bg-background text-foreground rounded-lg border shadow-lg duration-200 animate-in fade-in-0 zoom-in-95 max-h-[90vh] overflow-hidden flex flex-col',
