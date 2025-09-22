@@ -4,6 +4,14 @@ import { AppointmentStatus } from '@prisma/client';
 
 export class GetAppointmentsDto {
   @ApiProperty({
+    description: 'Date for filtering appointments (single day)',
+    required: false,
+  })
+  @IsDateString()
+  @IsOptional()
+  date?: string;
+
+  @ApiProperty({
     description: 'Start date for filtering appointments',
     required: false,
   })

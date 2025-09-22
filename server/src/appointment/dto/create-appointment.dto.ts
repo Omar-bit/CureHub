@@ -44,11 +44,6 @@ export class CreateAppointmentDto {
   @IsOptional()
   status?: AppointmentStatus;
 
-  @ApiProperty({ description: 'Location or meeting link', required: false })
-  @IsString()
-  @IsOptional()
-  location?: string;
-
   @ApiProperty({
     description: 'Doctor notes about the appointment',
     required: false,

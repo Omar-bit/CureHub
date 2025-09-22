@@ -4,6 +4,7 @@ import {
   appointmentAPI,
   patientAPI,
   consultationTypesAPI,
+  timeplanAPI,
 } from '../services/api';
 import { showError, showSuccess } from '../lib/toast';
 import { Loader2, Plus } from 'lucide-react';

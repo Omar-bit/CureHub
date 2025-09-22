@@ -212,7 +212,6 @@ model Appointment {
   startTime   DateTime // Start date and time of the appointment
   endTime     DateTime // End date and time of the appointment
   status      AppointmentStatus @default(SCHEDULED)
-  location    String?           @db.Text // Physical location or meeting link
   notes       String?           @db.Text // Doctor's notes about the appointment
 
   // Relations

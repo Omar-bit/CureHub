@@ -83,6 +83,7 @@ export class AppointmentService {
     limit: number;
   }> {
     const {
+      date,
       startDate,
       endDate,
       status,
@@ -98,7 +99,21 @@ export class AppointmentService {
       doctorId,
     };
 
-    if (startDate && endDate) {
+    // Handle the date parameter (single day)
+    if (date) {
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      where.startTime = {
+        gte: startOfDay,
+        lte: endOfDay,
+      };
+    }
+    // Only apply startDate/endDate if date is not provided
+    else if (startDate && endDate) {
       where.startTime = {
         gte: new Date(startDate),
         lte: new Date(endDate),

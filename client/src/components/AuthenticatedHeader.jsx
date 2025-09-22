@@ -51,7 +51,7 @@ const AuthenticatedHeader = () => {
           <div className='flex items-center'>
             <div className='flex-shrink-0'>
               <Link to='/dashboard' className='flex items-center'>
-                <div className='size-52  rounded-lg flex items-center justify-center'>
+                <div className='size-32  rounded-lg flex items-center justify-center'>
                   <img src={Logo} alt='curehub' />
                 </div>
               </Link>

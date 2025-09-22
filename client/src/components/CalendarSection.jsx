@@ -47,7 +47,7 @@ const CalendarSection = ({ onAppointmentClick, onTimeSlotClick }) => {
   }
 
   return (
-    <div className='h-full bg-white lg:border-r border-gray-200'>
+    <div className='h-full bg-white lg:border-r border-gray-200 '>
       <CalendarView
         appointments={appointments}
         onAppointmentClick={onAppointmentClick}
