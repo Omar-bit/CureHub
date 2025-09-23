@@ -1,0 +1,6 @@
+complete the new appointment functionality by:
+-adding the available timeslots for a selected date (in frontend show the freetimslots by quarters of an hour, e.g., the  doctor is available from 9h to 10h30 of consultation with 15m duration, the available freetimslots should be : 9:00, 9:15, 9:30, 9:45, 10:00, 10:15.).
+
+-appointment details tab.
+
+-adjust the calendar view with the quarters of an hour logic and to the design.

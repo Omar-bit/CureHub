@@ -104,32 +104,6 @@ const SettingsPage = () => {
       onClick: () => navigate('/settings/language'),
       items: ['Interface Language', 'Date Format', 'Time Zone', 'Currency'],
     },
-    {
-      id: 'appearance',
-      title: 'Appearance',
-      description: 'Customize the look and feel of your workspace',
-      icon: Palette,
-      onClick: () => navigate('/settings/appearance'),
-      items: [
-        'Theme Selection',
-        'Color Scheme',
-        'Font Size',
-        'Layout Preferences',
-      ],
-    },
-    {
-      id: 'data',
-      title: 'Data Management',
-      description: 'Manage your data backup and export options',
-      icon: Database,
-      onClick: () => navigate('/settings/data'),
-      items: [
-        'Data Export',
-        'Backup Settings',
-        'Data Retention',
-        'Account Deletion',
-      ],
-    },
   ];
 
   return (
