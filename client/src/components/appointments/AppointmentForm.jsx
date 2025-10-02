@@ -456,7 +456,7 @@ const AppointmentForm = ({
               onClick={() =>
                 setShowConsultationDropdown(!showConsultationDropdown)
               }
-              className={`w-full px-4 py-3 border rounded-lg cursor-pointer bg-white flex items-center justify-between ${
+              className={`w-full p-2 border rounded-lg cursor-pointer bg-white flex items-center justify-between ${
                 errors.consultationTypeId ? 'border-red-300' : 'border-gray-300'
               } ${
                 showConsultationDropdown
@@ -498,8 +498,8 @@ const AppointmentForm = ({
             {showConsultationDropdown && (
               <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-80 overflow-y-auto'>
                 {/* Header */}
-                <div className='p-4 border-b border-gray-200 bg-gray-50'>
-                  <span className='text-lg font-semibold text-gray-700'>
+                <div className='p-2 px-3 border-b border-gray-200 bg-gray-50'>
+                  <span className='text-md font-semibold text-gray-700'>
                     ACTE ET HORAIRES
                   </span>
                 </div>
