@@ -220,15 +220,18 @@ const AppointmentForm = ({
     }
 
     setLoading(true);
-
     try {
       // Get consultation type to calculate duration
       const selectedType = consultationTypes.find(
-        (type) => type.id === parseInt(formData.consultationTypeId)
+        (type) =>
+          type.id === parseInt(formData.consultationTypeId) ||
+          type.id === formData.consultationTypeId
       );
 
       if (!selectedType) {
-        throw new Error('Consultation type not found');
+        throw new Error(
+          `Consultation type not found. ID: ${formData.consultationTypeId}`
+        );
       }
 
       // Combine date and time into ISO strings
@@ -239,8 +242,8 @@ const AppointmentForm = ({
         title: formData.title.trim(),
         startTime: startDateTime.toISOString(),
         endTime: endDateTime.toISOString(),
-        patientId: parseInt(formData.patientId),
-        consultationTypeId: parseInt(formData.consultationTypeId),
+        patientId: formData.patientId,
+        consultationTypeId: formData.consultationTypeId,
         description: formData.description.trim(),
         status: formData.status,
       };
@@ -652,17 +655,9 @@ const AppointmentForm = ({
                         .map((type) => (
                           <div
                             key={type.id}
-                            onClick={() => {
-                              handleChange({
-                                target: {
-                                  name: 'consultationTypeId',
-                                  value: type.id,
-                                },
-                              });
-                              setShowConsultationDropdown(false);
-                            }}
+                            onClick={() => handleConsultationTypeSelect(type)}
                             className={`p-3 rounded-lg cursor-pointer transition-colors hover:bg-gray-50 ${
-                              formData.consultationTypeId === type.id.toString()
+                              formData.consultationTypeId === String(type.id)
                                 ? 'bg-blue-50 border border-blue-200'
                                 : 'border border-gray-200'
                             }`}
@@ -704,17 +699,9 @@ const AppointmentForm = ({
                         .map((type) => (
                           <div
                             key={type.id}
-                            onClick={() => {
-                              handleChange({
-                                target: {
-                                  name: 'consultationTypeId',
-                                  value: type.id,
-                                },
-                              });
-                              setShowConsultationDropdown(false);
-                            }}
+                            onClick={() => handleConsultationTypeSelect(type)}
                             className={`p-3 rounded-lg cursor-pointer transition-colors hover:bg-gray-50 ${
-                              formData.consultationTypeId === type.id.toString()
+                              formData.consultationTypeId === String(type.id)
                                 ? 'bg-blue-50 border border-blue-200'
                                 : 'border border-gray-200'
                             }`}
