@@ -10,7 +10,12 @@ import {
   UpdateAppointmentDto,
   GetAppointmentsDto,
 } from './dto';
-import { Appointment, AppointmentStatus, Prisma } from '@prisma/client';
+import {
+  Appointment,
+  AppointmentStatus,
+  Prisma,
+  DayOfWeek,
+} from '@prisma/client';
 
 @Injectable()
 export class AppointmentService {
@@ -446,5 +451,199 @@ export class AppointmentService {
         'Appointment duration cannot exceed 4 hours',
       );
     }
+  }
+
+  async getAvailableSlots(
+    doctorId: string,
+    date: Date,
+    consultationTypeId?: string,
+  ): Promise<{
+    date: string;
+    consultationTypeId?: string;
+    slots: { time: string; available: boolean }[];
+  }> {
+    // Get the day of the week for the given date
+    const dayOfWeek = this.getDayOfWeek(date);
+
+    // Get doctor's timeplan for the day
+    const timeplan = await this.prisma.doctorTimeplan.findFirst({
+      where: {
+        doctorId,
+        dayOfWeek,
+        isActive: true,
+      },
+      include: {
+        timeSlots: {
+          where: {
+            isActive: true,
+            ...(consultationTypeId && {
+              consultationTypes: {
+                some: {
+                  consultationTypeId,
+                },
+              },
+            }),
+          },
+          include: {
+            consultationTypes: {
+              include: {
+                consultationType: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!timeplan || timeplan.timeSlots.length === 0) {
+      return {
+        date: date.toISOString().split('T')[0],
+        consultationTypeId,
+        slots: [],
+      };
+    }
+
+    // Get consultation type details if specified
+    let consultationType: any = null;
+    if (consultationTypeId) {
+      consultationType = await this.prisma.doctorConsultationType.findFirst({
+        where: {
+          id: consultationTypeId,
+          doctorId,
+          enabled: true,
+        },
+      });
+
+      if (!consultationType) {
+        throw new NotFoundException('Consultation type not found');
+      }
+    }
+
+    // Get existing appointments for the date
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const existingAppointments = await this.prisma.appointment.findMany({
+      where: {
+        doctorId,
+        startTime: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+        status: {
+          not: 'CANCELLED',
+        },
+      },
+    });
+
+    // Generate all possible 15-minute slots for each time slot
+    const allSlots: { time: string; available: boolean }[] = [];
+
+    console.log(new Date());
+    for (const timeSlot of timeplan.timeSlots) {
+      const slots = this.generateQuarterHourSlots(
+        timeSlot.startTime,
+        timeSlot.endTime,
+        date,
+        existingAppointments,
+        consultationType,
+      );
+      allSlots.push(...slots);
+    }
+
+    // Sort slots by time and remove duplicates
+    const uniqueSlots = allSlots
+      .filter(
+        (slot, index, self) =>
+          index === self.findIndex((s) => s.time === slot.time),
+      )
+      .sort((a, b) => a.time.localeCompare(b.time));
+
+    return {
+      date: date.toISOString().split('T')[0],
+      consultationTypeId,
+      slots: uniqueSlots,
+    };
+  }
+
+  private getDayOfWeek(date: Date): DayOfWeek {
+    const days: DayOfWeek[] = [
+      DayOfWeek.SUNDAY,
+      DayOfWeek.MONDAY,
+      DayOfWeek.TUESDAY,
+      DayOfWeek.WEDNESDAY,
+      DayOfWeek.THURSDAY,
+      DayOfWeek.FRIDAY,
+      DayOfWeek.SATURDAY,
+    ];
+    return days[date.getDay()];
+  }
+
+  private generateQuarterHourSlots(
+    startTime: string,
+    endTime: string,
+    date: Date,
+    existingAppointments: any[],
+    consultationType?: any,
+  ): { time: string; available: boolean }[] {
+    const slots: { time: string; available: boolean }[] = [];
+
+    // Parse start and end times
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+
+    // Create start and end Date objects
+    const start = new Date(date);
+    start.setHours(startHour, startMinute, 0, 0);
+
+    const end = new Date(date);
+    end.setHours(endHour, endMinute, 0, 0);
+
+    // Generate 15-minute intervals
+    const current = new Date(start);
+    const consultationDuration = consultationType
+      ? consultationType.duration
+      : 15; // Default 15 minutes
+    const restAfter = consultationType ? consultationType.restAfter : 0;
+    const totalSlotDuration = consultationDuration + restAfter;
+
+    while (current < end) {
+      const slotEndTime = new Date(
+        current.getTime() + totalSlotDuration * 60000,
+      );
+
+      // Check if this slot would fit within the time slot
+      if (slotEndTime <= end) {
+        const timeString = current.toTimeString().slice(0, 5); // "HH:mm" format
+
+        // Check if this time conflicts with existing appointments
+        const hasConflict = existingAppointments.some((appointment) => {
+          const appointmentStart = new Date(appointment.startTime);
+          const appointmentEnd = new Date(appointment.endTime);
+
+          return (
+            (current >= appointmentStart && current < appointmentEnd) ||
+            (slotEndTime > appointmentStart && slotEndTime <= appointmentEnd) ||
+            (current <= appointmentStart && slotEndTime >= appointmentEnd)
+          );
+        });
+
+        // Check if the slot is in the past
+        const now = new Date();
+        const isPast = current <= now;
+
+        slots.push({
+          time: timeString,
+          available: !hasConflict && !isPast,
+        });
+      }
+
+      // Move to next 15-minute interval
+      current.setMinutes(current.getMinutes() + 15);
+    }
+
+    return slots;
   }
 }

@@ -207,4 +207,15 @@ export const appointmentAPI = {
       .get(`/appointments?${params.toString()}`)
       .then((res) => res.data);
   },
+
+  // Get available time slots for a specific date and consultation type
+  getAvailableSlots: (date, consultationTypeId) => {
+    const params = new URLSearchParams({
+      date: date instanceof Date ? date.toISOString().split('T')[0] : date,
+      ...(consultationTypeId && { consultationTypeId }),
+    });
+    return api
+      .get(`/appointments/available-slots?${params.toString()}`)
+      .then((res) => res.data);
+  },
 };

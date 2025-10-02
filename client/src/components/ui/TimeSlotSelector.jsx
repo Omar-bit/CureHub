@@ -1,17 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { format, addMinutes, parseISO, isSameDay, getDay } from 'date-fns';
+import React, { useState, useEffect } from 'react';
+import { format } from 'date-fns';
 import { Clock, Calendar } from 'lucide-react';
-import { timeplanAPI, appointmentAPI } from '../../services/api';
-
-const DAY_NAMES = [
-  'SUNDAY',
-  'MONDAY',
-  'TUESDAY',
-  'WEDNESDAY',
-  'THURSDAY',
-  'FRIDAY',
-  'SATURDAY',
-];
+import { appointmentAPI } from '../../services/api';
 
 const TimeSlotSelector = ({
   selectedDate,
@@ -21,8 +11,7 @@ const TimeSlotSelector = ({
   onChange,
   error,
 }) => {
-  const [timeplan, setTimeplan] = useState(null);
-  const [appointments, setAppointments] = useState([]);
+  const [availableSlots, setAvailableSlots] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // Get consultation type details
@@ -35,6 +24,8 @@ const TimeSlotSelector = ({
   useEffect(() => {
     if (selectedDate && consultationTypeId) {
       loadAvailableSlots();
+    } else {
+      setAvailableSlots([]);
     }
   }, [selectedDate, consultationTypeId]);
 
@@ -42,85 +33,29 @@ const TimeSlotSelector = ({
     try {
       setLoading(true);
 
-      const date = new Date(selectedDate);
-      const dayOfWeek = DAY_NAMES[getDay(date)];
+      // Use the new backend endpoint to get available slots
+      const response = await appointmentAPI.getAvailableSlots(
+        selectedDate,
+        consultationTypeId
+      );
 
-      // Get timeplan for the day
-      const timeplanData = await timeplanAPI.getByDay(dayOfWeek);
+      // Transform the backend response to match the expected format
+      const formattedSlots = response.slots
+        .filter((slot) => slot.available)
+        .map((slot) => ({
+          time: slot.time,
+          displayTime: format(new Date(`2000-01-01T${slot.time}`), 'h:mm a'),
+          available: slot.available,
+        }));
 
-      // Get appointments for the selected date
-      const appointmentsData = await appointmentAPI.getAll({
-        date: selectedDate,
-      });
-
-      setTimeplan(timeplanData);
-      setAppointments(appointmentsData.appointments || appointmentsData || []);
+      setAvailableSlots(formattedSlots);
     } catch (error) {
-      console.error('Error loading time slots:', error);
-      setTimeplan(null);
-      setAppointments([]);
+      console.error('Error loading available time slots:', error);
+      setAvailableSlots([]);
     } finally {
       setLoading(false);
     }
   };
-
-  const availableSlots = useMemo(() => {
-    if (!timeplan || !timeplan.timeSlots || !selectedDate) return [];
-
-    const slots = [];
-    const selectedDateObj = new Date(selectedDate);
-
-    timeplan.timeSlots.forEach((timeSlot) => {
-      if (!timeSlot.isActive) return;
-
-      // Check if this time slot supports the selected consultation type
-      const supportsConsultationType = timeSlot.timeSlotConsultationTypes?.some(
-        (relation) =>
-          relation.consultationTypeId === parseInt(consultationTypeId)
-      );
-
-      if (!supportsConsultationType) return;
-
-      // Generate time slots based on the duration
-      const startTime = parseISO(`${selectedDate}T${timeSlot.startTime}`);
-      const endTime = parseISO(`${selectedDate}T${timeSlot.endTime}`);
-
-      let currentTime = new Date(startTime);
-
-      while (currentTime < endTime) {
-        const slotEndTime = addMinutes(currentTime, duration);
-
-        // Check if the slot fits within the time slot window
-        if (slotEndTime <= endTime) {
-          // Check if this slot conflicts with existing appointments
-          const isConflicting = appointments.some((appointment) => {
-            const apptStart = new Date(appointment.startTime);
-            const apptEnd = new Date(appointment.endTime);
-
-            return (
-              isSameDay(apptStart, selectedDateObj) &&
-              ((currentTime >= apptStart && currentTime < apptEnd) ||
-                (slotEndTime > apptStart && slotEndTime <= apptEnd) ||
-                (currentTime <= apptStart && slotEndTime >= apptEnd))
-            );
-          });
-
-          if (!isConflicting) {
-            slots.push({
-              time: format(currentTime, 'HH:mm'),
-              displayTime: format(currentTime, 'h:mm a'),
-              endTime: format(slotEndTime, 'HH:mm'),
-              displayEndTime: format(slotEndTime, 'h:mm a'),
-            });
-          }
-        }
-
-        currentTime = addMinutes(currentTime, 15); // 15-minute intervals
-      }
-    });
-
-    return slots.sort((a, b) => a.time.localeCompare(b.time));
-  }, [timeplan, appointments, selectedDate, consultationTypeId, duration]);
 
   if (loading) {
     return (
@@ -133,16 +68,7 @@ const TimeSlotSelector = ({
     );
   }
 
-  if (!timeplan || !timeplan.isActive) {
-    return (
-      <div className='text-center p-8 text-gray-500'>
-        <Calendar className='h-8 w-8 mx-auto mb-2' />
-        <p>No working hours set for this day</p>
-      </div>
-    );
-  }
-
-  if (availableSlots.length === 0) {
+  if (!loading && availableSlots.length === 0) {
     return (
       <div className='text-center p-8 text-gray-500'>
         <Clock className='h-8 w-8 mx-auto mb-2' />
