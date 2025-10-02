@@ -4,12 +4,29 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
 import LanguageSwitcher from './LanguageSwitcher';
-import { Settings, Calendar, MessageCircle, LogOut, User } from 'lucide-react';
+import {
+  Settings,
+  Calendar,
+  MessageCircle,
+  LogOut,
+  User,
+  ChevronDown,
+  Globe,
+  Check,
+} from 'lucide-react';
 import Logo from '../assets/logo.png';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
 
 const AuthenticatedHeader = () => {
   const { user, logout } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
@@ -47,29 +64,30 @@ const AuthenticatedHeader = () => {
     <header className='bg-white shadow-sm border-gray-200 sticky top-0 z-50'>
       <div className='max-w-full mx-auto px-4 sm:px-6 lg:px-8'>
         <div className='flex justify-between items-center h-16'>
-          {/* Logo */}
-          <div className='flex items-center'>
-            <div className='flex-shrink-0'>
-              <Link to='/dashboard' className='flex items-center'>
-                <div className='size-32  rounded-lg flex items-center justify-center'>
-                  <img src={Logo} alt='curehub' />
-                </div>
-              </Link>
+          <div className='flex items-center space-x-4'>
+            {/* Logo */}
+            <div className='flex items-center'>
+              <div className='flex-shrink-0'>
+                <Link to='/dashboard' className='flex items-center'>
+                  <div className='size-9  rounded-lg flex items-center justify-center'>
+                    <img src={Logo} alt='curehub' />
+                  </div>
+                </Link>
+              </div>
             </div>
-          </div>
 
-          {/* Navigation Links */}
-          <div className='hidden md:block'>
-            <div className='ml-10 flex items-baseline space-x-8'>
-              {navigationItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === item.path;
+            {/* Navigation Links */}
+            <div className='hidden md:block'>
+              <div className='ml-10 flex items-baseline space-x-8'>
+                {navigationItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location.pathname === item.path;
 
-                return (
-                  <Link
-                    key={item.id}
-                    to={item.path}
-                    className={`
+                  return (
+                    <Link
+                      key={item.id}
+                      to={item.path}
+                      className={`
                       flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors
                       ${
                         isActive
@@ -77,45 +95,82 @@ const AuthenticatedHeader = () => {
                           : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                       }
                     `}
-                  >
-                    <Icon className='h-4 w-4 mr-2' />
-                    {item.label}
-                  </Link>
-                );
-              })}
+                    >
+                      <Icon className='h-4 w-4 mr-2' />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           </div>
-
           {/* User Menu */}
-          <div className='hidden md:flex items-center space-x-4'>
-            <LanguageSwitcher />
-
-            {/* User Info */}
-            <div className='flex items-center space-x-3'>
-              <div className='flex items-center space-x-2'>
-                <div className='h-8 w-8 bg-gray-300 rounded-full flex items-center justify-center'>
-                  <User className='h-4 w-4 text-gray-600' />
-                </div>
-                <div className='hidden lg:block'>
-                  <p className='text-sm font-medium text-gray-700'>
+          <div className='hidden md:flex items-center'>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant='outline'
+                  className='flex items-center space-x-2'
+                >
+                  <div className='h-6 w-6 bg-gray-300 rounded-full flex items-center justify-center'>
+                    <User className='h-4 w-4 text-gray-600' />
+                  </div>
+                  <span className='hidden lg:block'>
                     {user?.firstName || user?.email}
-                  </p>
-                  <p className='text-xs text-gray-500'>
-                    {user?.role || 'Patient'}
-                  </p>
-                </div>
-              </div>
+                  </span>
+                  <ChevronDown className='h-4 w-4' />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align='end' className='w-56'>
+                <DropdownMenuLabel>
+                  <div className='flex flex-col'>
+                    <span>
+                      {user?.firstName} {user?.lastName}
+                    </span>
+                    <span className='text-xs text-gray-500'>
+                      {user?.role || 'Patient'}
+                    </span>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
 
-              <Button
-                onClick={handleLogout}
-                variant='outline'
-                size='sm'
-                className='flex items-center space-x-1'
-              >
-                <LogOut className='h-4 w-4' />
-                <span>{t('navigation.logout')}</span>
-              </Button>
-            </div>
+                {/* Language Selection */}
+                <DropdownMenuLabel>Language</DropdownMenuLabel>
+                <DropdownMenuItem
+                  className='cursor-pointer flex items-center'
+                  onClick={() => {
+                    i18n.changeLanguage('en');
+                  }}
+                >
+                  <Globe className='h-4 w-4 mr-2' />
+                  <span>English</span>
+                  {i18n.language === 'en' && (
+                    <Check className='h-4 w-4 ml-auto' />
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className='cursor-pointer flex items-center'
+                  onClick={() => {
+                    i18n.changeLanguage('fr');
+                  }}
+                >
+                  <Globe className='h-4 w-4 mr-2' />
+                  <span>Français</span>
+                  {i18n.language === 'fr' && (
+                    <Check className='h-4 w-4 ml-auto' />
+                  )}
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className='cursor-pointer text-red-600 focus:text-red-600 flex items-center'
+                >
+                  <LogOut className='h-4 w-4 mr-2' />
+                  {t('navigation.logout')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Mobile menu button */}
@@ -176,29 +231,58 @@ const AuthenticatedHeader = () => {
 
           {/* Mobile User Section */}
           <div className='mt-4 pt-4 border-t border-gray-200'>
-            <div className='flex items-center space-x-3 px-3 py-2'>
-              <div className='h-8 w-8 bg-gray-300 rounded-full flex items-center justify-center'>
-                <User className='h-4 w-4 text-gray-600' />
-              </div>
-              <div>
-                <p className='text-sm font-medium text-gray-700'>
-                  {user?.firstName || user?.email}
-                </p>
-                <p className='text-xs text-gray-500'>
-                  {user?.role || 'Patient'}
-                </p>
+            <div className='flex items-center justify-between px-3 py-2'>
+              <div className='flex items-center space-x-2'>
+                <div className='h-8 w-8 bg-gray-300 rounded-full flex items-center justify-center'>
+                  <User className='h-4 w-4 text-gray-600' />
+                </div>
+                <div>
+                  <p className='text-sm font-medium text-gray-700'>
+                    {user?.firstName || user?.email}
+                  </p>
+                  <p className='text-xs text-gray-500'>
+                    {user?.role || 'Patient'}
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className='px-3 py-2 space-y-2'>
-              <LanguageSwitcher />
+            {/* Language options */}
+            <div className='px-3 py-2'>
+              <h4 className='text-sm font-medium text-gray-700 mb-2'>
+                Language
+              </h4>
+              <div className='grid grid-cols-2 gap-2'>
+                <Button
+                  variant={i18n.language === 'en' ? 'default' : 'outline'}
+                  size='sm'
+                  onClick={() => i18n.changeLanguage('en')}
+                  className='flex items-center justify-center'
+                >
+                  <Globe className='h-4 w-4 mr-2' />
+                  English
+                </Button>
+                <Button
+                  variant={i18n.language === 'fr' ? 'default' : 'outline'}
+                  size='sm'
+                  onClick={() => i18n.changeLanguage('fr')}
+                  className='flex items-center justify-center'
+                >
+                  <Globe className='h-4 w-4 mr-2' />
+                  Français
+                </Button>
+              </div>
+            </div>
+
+            {/* Logout button */}
+            <div className='px-3 py-2'>
               <Button
                 onClick={handleLogout}
                 variant='outline'
                 size='sm'
-                className='w-full flex items-center justify-center space-x-2'
+                className='w-full flex items-center justify-center text-red-600 hover:text-red-700'
               >
-                <LogOut className='h-4 w-4' />
+                <LogOut className='h-4 w-4 mr-2' />
                 <span>{t('navigation.logout')}</span>
               </Button>
             </div>

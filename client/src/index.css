@@ -155,3 +155,6 @@
     @apply bg-background text-foreground;
   }
 }
+.shadoww {
+  box-shadow: -8px 0px 20px 3px #bbb;
+}

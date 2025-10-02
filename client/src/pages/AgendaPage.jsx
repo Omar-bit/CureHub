@@ -286,7 +286,7 @@ const AgendaPage = () => {
       />
 
       {/* Main content area */}
-      <div className='flex-1 flex flex-col lg:flex-row max-h-screen overflow-hidden'>
+      <div className='flex-1 flex flex-col lg:flex-row max-h-screen overflow-hidden relative'>
         {/* Mobile header with navigation toggle */}
         <div className='lg:hidden bg-white border-b border-gray-200 p-4 flex items-center justify-between'>
           <button
@@ -309,7 +309,7 @@ const AgendaPage = () => {
         {/* Calendar section - always visible on left */}
         <div
           className={`
-            ${activeTab ? 'hidden lg:block lg:w-1/2' : 'flex-1'} 
+            ${'flex-1'} 
             transition-all duration-300 overflow-y-auto
           `}
         >
@@ -321,7 +321,7 @@ const AgendaPage = () => {
 
         {/* Tab content section - shows on right when a tab is active */}
         {activeTab && (
-          <div className='flex-1 lg:w-1/2 transition-all duration-300 overflow-hidden'>
+          <div className='flex-1 lg:w-1/2 transition-all duration-300 overflow-hidden static lg:absolute  top-0 right-0 h-full bg-white z-10 shadoww rounded-l-[5%]'>
             <TabContent
               activeTab={activeTab}
               appointmentPanelProps={appointmentPanelProps}
