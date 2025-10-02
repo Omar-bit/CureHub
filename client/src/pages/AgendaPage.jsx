@@ -140,10 +140,10 @@ const AgendaSidebar = ({ activeTab, setActiveTab, isVisible, onClose }) => {
       )}
 
       {/* Desktop sidebar */}
-      <div className='hidden lg:block w-[15%] bg-gray-50 border-r border-gray-200 h-full'>
-        <div className='p-4'>
-          <h3 className='text-sm font-medium text-gray-700 mb-4'>Navigation</h3>
-          <nav className='space-y-1'>
+      <div className='hidden lg:block  bg-gray-50 border-r border-gray-200 h-full'>
+        <div className='p-2 pt-7'>
+          {/* <h3 className='text-sm font-medium text-gray-700 mb-4'>Navigation</h3> */}
+          <nav className='space-y-6'>
             {agendaSidebarItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -153,7 +153,7 @@ const AgendaSidebar = ({ activeTab, setActiveTab, isVisible, onClose }) => {
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
                   className={`
-                    w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
+                    w-full flex flex-col gap-1  justify-center items-center text-sm font-medium rounded-md transition-colors
                     ${
                       isActive
                         ? 'bg-white text-gray-900 shadow-sm'
@@ -161,9 +161,8 @@ const AgendaSidebar = ({ activeTab, setActiveTab, isVisible, onClose }) => {
                     }
                   `}
                 >
-                  <Icon className='h-4 w-4 mr-3 flex-shrink-0' />
-                  {item.label}
-                  {isActive && <ChevronRight className='h-4 w-4 ml-auto' />}
+                  <Icon className='h-4 w-4 ' />
+                  <p className='text-xs'>{item.label}</p>
                 </button>
               );
             })}

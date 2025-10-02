@@ -52,11 +52,9 @@ const CalendarView = ({
 
   return (
     <div className='h-full flex flex-col bg-white'>
-      {/* View controls */}
-      <div className='border-b border-gray-200 p-4'>
+      {/* <div className='border-b border-gray-200 p-4'>
         <div className='flex items-center justify-between'>
           <div className='flex items-center space-x-4'>
-            {/* View selector */}
             <div className='flex bg-gray-100 rounded-lg p-1'>
               {viewOptions.map((option) => {
                 const Icon = option.icon;
@@ -80,7 +78,6 @@ const CalendarView = ({
               })}
             </div>
 
-            {/* Today button */}
             <button
               onClick={goToToday}
               className='px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors'
@@ -89,7 +86,6 @@ const CalendarView = ({
             </button>
           </div>
 
-          {/* Legend */}
           <div className='flex items-center space-x-4 text-xs text-gray-600'>
             <div className='flex items-center space-x-1'>
               <div className='w-3 h-3 bg-blue-500 rounded'></div>
@@ -105,7 +101,7 @@ const CalendarView = ({
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Calendar content */}
       <div className='flex-1 overflow-hidden'>{renderCalendarView()}</div>

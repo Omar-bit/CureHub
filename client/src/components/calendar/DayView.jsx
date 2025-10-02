@@ -79,13 +79,26 @@ const DayView = ({
               <ChevronRight className='h-5 w-5' />
             </button>
           </div>
-          <button
+          {/* <button
             onClick={() => onTimeSlotClick?.(new Date())}
             className='flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
           >
             <Plus className='h-4 w-4' />
             <span>New Appointment</span>
-          </button>
+          </button> */}
+          {/* choose date */}
+          <div>
+            <input
+              type='date'
+              // value={CalendarUtils.formatDateInput(currentDate)}
+              value={''}
+              onChange={
+                (e) => 'test'
+                // onDateChange(new Date(e.target.value + 'T00:00:00'))
+              }
+              className='border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+            />
+          </div>
         </div>
       </div>
 

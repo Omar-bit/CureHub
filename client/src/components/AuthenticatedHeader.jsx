@@ -44,7 +44,7 @@ const AuthenticatedHeader = () => {
   ];
 
   return (
-    <header className='bg-white border-b border-gray-200 sticky top-0 z-50'>
+    <header className='bg-white shadow-sm border-gray-200 sticky top-0 z-50'>
       <div className='max-w-full mx-auto px-4 sm:px-6 lg:px-8'>
         <div className='flex justify-between items-center h-16'>
           {/* Logo */}
