@@ -5,8 +5,8 @@ Consultation file management 0.5d
 Doctor statistics 0.5d
 Doctor landing page 0.5d
 Patient consultation request 1d
-*******************
 Team management 2d
+*******************
 Assistant func 2d
 PTO management 0.5d
 Docs management 1d
