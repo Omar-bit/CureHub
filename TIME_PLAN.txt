@@ -1,4 +1,4 @@
-Doctor task management 0.5d
+
 Events management 0.5d
 Consultation file management 0.5d
 User profile settings 0.5d

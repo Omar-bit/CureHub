@@ -9,7 +9,6 @@ import {
   UseGuards,
   Request,
   Query,
-  ParseUUIDPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -150,7 +149,7 @@ export class AppointmentController {
   @ApiResponse({ status: 404, description: 'Appointment not found' })
   @ApiResponse({ status: 403, description: 'Access denied' })
   @UseGuards(JwtAuthGuard)
-  findOne(@Request() req, @Param('id', ParseUUIDPipe) id: string) {
+  findOne(@Request() req, @Param('id') id: string) {
     return this.appointmentService.findOne(id, req.user.doctorProfile.id);
   }
 
@@ -166,7 +165,7 @@ export class AppointmentController {
   @UseGuards(JwtAuthGuard)
   update(
     @Request() req,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() updateAppointmentDto: UpdateAppointmentDto,
   ) {
     return this.appointmentService.update(
@@ -182,7 +181,7 @@ export class AppointmentController {
   @ApiResponse({ status: 404, description: 'Appointment not found' })
   @ApiResponse({ status: 403, description: 'Access denied' })
   @UseGuards(JwtAuthGuard)
-  remove(@Request() req, @Param('id', ParseUUIDPipe) id: string) {
+  remove(@Request() req, @Param('id') id: string) {
     return this.appointmentService.remove(id, req.user.doctorProfile.id);
   }
 }
