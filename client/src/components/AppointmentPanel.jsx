@@ -125,6 +125,26 @@ const AppointmentPanel = ({
     }
   };
 
+  const handleStatusChange = async (appointmentId, newStatus) => {
+    try {
+      const updatedAppointment = await appointmentAPI.update(appointmentId, {
+        status: newStatus,
+      });
+
+      setCurrentAppointment(updatedAppointment);
+
+      // Refresh calendar appointments
+      if (window.refreshCalendarAppointments) {
+        window.refreshCalendarAppointments();
+      }
+
+      showSuccess(`Appointment status updated to ${newStatus.toLowerCase()}`);
+    } catch (error) {
+      console.error('Error updating appointment status:', error);
+      showError('Failed to update appointment status. Please try again.');
+    }
+  };
+
   const renderContent = () => {
     if (loading) {
       return (
@@ -171,20 +191,70 @@ const AppointmentPanel = ({
         );
 
       case 'view':
+        const getStatusColor = (status) => {
+          switch (status) {
+            case 'SCHEDULED':
+              return 'bg-blue-100 text-blue-800';
+            case 'CONFIRMED':
+              return 'bg-green-100 text-green-800';
+            case 'IN_PROGRESS':
+              return 'bg-yellow-100 text-yellow-800';
+            case 'COMPLETED':
+              return 'bg-green-100 text-green-800';
+            case 'CANCELLED':
+              return 'bg-red-100 text-red-800';
+            case 'NO_SHOW':
+              return 'bg-gray-100 text-gray-800';
+            default:
+              return 'bg-gray-100 text-gray-800';
+          }
+        };
+
+        const getStatusText = (status) => {
+          switch (status) {
+            case 'SCHEDULED':
+              return 'Scheduled';
+            case 'CONFIRMED':
+              return 'Confirmed';
+            case 'IN_PROGRESS':
+              return 'In Progress';
+            case 'COMPLETED':
+              return 'Completed';
+            case 'CANCELLED':
+              return 'Cancelled';
+            case 'NO_SHOW':
+              return 'No Show';
+            default:
+              return status;
+          }
+        };
+
         return (
           <div className='h-full bg-white overflow-y-auto'>
             <div className='p-6 border-b border-gray-200'>
-              <h2 className='text-xl font-semibold text-gray-900'>
-                Appointment Details
-              </h2>
+              <div className='flex items-center space-x-3'>
+                <h2 className='text-xl font-semibold text-gray-900'>
+                  Appointment Details
+                </h2>
+                {currentAppointment && (
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
+                      currentAppointment.status
+                    )}`}
+                  >
+                    {getStatusText(currentAppointment.status)}
+                  </span>
+                )}
+              </div>
             </div>
             <div className='p-6'>
               <AppointmentDetails
                 appointment={currentAppointment}
-                isOpen={false} // Use inline mode
+                isOpen={false} // Use inline mode, so isOpen can be false
                 onClose={onClose}
                 onEdit={handleEditAppointment}
                 onDelete={handleDeleteAppointment}
+                onStatusChange={handleStatusChange}
                 inline={true} // Add inline prop
               />
             </div>

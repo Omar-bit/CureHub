@@ -145,6 +145,28 @@ const MeetingsSection = () => {
     }
   };
 
+  const handleStatusChange = async (appointmentId, newStatus) => {
+    try {
+      const updatedAppointment = await appointmentAPI.update(appointmentId, {
+        status: newStatus,
+      });
+
+      setAppointments((prev) =>
+        prev.map((apt) => (apt.id === appointmentId ? updatedAppointment : apt))
+      );
+
+      // Update selected appointment if it's the one being changed
+      if (selectedAppointment?.id === appointmentId) {
+        setSelectedAppointment(updatedAppointment);
+      }
+
+      showSuccess(`Appointment status updated to ${newStatus.toLowerCase()}`);
+    } catch (error) {
+      console.error('Error updating appointment status:', error);
+      showError('Failed to update appointment status. Please try again.');
+    }
+  };
+
   const handleCloseModals = () => {
     setIsAppointmentFormOpen(false);
     setIsAppointmentDetailsOpen(false);
@@ -194,6 +216,7 @@ const MeetingsSection = () => {
         onClose={handleCloseModals}
         onEdit={handleEditAppointment}
         onDelete={handleDeleteAppointment}
+        onStatusChange={handleStatusChange}
       />
     </div>
   );

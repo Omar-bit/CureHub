@@ -1,16 +1,16 @@
 Doctor task management 0.5d
 Events management 0.5d
-User profile settings 0.5d
 Consultation file management 0.5d
+User profile settings 0.5d
 Doctor statistics 0.5d
+PTO management 0.5d
+Reminders 0.5d
+Patient group type 0.5d
+*******************
 Doctor landing page 0.5d
 Patient consultation request 1d
 Team management 2d
-*******************
 Assistant func 2d
-PTO management 0.5d
 Docs management 1d
-Patient group type 0.5d
 Messagery 1.5d
-Reminders 0.5d
 Payment 2d
