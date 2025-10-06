@@ -14,6 +14,7 @@ import { PatientModule } from './patient/patient.module';
 import { ConsultationTypesModule } from './consultation-types/consultation-types.module';
 import { TimeplanModule } from './timeplan/timeplan.module';
 import { AppointmentModule } from './appointment/appointment.module';
+import { TaskModule } from './task/task.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { AppointmentModule } from './appointment/appointment.module';
     ConsultationTypesModule,
     TimeplanModule,
     AppointmentModule,
+    TaskModule,
   ],
   controllers: [AppController],
   providers: [AppService],

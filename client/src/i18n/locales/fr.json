@@ -196,6 +196,81 @@
       "createTask": "Créer une Tâche"
     }
   },
+  "tasks": {
+    "title": "Tâches",
+    "subtitle": "Gérez vos tâches et suivez votre progression",
+    "newTask": "Nouvelle tâche",
+    "createTask": "Créer une tâche",
+    "editTask": "Modifier la tâche",
+    "noTasks": "Aucune tâche",
+    "noTasksDescription": "Créez votre première tâche pour commencer",
+    "noTasksFound": "Aucune tâche trouvée",
+    "noTasksFoundDescription": "Essayez de modifier vos filtres",
+    "loadingTasks": "Chargement des tâches...",
+    "form": {
+      "title": "Titre",
+      "titleRequired": "Le titre est requis",
+      "titlePlaceholder": "Entrez le titre de la tâche",
+      "description": "Description",
+      "descriptionPlaceholder": "Décrivez la tâche...",
+      "deadline": "Date d'échéance",
+      "deadlineError": "La date d'échéance ne peut pas être dans le passé",
+      "priority": "Priorité",
+      "category": "Catégorie",
+      "patient": "Patient associé",
+      "patientOptional": "Sélectionner un patient (optionnel)",
+      "save": "Enregistrer",
+      "saving": "Enregistrement...",
+      "update": "Mettre à jour",
+      "cancel": "Annuler"
+    },
+    "priority": {
+      "LOW": "Faible",
+      "MEDIUM": "Moyenne",
+      "HIGH": "Haute",
+      "URGENT": "Urgente"
+    },
+    "category": {
+      "RENDEZ_VOUS": "Rendez-vous",
+      "DOCUMENTS": "Documents",
+      "CONTACTER": "Contacter",
+      "PAIEMENTS": "Paiements",
+      "AUTRE": "Autre"
+    },
+    "status": {
+      "pending": "En cours",
+      "completed": "Terminées",
+      "overdue": "En retard",
+      "urgent": "Urgentes"
+    },
+    "filters": {
+      "title": "Filtres",
+      "search": "Rechercher des tâches...",
+      "allPriorities": "Toutes les priorités",
+      "allCategories": "Toutes les catégories",
+      "allTasks": "Toutes les tâches",
+      "todo": "À faire",
+      "done": "Terminées",
+      "clearFilters": "Effacer les filtres"
+    },
+    "messages": {
+      "createSuccess": "Tâche créée avec succès",
+      "updateSuccess": "Tâche mise à jour avec succès",
+      "deleteSuccess": "Tâche supprimée avec succès",
+      "createError": "Erreur lors de la création",
+      "updateError": "Erreur lors de la mise à jour",
+      "deleteError": "Erreur lors de la suppression",
+      "loadError": "Erreur lors du chargement des tâches",
+      "statusUpdateError": "Erreur lors de la mise à jour du statut"
+    },
+    "delete": {
+      "title": "Supprimer la tâche",
+      "message": "Êtes-vous sûr de vouloir supprimer cette tâche ? Cette action est irréversible.",
+      "confirm": "Supprimer",
+      "cancel": "Annuler"
+    },
+    "completedAt": "Complété le"
+  },
   "common": {
     "loading": "Chargement...",
     "error": "Erreur",

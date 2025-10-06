@@ -219,3 +219,78 @@ export const appointmentAPI = {
       .then((res) => res.data);
   },
 };
+
+export const taskAPI = {
+  // Get all tasks for the authenticated doctor
+  getAll: (params = {}) => {
+    const query =
+      params && Object.keys(params).length > 0
+        ? `?${new URLSearchParams(params).toString()}`
+        : '';
+    return api.get(`/tasks${query}`).then((res) => res.data);
+  },
+
+  // Get task statistics
+  getStats: () => api.get('/tasks/stats').then((res) => res.data),
+
+  // Get a specific task by ID
+  getById: (id) => api.get(`/tasks/${id}`).then((res) => res.data),
+
+  // Create a new task
+  create: (data) => api.post('/tasks', data).then((res) => res.data),
+
+  // Update an existing task
+  update: (id, data) => api.patch(`/tasks/${id}`, data).then((res) => res.data),
+
+  // Toggle task completion status
+  toggleCompletion: (id) =>
+    api.patch(`/tasks/${id}/toggle-completion`).then((res) => res.data),
+
+  // Delete a task
+  delete: (id) => api.delete(`/tasks/${id}`).then((res) => res.data),
+
+  // Get tasks filtered by completion status
+  getByCompletion: (completed, additionalParams = {}) => {
+    const params = new URLSearchParams({
+      completed: completed.toString(),
+      ...additionalParams,
+    });
+    return api.get(`/tasks?${params.toString()}`).then((res) => res.data);
+  },
+
+  // Get tasks filtered by priority
+  getByPriority: (priority, additionalParams = {}) => {
+    const params = new URLSearchParams({
+      priority,
+      ...additionalParams,
+    });
+    return api.get(`/tasks?${params.toString()}`).then((res) => res.data);
+  },
+
+  // Get tasks filtered by category
+  getByCategory: (category, additionalParams = {}) => {
+    const params = new URLSearchParams({
+      category,
+      ...additionalParams,
+    });
+    return api.get(`/tasks?${params.toString()}`).then((res) => res.data);
+  },
+
+  // Get tasks for a specific patient
+  getByPatient: (patientId, additionalParams = {}) => {
+    const params = new URLSearchParams({
+      patientId,
+      ...additionalParams,
+    });
+    return api.get(`/tasks?${params.toString()}`).then((res) => res.data);
+  },
+
+  // Search tasks
+  search: (searchTerm, additionalParams = {}) => {
+    const params = new URLSearchParams({
+      search: searchTerm,
+      ...additionalParams,
+    });
+    return api.get(`/tasks?${params.toString()}`).then((res) => res.data);
+  },
+};

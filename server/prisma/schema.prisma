@@ -63,6 +63,7 @@ model DoctorProfile {
   consultationTypes DoctorConsultationType[]
   timeplans         DoctorTimeplan[]
   appointments      Appointment[]
+  tasks             Task[]
 
   @@map("doctor_profiles")
 }
@@ -106,6 +107,7 @@ model Patient {
   doctorId     String
   doctor       DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
   appointments Appointment[]
+  tasks        Task[]
 
   @@map("patients")
 }
@@ -204,6 +206,23 @@ enum AppointmentStatus {
   NO_SHOW
 }
 
+// Task priority enum
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// Task category enum  
+enum TaskCategory {
+  RENDEZ_VOUS // Appointments
+  DOCUMENTS // Documents
+  CONTACTER // Contact
+  PAIEMENTS // Payments
+  AUTRE // Other
+}
+
 // Appointment model for doctor-patient meetings
 model Appointment {
   id          String            @id @default(cuid())
@@ -228,4 +247,28 @@ model Appointment {
   updatedAt DateTime @updatedAt
 
   @@map("appointments")
+}
+
+// Task model for doctor task management
+model Task {
+  id          String       @id @default(cuid())
+  title       String
+  description String?      @db.Text
+  deadline    DateTime? // Optional deadline
+  priority    TaskPriority @default(MEDIUM)
+  category    TaskCategory @default(AUTRE)
+  completed   Boolean      @default(false)
+  completedAt DateTime? // When the task was completed
+
+  // Relations
+  doctorId String
+  doctor   DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  patientId String?
+  patient   Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("tasks")
 }

@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import PatientManagement from '../components/PatientManagement';
 import CalendarSection from '../components/CalendarSection';
 import AppointmentPanel from '../components/AppointmentPanel';
+import TaskManagement from '../components/tasks/TaskManagement';
 import {
   Users,
   Calendar,
@@ -68,19 +69,7 @@ const TabContent = ({
           />
         );
       case 'tasks':
-        return (
-          <div className='p-4 sm:p-6'>
-            <h3 className='text-lg font-semibold mb-4'>Tasks</h3>
-            <div className='space-y-4'>
-              <div className='p-4 border border-gray-200 rounded-lg'>
-                <h4 className='font-medium'>Pending Tasks</h4>
-                <p className='text-sm text-gray-600 mt-2'>
-                  Track your daily tasks and deadlines.
-                </p>
-              </div>
-            </div>
-          </div>
-        );
+        return <TaskManagement />;
       case 'consultations':
         return (
           <div className='p-4 sm:p-6'>
