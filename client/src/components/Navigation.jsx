@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
 import LanguageSwitcher from './LanguageSwitcher';
-import Logo from '../assets/logo.png';
+import Logo from '../assets/logo copy.png';
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { isAuthenticated, user, logout } = useAuth();
