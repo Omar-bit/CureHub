@@ -43,12 +43,15 @@ export class AuthController {
   ) {
     const result = await this.authService.login(loginDto, lang);
 
-    // Set HTTP-only cookie
+    // Set HTTP-only cookie with production-friendly configuration
+    const isProduction = process.env.NODE_ENV === 'production';
+
     response.cookie('access_token', result.access_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: isProduction, // Only send over HTTPS in production
+      sameSite: isProduction ? 'none' : 'lax', // 'none' required for cross-site cookies in production
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      path: '/', // Ensure cookie is available for all paths
     });
 
     // Return user data without the token
@@ -58,7 +61,15 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   async logout(@Res({ passthrough: true }) response: Response) {
-    response.clearCookie('access_token');
+    // Clear cookie with same options as when setting it
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    response.clearCookie('access_token', {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      path: '/',
+    });
     return { message: 'Logged out successfully' };
   }
 
