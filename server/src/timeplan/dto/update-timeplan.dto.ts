@@ -1,4 +1,4 @@
-import { PartialType, OmitType } from '@nestjs/mapped-types';
+import { PartialType, OmitType } from '@nestjs/swagger';
 import { CreateTimeplanDto, CreateTimeSlotDto } from './create-timeplan.dto';
 import {
   IsOptional,
@@ -36,6 +36,10 @@ export class UpdateTimeplanDto extends OmitType(
   PartialType(CreateTimeplanDto),
   ['timeSlots'] as const,
 ) {
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
