@@ -66,7 +66,7 @@ const SheetContent = React.forwardRef(
           {...props}
           ref={ref}
         >
-          {title && (
+          {title ? (
             <div className='sticky top-0  border-b border-border px-6 py-4 flex items-center justify-between z-[100] bg-white/80'>
               <h2 className='text-lg font-semibold text-foreground'>{title}</h2>
               <Button
@@ -79,6 +79,16 @@ const SheetContent = React.forwardRef(
                 <span className='sr-only'>Close</span>
               </Button>
             </div>
+          ) : (
+            <Button
+              variant='ghost'
+              size='icon'
+              onClick={onClose}
+              className='absolute top-3 right-3 h-6 w-6 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2'
+            >
+              <X className='h-4 w-4' />
+              <span className='sr-only'>Close</span>
+            </Button>
           )}
           <div className='overflow-y-auto flex-1 p-6 '>{children}</div>
         </div>
