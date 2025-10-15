@@ -23,7 +23,7 @@ const FormField = React.forwardRef(
         {label && (
           <Label htmlFor={id} className='text-sm font-medium text-foreground'>
             {label}
-            {required && <span className='text-destructive ml-1'>*</span>}
+            {required && <span className='text-destructive ml-[1px]'>*</span>}
           </Label>
         )}
 
