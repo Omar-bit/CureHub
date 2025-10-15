@@ -64,6 +64,7 @@ model DoctorProfile {
   timeplans         DoctorTimeplan[]
   appointments      Appointment[]
   tasks             Task[]
+  events            Event[]
 
   @@map("doctor_profiles")
 }
@@ -223,6 +224,13 @@ enum TaskCategory {
   AUTRE // Other
 }
 
+// Event type enum
+enum EventType {
+  JOUR // Full day event
+  PLAGE // Time range event
+  PONCTUEL // Point in time event
+}
+
 // Appointment model for doctor-patient meetings
 model Appointment {
   id          String            @id @default(cuid())
@@ -271,4 +279,27 @@ model Task {
   updatedAt DateTime @updatedAt
 
   @@map("tasks")
+}
+
+// Event model for doctor events management
+model Event {
+  id                String    @id @default(cuid())
+  title             String
+  description       String?   @db.Text
+  eventType         EventType
+  startDate         DateTime
+  endDate           DateTime? // For PLAGE type events
+  startTime         String? // Format: "HH:mm" for PLAGE and PONCTUEL types
+  endTime           String? // Format: "HH:mm" for PLAGE type
+  blockAppointments Boolean   @default(false) // Bloquer la prise de RDV
+  isRecurring       Boolean   @default(false) // Évènement récurrent
+  color             String? // Color for calendar display
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  doctorId String
+  doctor   DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@map("events")
 }

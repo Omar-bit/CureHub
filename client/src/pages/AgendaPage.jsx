@@ -5,6 +5,7 @@ import PatientManagement from '../components/PatientManagement';
 import CalendarSection from '../components/CalendarSection';
 import AppointmentPanel from '../components/AppointmentPanel';
 import TaskManagement from '../components/tasks/TaskManagement';
+import EventManagement from '../components/EventManagement';
 import {
   Users,
   Calendar,
@@ -14,6 +15,7 @@ import {
   ChevronRight,
   Menu,
   X,
+  CalendarDays,
 } from 'lucide-react';
 
 // Agenda sidebar navigation items
@@ -29,6 +31,12 @@ const agendaSidebarItems = [
     label: 'Meetings',
     icon: Calendar,
     color: 'bg-green-500',
+  },
+  {
+    id: 'events',
+    label: 'Events',
+    icon: CalendarDays,
+    color: 'bg-indigo-500',
   },
   {
     id: 'tasks',
@@ -68,6 +76,8 @@ const TabContent = ({
             {...appointmentPanelProps}
           />
         );
+      case 'events':
+        return <EventManagement />;
       case 'tasks':
         return <TaskManagement />;
       case 'consultations':

@@ -15,6 +15,7 @@ import { ConsultationTypesModule } from './consultation-types/consultation-types
 import { TimeplanModule } from './timeplan/timeplan.module';
 import { AppointmentModule } from './appointment/appointment.module';
 import { TaskModule } from './task/task.module';
+import { EventModule } from './event/event.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { TaskModule } from './task/task.module';
     TimeplanModule,
     AppointmentModule,
     TaskModule,
+    EventModule,
   ],
   controllers: [AppController],
   providers: [AppService],
