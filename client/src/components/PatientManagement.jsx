@@ -23,7 +23,7 @@ import { SheetContent } from './ui/sheet';
 import { ConfirmDialog } from './ui/confirm-dialog';
 import { EntityCard } from './ui/entity-card';
 import { FormInput, FormSelect, FormTextarea } from './ui/form-field';
-import { SearchBar } from './ui/search-bar';
+import { CategorizedSearchBar } from './ui/categorized-search-bar';
 import { Alert } from './ui/alert';
 
 import PatientCard from './PatientCard';
@@ -33,9 +33,19 @@ import PatientFormSheet from './PatientFormSheet';
 // Main Patient Management Component
 const PatientManagement = () => {
   const { t } = useTranslation();
+
+  // Search categories configuration
+  const searchCategories = [
+    { value: 'name', label: t('Name') || 'Nom Prénom' },
+    { value: 'dateOfBirth', label: t('Birth Date') || 'Date naiss.' },
+    { value: 'phoneNumber', label: t('Phone') || 'Téléphone' },
+    { value: 'email', label: t('Email') || 'Email' },
+    { value: 'address', label: t('Address') || 'Adresse' },
+  ];
   const [patients, setPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchCategory, setSearchCategory] = useState('name');
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [editingPatient, setEditingPatient] = useState(null);
   const [patientToDelete, setPatientToDelete] = useState(null);
@@ -50,21 +60,46 @@ const PatientManagement = () => {
     loadPatients();
   }, []);
 
-  // Filter patients based on search query
+  // Filter patients based on search query and category
   useEffect(() => {
     if (!searchQuery.trim()) {
       setFilteredPatients(patients);
     } else {
-      const filtered = patients.filter(
-        (patient) =>
-          patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (patient.email &&
-            patient.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
-          (patient.phoneNumber && patient.phoneNumber.includes(searchQuery))
-      );
+      const filtered = patients.filter((patient) => {
+        const query = searchQuery.toLowerCase();
+
+        switch (searchCategory) {
+          case 'name':
+            return patient.name?.toLowerCase().includes(query);
+          case 'dateOfBirth':
+            // Convert date to string for searching
+            const dateStr = patient.dateOfBirth
+              ? new Date(patient.dateOfBirth).toLocaleDateString()
+              : '';
+            return dateStr.toLowerCase().includes(query);
+          case 'phoneNumber':
+            return patient.phoneNumber?.includes(query);
+          case 'email':
+            return patient.email?.toLowerCase().includes(query);
+          case 'address':
+            return patient.address?.toLowerCase().includes(query);
+          default:
+            // Fallback to search all fields if category not found
+            const fallbackDateStr = patient.dateOfBirth
+              ? new Date(patient.dateOfBirth).toLocaleDateString()
+              : '';
+            return (
+              patient.name?.toLowerCase().includes(query) ||
+              patient.email?.toLowerCase().includes(query) ||
+              patient.phoneNumber?.includes(query) ||
+              patient.address?.toLowerCase().includes(query) ||
+              fallbackDateStr.toLowerCase().includes(query)
+            );
+        }
+      });
       setFilteredPatients(filtered);
     }
-  }, [patients, searchQuery]);
+  }, [patients, searchQuery, searchCategory]);
 
   const loadPatients = async () => {
     try {
@@ -146,6 +181,10 @@ const PatientManagement = () => {
     setSearchQuery('');
   };
 
+  const handleCategoryChange = (category) => {
+    setSearchCategory(category);
+  };
+
   return (
     <div className=' flex flex-col '>
       {/* Header */}
@@ -154,18 +193,21 @@ const PatientManagement = () => {
           <div className='flex items-center'>
             <Users className='w-6 h-6 text-primary mr-2' />
             <h2 className='text-xl font-semibold text-foreground'>Patients</h2>
+            <Plus
+              onClick={handleAddPatient}
+              className='text-primary bg-primary/30 rounded-full p-1 ml-2 cursor-pointer'
+            />
           </div>
-          <Button onClick={handleAddPatient} leftIcon={<Plus />}>
-            Add Patient
-          </Button>
         </div>
 
-        {/* Search Bar */}
-        <SearchBar
-          placeholder='Search patients...'
+        {/* Search Bar with Categories */}
+        <CategorizedSearchBar
           value={searchQuery}
+          selectedCategory={searchCategory}
+          categories={searchCategories}
           onChange={handleSearchChange}
           onClear={handleSearchClear}
+          onCategoryChange={handleCategoryChange}
         />
       </div>
 
@@ -186,7 +228,10 @@ const PatientManagement = () => {
             <Users className='w-12 h-12 mb-2 text-muted-foreground/50' />
             <p className='text-sm'>
               {searchQuery
-                ? 'No patients found matching your search'
+                ? `No patients found matching "${searchQuery}" in ${
+                    searchCategories.find((cat) => cat.value === searchCategory)
+                      ?.label || 'selected category'
+                  }`
                 : 'No patients yet'}
             </p>
             {!searchQuery && (

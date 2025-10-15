@@ -1,10 +1,27 @@
-import React from 'react';
-import { User, Mail, Phone, Edit3, Trash2 } from 'lucide-react';
-import { EntityCard } from './ui/entity-card';
+import React, { useState } from 'react';
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  UserCheck,
+  Users,
+  MessageCircle,
+  FileText,
+  Activity,
+  Clock,
+  CalendarDays,
+  CheckSquare,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
 
 const PatientCard = ({ patient, onEdit, onDelete, onView }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString();
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR');
   };
 
   const calculateAge = (dateOfBirth) => {
@@ -23,64 +40,158 @@ const PatientCard = ({ patient, onEdit, onDelete, onView }) => {
     return age;
   };
 
-  const avatar = (
-    <div className='w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center'>
-      {patient.profileImage ? (
-        <img
-          src={patient.profileImage}
-          alt={patient.name}
-          className='w-12 h-12 rounded-full object-cover'
-        />
-      ) : (
-        <User className='w-6 h-6 text-primary' />
-      )}
-    </div>
-  );
-
-  const metadata = [
-    ...(patient.email
-      ? [
-          {
-            icon: <Mail />,
-            value: patient.email,
-          },
-        ]
-      : []),
-    ...(patient.phoneNumber
-      ? [
-          {
-            icon: <Phone />,
-            value: patient.phoneNumber,
-          },
-        ]
-      : []),
-  ];
-
-  const actions = [
+  const actionButtons = [
     {
-      icon: <Edit3 className='w-4 h-4' />,
-      onClick: () => onEdit(patient),
-      tooltip: 'Edit patient',
+      icon: UserCheck,
+      label: 'Profil',
+      onClick: () => onView(patient),
+      variant: 'default',
     },
     {
-      icon: <Trash2 className='w-4 h-4' />,
-      onClick: () => onDelete(patient),
-      variant: 'destructive',
-      tooltip: 'Delete patient',
+      icon: Users,
+      label: 'Proches',
+      onClick: () => console.log('Proches clicked'),
+      variant: 'secondary',
+    },
+    {
+      icon: MessageCircle,
+      label: 'Contacter',
+      onClick: () => console.log('Contact clicked'),
+      variant: 'secondary',
+    },
+    {
+      icon: FileText,
+      label: 'Docs',
+      onClick: () => console.log('Docs clicked'),
+      variant: 'secondary',
+    },
+    {
+      icon: Activity,
+      label: 'Actes',
+      onClick: () => console.log('Actes clicked'),
+      variant: 'secondary',
+    },
+    {
+      icon: Clock,
+      label: 'Historique',
+      onClick: () => console.log('Historique clicked'),
+      variant: 'secondary',
+    },
+    {
+      icon: CalendarDays,
+      label: 'RDV',
+      onClick: () => console.log('RDV clicked'),
+      variant: 'secondary',
+      badge: true,
+    },
+    {
+      icon: CheckSquare,
+      label: 'Tâche',
+      onClick: () => console.log('Tâche clicked'),
+      variant: 'secondary',
+      badge: true,
     },
   ];
 
   return (
-    <EntityCard
-      avatar={avatar}
-      title={patient.name}
-      subtitle={`${calculateAge(patient.dateOfBirth)} years old • ${
-        patient.gender
-      }`}
-      metadata={metadata}
-      actions={actions}
-      onClick={() => onView(patient)}
-    />
+    <div className='bg-gray-100 rounded-lg shadow-sm border border-gray-300 p-4 mb-4 hover:shadow-md transition-all duration-300'>
+      {/* Collapsed Header Section */}
+      <div className='flex items-center justify-between'>
+        <div className='flex-1'>
+          <h3 className='text-lg font-semibold text-gray-900 mb-1'>
+            {patient.name}
+          </h3>
+          <p className='text-sm text-gray-600 mb-2'>
+            Née le {formatDate(patient.dateOfBirth)} •{' '}
+            {calculateAge(patient.dateOfBirth)} ans
+          </p>
+
+          {/* Essential contact info in collapsed state */}
+          {!isExpanded && (
+            <div className='flex items-center space-x-4 text-sm text-gray-600'>
+              {patient.phoneNumber && (
+                <div className='flex items-center'>
+                  <Phone className='w-3 h-3 mr-1' />
+                </div>
+              )}
+              {patient.email && (
+                <div className='flex items-center'>
+                  <Mail className='w-3 h-3 mr-1' />
+                </div>
+              )}
+              {patient.address && (
+                <div className='flex items-center'>
+                  <MapPin className='w-3 h-3 mr-1' />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Expand/Collapse Button */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className='ml-4 p-2 rounded-full hover:bg-gray-200 transition-colors'
+        >
+          {isExpanded ? (
+            <ChevronUp className='w-5 h-5 text-gray-600' />
+          ) : (
+            <ChevronDown className='w-5 h-5 text-gray-600' />
+          )}
+        </button>
+      </div>
+
+      {/* Expanded Content */}
+      {isExpanded && (
+        <div className='mt-4 space-y-4 animate-in slide-in-from-top-2 duration-300'>
+          {/* Detailed Contact Information */}
+          <div className='space-y-2'>
+            {patient.phoneNumber && (
+              <div className='flex items-center text-sm text-gray-600'>
+                <Phone className='w-4 h-4 mr-2' />
+                <span>{patient.phoneNumber}</span>
+              </div>
+            )}
+
+            {patient.email && (
+              <div className='flex items-center text-sm text-gray-600'>
+                <Mail className='w-4 h-4 mr-2' />
+                <span>{patient.email}</span>
+              </div>
+            )}
+
+            {patient.address && (
+              <div className='flex items-center text-sm text-gray-600'>
+                <MapPin className='w-4 h-4 mr-2' />
+                <span>{patient.address}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons Grid */}
+          <div className='flex items-center justify-around gap-2 pt-2 border-t border-gray-300'>
+            {actionButtons.map((action, index) => {
+              const Icon = action.icon;
+              return (
+                <button
+                  key={index}
+                  onClick={action.onClick}
+                  className='relative flex flex-col items-center justify-center p-3 rounded-lg bg-gray-50 hover:bg-gray-200 transition-colors border border-gray-200'
+                >
+                  <Icon className='w-5 h-5 text-gray-600 mb-1' />
+                  <span className='text-xs text-gray-700 font-medium'>
+                    {action.label}
+                  </span>
+                  {action.badge && (
+                    <div className='absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full'></div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
