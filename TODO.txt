@@ -1,6 +1,5 @@
-**deploy last commit (db schema fix)**
-  fix email service in production**
   Consultation file management 0.5d
+  fix email service in production
   User profile settings 0.5d
   Doctor statistics 0.5d
   PTO management 0.5d
@@ -21,4 +20,3 @@
 -title RENDEZ_VOUS
 consultation tabs (button)
 time slots (jours)
-projet notion   

@@ -44,12 +44,7 @@ const agendaSidebarItems = [
     icon: ClipboardList,
     color: 'bg-orange-500',
   },
-  {
-    id: 'consultations',
-    label: 'Consultations',
-    icon: Stethoscope,
-    color: 'bg-purple-500',
-  },
+
   {
     id: 'payments',
     label: 'Payments',
@@ -80,20 +75,7 @@ const TabContent = ({
         return <EventManagement />;
       case 'tasks':
         return <TaskManagement />;
-      case 'consultations':
-        return (
-          <div className='p-4 sm:p-6'>
-            <h3 className='text-lg font-semibold mb-4'>Consultations</h3>
-            <div className='space-y-4'>
-              <div className='p-4 border border-gray-200 rounded-lg'>
-                <h4 className='font-medium'>Recent Consultations</h4>
-                <p className='text-sm text-gray-600 mt-2'>
-                  Review consultation notes and patient records.
-                </p>
-              </div>
-            </div>
-          </div>
-        );
+
       case 'payments':
         return (
           <div className='p-4 sm:p-6'>
@@ -151,11 +133,12 @@ const AgendaSidebar = ({ activeTab, setActiveTab, isVisible, onClose }) => {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`
+                  className={` cursor-pointer
+                    p-2
                     w-full flex flex-col gap-1  justify-center items-center text-sm font-medium rounded-md transition-colors
                     ${
                       isActive
-                        ? 'bg-white text-gray-900 shadow-sm'
+                        ? 'bg-white text-gray-900 shadow-lg'
                         : 'text-gray-600 hover:bg-white hover:text-gray-900'
                     }
                   `}
@@ -321,6 +304,10 @@ const AgendaPage = () => {
         {/* Tab content section - shows on right when a tab is active */}
         {activeTab && (
           <div className='flex-1 lg:w-1/2 transition-all duration-300 overflow-hidden static lg:absolute  top-0 right-0 h-full bg-white z-10 shadoww rounded-l-[5%]'>
+            <X
+              onClick={() => setActiveTab(null)}
+              className='absolute bg-gray-500 rounded-full p-1 text-white top-3 right-4  hover:text-gray-900 z-50 cursor-pointer hover:bg-gray-300 opacity-90'
+            />
             <TabContent
               activeTab={activeTab}
               appointmentPanelProps={appointmentPanelProps}
