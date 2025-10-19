@@ -44,37 +44,37 @@ const PatientCard = ({ patient, onEdit, onDelete, onView }) => {
     {
       icon: UserCheck,
       label: 'Profil',
-      onClick: () => onView(patient),
+      onClick: () => onView(patient, 'profil'),
       variant: 'default',
     },
     {
       icon: Users,
       label: 'Proches',
-      onClick: () => console.log('Proches clicked'),
+      onClick: () => onView(patient, 'proches'),
       variant: 'secondary',
     },
     {
       icon: MessageCircle,
       label: 'Contacter',
-      onClick: () => console.log('Contact clicked'),
+      onClick: () => onView(patient, 'contacter'),
       variant: 'secondary',
     },
     {
       icon: FileText,
       label: 'Docs',
-      onClick: () => console.log('Docs clicked'),
+      onClick: () => onView(patient, 'documents'),
       variant: 'secondary',
     },
     {
       icon: Activity,
       label: 'Actes',
-      onClick: () => console.log('Actes clicked'),
+      onClick: () => onView(patient, 'actes'),
       variant: 'secondary',
     },
     {
       icon: Clock,
       label: 'Historique',
-      onClick: () => console.log('Historique clicked'),
+      onClick: () => onView(patient, 'historique'),
       variant: 'secondary',
     },
     {

@@ -47,6 +47,7 @@ const PatientManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchCategory, setSearchCategory] = useState('name');
   const [selectedPatient, setSelectedPatient] = useState(null);
+  const [selectedTab, setSelectedTab] = useState('profil');
   const [editingPatient, setEditingPatient] = useState(null);
   const [patientToDelete, setPatientToDelete] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -128,8 +129,9 @@ const PatientManagement = () => {
     setShowDetails(false);
   };
 
-  const handleViewPatient = (patient) => {
+  const handleViewPatient = (patient, tab = 'profil') => {
     setSelectedPatient(patient);
+    setSelectedTab(tab);
     setShowDetails(true);
   };
 
@@ -264,9 +266,13 @@ const PatientManagement = () => {
         <PatientDetailsSheet
           patient={selectedPatient}
           isOpen={showDetails}
-          onClose={() => setShowDetails(false)}
+          onClose={() => {
+            setShowDetails(false);
+            setSelectedTab('profil'); // Reset to default tab when closing
+          }}
           onEdit={handleEditPatient}
           onDelete={handleDeletePatient}
+          initialTab={selectedTab}
         />
       )}
 

@@ -31,8 +31,9 @@ const PatientDetailsSheet = ({
   onClose,
   onEdit,
   onDelete,
+  initialTab = 'profil',
 }) => {
-  const [activeTab, setActiveTab] = useState('profil');
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [appointments, setAppointments] = useState({
     upcoming: [],
     past: [],
@@ -45,6 +46,11 @@ const PatientDetailsSheet = ({
       fetchPatientAppointments();
     }
   }, [patient?.id, activeTab, isOpen]);
+
+  // Update active tab when initialTab prop changes
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   const fetchPatientAppointments = async () => {
     if (!patient?.id) return;
