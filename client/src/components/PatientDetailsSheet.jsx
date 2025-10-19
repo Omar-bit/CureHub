@@ -23,6 +23,7 @@ import { SheetContent, SheetHeader, SheetTitle, SheetFooter } from './ui/sheet';
 import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { appointmentAPI } from '../services/api';
+import PatientDocumentsTab from './PatientDocumentsTab';
 
 const PatientDetailsSheet = ({
   patient,
@@ -367,10 +368,7 @@ const PatientDetailsSheet = ({
           </TabsContent>
 
           <TabsContent value='documents' className='space-y-4'>
-            <div className='text-center text-muted-foreground py-8'>
-              <FileText className='w-12 h-12 mx-auto mb-4 opacity-50' />
-              <p>Patient documents and files will be displayed here</p>
-            </div>
+            <PatientDocumentsTab patient={patient} />
           </TabsContent>
 
           <TabsContent value='actes' className='space-y-4'>
@@ -574,23 +572,25 @@ const PatientDetailsSheet = ({
       </Tabs>
 
       {/* Action Buttons */}
-      <SheetFooter className='mt-8'>
-        <Button
-          onClick={() => onEdit(patient)}
-          className='flex-1'
-          leftIcon={<Edit3 />}
-        >
-          Edit Patient
-        </Button>
-        <Button
-          onClick={() => onDelete(patient)}
-          variant='destructive'
-          className='flex-1'
-          leftIcon={<Trash2 />}
-        >
-          Delete
-        </Button>
-      </SheetFooter>
+      {activeTab === 'profil' && (
+        <SheetFooter className='mt-8'>
+          <Button
+            onClick={() => onEdit(patient)}
+            className='flex-1'
+            leftIcon={<Edit3 />}
+          >
+            Edit Patient
+          </Button>
+          <Button
+            onClick={() => onDelete(patient)}
+            variant='destructive'
+            className='flex-1'
+            leftIcon={<Trash2 />}
+          >
+            Delete
+          </Button>
+        </SheetFooter>
+      )}
     </SheetContent>
   );
 };

@@ -1,0 +1,24 @@
+-- CreateTable
+CREATE TABLE `patient_documents` (
+    `id` VARCHAR(191) NOT NULL,
+    `originalName` VARCHAR(191) NOT NULL,
+    `fileName` VARCHAR(191) NOT NULL,
+    `filePath` VARCHAR(191) NOT NULL,
+    `fileSize` INTEGER NOT NULL,
+    `mimeType` VARCHAR(191) NOT NULL,
+    `category` ENUM('PHARMACIE', 'BIOLOGIE', 'RADIOLOGIE', 'OPTIQUE', 'MATERIEL', 'AUTRE', 'COMPTES_RENDUS', 'IMAGERIE', 'OPERATION', 'CONSULTATION', 'HOSPITALISATION', 'SOINS_PARAMEDICAUX', 'KINE', 'INFIRMIER', 'PODOLOGUE', 'ORTHOPTISTE', 'ORTHOPHONISTE', 'ADMINISTRATIF', 'COURRIER', 'CERTIFICAT', 'HONORAIRES', 'CONSENTEMENT', 'ASSURANCE', 'DEVIS') NOT NULL DEFAULT 'AUTRE',
+    `description` VARCHAR(191) NULL,
+    `uploadDate` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+    `patientId` VARCHAR(191) NOT NULL,
+    `doctorId` VARCHAR(191) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- AddForeignKey
+ALTER TABLE `patient_documents` ADD CONSTRAINT `patient_documents_patientId_fkey` FOREIGN KEY (`patientId`) REFERENCES `patients`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `patient_documents` ADD CONSTRAINT `patient_documents_doctorId_fkey` FOREIGN KEY (`doctorId`) REFERENCES `doctor_profiles`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

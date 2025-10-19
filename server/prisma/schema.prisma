@@ -65,6 +65,7 @@ model DoctorProfile {
   appointments      Appointment[]
   tasks             Task[]
   events            Event[]
+  documents         PatientDocument[]
 
   @@map("doctor_profiles")
 }
@@ -106,9 +107,10 @@ model Patient {
 
   // Relations
   doctorId     String
-  doctor       DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  doctor       DoctorProfile     @relation(fields: [doctorId], references: [id], onDelete: Cascade)
   appointments Appointment[]
   tasks        Task[]
+  documents    PatientDocument[]
 
   @@map("patients")
 }
@@ -302,4 +304,56 @@ model Event {
   doctor   DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
 
   @@map("events")
+}
+
+// Document category enum
+enum DocumentCategory {
+  PHARMACIE // Pharmacy
+  BIOLOGIE // Biology
+  RADIOLOGIE // Radiology
+  OPTIQUE // Optical
+  MATERIEL // Medical equipment
+  AUTRE // Other
+  COMPTES_RENDUS // Reports
+  IMAGERIE // Imaging
+  OPERATION // Surgery
+  CONSULTATION // Consultation
+  HOSPITALISATION // Hospitalization
+  SOINS_PARAMEDICAUX // Paramedical care
+  KINE // Physiotherapy
+  INFIRMIER // Nursing
+  PODOLOGUE // Podiatrist
+  ORTHOPTISTE // Orthoptist
+  ORTHOPHONISTE // Speech therapist
+  ADMINISTRATIF // Administrative
+  COURRIER // Correspondence
+  CERTIFICAT // Certificate
+  HONORAIRES // Fees
+  CONSENTEMENT // Consent
+  ASSURANCE // Insurance
+  DEVIS // Estimates
+}
+
+// Patient document model
+model PatientDocument {
+  id           String           @id @default(cuid())
+  originalName String // Original filename when uploaded
+  fileName     String // Stored filename on server
+  filePath     String // File storage path
+  fileSize     Int // File size in bytes
+  mimeType     String // MIME type (e.g., "application/pdf", "image/jpeg")
+  category     DocumentCategory @default(AUTRE)
+  description  String? // Optional description
+  uploadDate   DateTime         @default(now())
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  // Relations
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  doctorId String
+  doctor   DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@map("patient_documents")
 }

@@ -295,3 +295,58 @@ export const taskAPI = {
     return api.get(`/tasks?${params.toString()}`).then((res) => res.data);
   },
 };
+
+// Patient Documents API
+export const documentsApi = {
+  // Upload a document for a patient
+  upload: (file, patientId, category, description) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('patientId', patientId);
+    if (category) formData.append('category', category);
+    if (description) formData.append('description', description);
+
+    return api
+      .post('/patient-documents/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+      .then((res) => res.data);
+  },
+
+  // Get all documents for a patient
+  getByPatient: (patientId, filters = {}) => {
+    const params = new URLSearchParams(filters);
+    return api
+      .get(`/patient-documents/patient/${patientId}?${params.toString()}`)
+      .then((res) => res.data);
+  },
+
+  // Get document categories
+  getCategories: () =>
+    api.get('/patient-documents/categories').then((res) => res.data),
+
+  // Get a specific document
+  get: (documentId) =>
+    api.get(`/patient-documents/${documentId}`).then((res) => res.data),
+
+  // Update a document
+  update: (documentId, data) =>
+    api.put(`/patient-documents/${documentId}`, data).then((res) => res.data),
+
+  // Delete a document
+  delete: (documentId) =>
+    api.delete(`/patient-documents/${documentId}`).then((res) => res.data),
+
+  // Download a document
+  download: (documentId) => {
+    return api.get(`/patient-documents/${documentId}/download`, {
+      responseType: 'blob',
+    });
+  },
+
+  // Get download URL for a document
+  getDownloadUrl: (documentId) =>
+    `${API_BASE_URL}/patient-documents/${documentId}/download`,
+};

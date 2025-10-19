@@ -16,6 +16,7 @@ import { TimeplanModule } from './timeplan/timeplan.module';
 import { AppointmentModule } from './appointment/appointment.module';
 import { TaskModule } from './task/task.module';
 import { EventModule } from './event/event.module';
+import { PatientDocumentsModule } from './patient-documents/patient-documents.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { EventModule } from './event/event.module';
     AppointmentModule,
     TaskModule,
     EventModule,
+    PatientDocumentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
