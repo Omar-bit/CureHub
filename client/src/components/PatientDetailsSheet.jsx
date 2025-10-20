@@ -24,6 +24,7 @@ import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { appointmentAPI } from '../services/api';
 import PatientDocumentsTab from './PatientDocumentsTab';
+import PatientRelativesTab from './PatientRelativesTab';
 
 const PatientDetailsSheet = ({
   patient,
@@ -302,10 +303,7 @@ const PatientDetailsSheet = ({
           </TabsContent>
 
           <TabsContent value='proches' className='space-y-4'>
-            <div className='text-center text-muted-foreground py-8'>
-              <Users className='w-12 h-12 mx-auto mb-4 opacity-50' />
-              <p>Family members and contacts will be displayed here</p>
-            </div>
+            <PatientRelativesTab patient={patient} />
           </TabsContent>
 
           <TabsContent value='contacter' className='space-y-4'>

@@ -91,6 +91,39 @@ export const patientAPI = {
 
   // Restore a deleted patient
   restore: (id) => api.patch(`/patients/${id}/restore`).then((res) => res.data),
+
+  // Patient Relationships API
+
+  // Get all relatives (proches) of a patient
+  getRelatives: (patientId) =>
+    api.get(`/patients/${patientId}/relatives`).then((res) => res.data),
+
+  // Create a new patient and link them as a relative
+  createWithRelationship: (mainPatientId, data) =>
+    api
+      .post(`/patients/${mainPatientId}/relatives`, data)
+      .then((res) => res.data),
+
+  // Add an existing patient as a relative
+  addExistingRelative: (mainPatientId, relatedPatientId, relationshipData) =>
+    api
+      .post(
+        `/patients/${mainPatientId}/relatives/${relatedPatientId}`,
+        relationshipData
+      )
+      .then((res) => res.data),
+
+  // Remove a patient relationship
+  removeRelationship: (relationshipId) =>
+    api
+      .delete(`/patients/relationships/${relationshipId}`)
+      .then((res) => res.data),
+
+  // Update patient permissions
+  updatePermissions: (patientId, permissions) =>
+    api
+      .patch(`/patients/${patientId}/permissions`, permissions)
+      .then((res) => res.data),
 };
 
 export const consultationTypesAPI = {

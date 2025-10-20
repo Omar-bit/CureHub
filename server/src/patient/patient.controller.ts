@@ -19,6 +19,8 @@ import {
 } from './dto/patient.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { CreatePatientRelationshipDto } from './dto/create-patient-relationship.dto';
+import { UpdatePatientPermissionsDto } from './dto/update-patient-permissions.dto';
 
 @Controller('patients')
 @UseGuards(JwtAuthGuard)
@@ -96,5 +98,103 @@ export class PatientController {
     }
 
     return this.patientService.restore(id, user.doctorProfile.id);
+  }
+
+  // Patient Relationships Endpoints
+
+  @Get(':id/relatives')
+  async getPatientRelatives(
+    @CurrentUser() user: any,
+    @Param('id') patientId: string,
+  ) {
+    // Ensure user is a doctor and has a doctor profile
+    if (user.role !== 'DOCTOR' || !user.doctorProfile?.id) {
+      throw new Error('Only doctors can access patient relatives');
+    }
+
+    return this.patientService.getPatientRelatives(
+      patientId,
+      user.doctorProfile.id,
+    );
+  }
+
+  @Post(':id/relatives')
+  @HttpCode(HttpStatus.CREATED)
+  async createPatientWithRelationship(
+    @CurrentUser() user: any,
+    @Param('id') mainPatientId: string,
+    @Body()
+    body: {
+      patient: CreatePatientDto;
+      relationship: CreatePatientRelationshipDto;
+    },
+  ) {
+    // Ensure user is a doctor and has a doctor profile
+    if (user.role !== 'DOCTOR' || !user.doctorProfile?.id) {
+      throw new Error('Only doctors can create patient relatives');
+    }
+
+    return this.patientService.createPatientWithRelationship(
+      mainPatientId,
+      user.doctorProfile.id,
+      body.patient,
+      body.relationship,
+    );
+  }
+
+  @Post(':id/relatives/:relatedPatientId')
+  @HttpCode(HttpStatus.CREATED)
+  async addExistingPatientAsRelative(
+    @CurrentUser() user: any,
+    @Param('id') mainPatientId: string,
+    @Param('relatedPatientId') relatedPatientId: string,
+    @Body() relationshipDto: CreatePatientRelationshipDto,
+  ) {
+    // Ensure user is a doctor and has a doctor profile
+    if (user.role !== 'DOCTOR' || !user.doctorProfile?.id) {
+      throw new Error('Only doctors can link patient relatives');
+    }
+
+    return this.patientService.addExistingPatientAsRelative(
+      mainPatientId,
+      relatedPatientId,
+      user.doctorProfile.id,
+      relationshipDto,
+    );
+  }
+
+  @Delete('relationships/:relationshipId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async removePatientRelationship(
+    @CurrentUser() user: any,
+    @Param('relationshipId') relationshipId: string,
+  ) {
+    // Ensure user is a doctor and has a doctor profile
+    if (user.role !== 'DOCTOR' || !user.doctorProfile?.id) {
+      throw new Error('Only doctors can remove patient relationships');
+    }
+
+    return this.patientService.removePatientRelationship(
+      relationshipId,
+      user.doctorProfile.id,
+    );
+  }
+
+  @Patch(':id/permissions')
+  async updatePatientPermissions(
+    @CurrentUser() user: any,
+    @Param('id') patientId: string,
+    @Body() permissionsDto: UpdatePatientPermissionsDto,
+  ) {
+    // Ensure user is a doctor and has a doctor profile
+    if (user.role !== 'DOCTOR' || !user.doctorProfile?.id) {
+      throw new Error('Only doctors can update patient permissions');
+    }
+
+    return this.patientService.updatePatientPermissions(
+      patientId,
+      user.doctorProfile.id,
+      permissionsDto,
+    );
   }
 }

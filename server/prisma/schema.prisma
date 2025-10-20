@@ -90,6 +90,32 @@ enum ConsultationType {
   URGENT
 }
 
+// Relationship type enum for patient relatives
+enum RelationshipType {
+  FAMILY
+  OTHER
+}
+
+// Family relationship enum
+enum FamilyRelationship {
+  SON
+  DAUGHTER
+  FATHER
+  MOTHER
+  BROTHER
+  SISTER
+  SPOUSE
+  GRANDFATHER
+  GRANDMOTHER
+  GRANDSON
+  GRANDDAUGHTER
+  UNCLE
+  AUNT
+  NEPHEW
+  NIECE
+  COUSIN
+}
+
 // Patient model managed by doctors
 model Patient {
   id           String   @id @default(cuid())
@@ -102,8 +128,13 @@ model Patient {
   phoneNumber  String?
   address      String?  @db.Text
   isDeleted    Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+
+  // Permissions for patient relatives
+  canAddRelatives     Boolean @default(false) // Ajouter des proches
+  canBookForRelatives Boolean @default(false) // Prendre RDV pour un proche existant
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
   doctorId     String
@@ -112,7 +143,37 @@ model Patient {
   tasks        Task[]
   documents    PatientDocument[]
 
+  // Patient relationships (as the main patient)
+  relatedPatients        PatientRelationship[] @relation("MainPatient")
+  // Relationships where this patient is the related one
+  relationshipsAsRelated PatientRelationship[] @relation("RelatedPatient")
+
   @@map("patients")
+}
+
+// Patient Relationship model for linking patients as relatives
+model PatientRelationship {
+  id               String           @id @default(cuid())
+  relationshipType RelationshipType
+
+  // For FAMILY type
+  familyRelationship FamilyRelationship?
+
+  // For OTHER type
+  customRelationship String? // Custom description for "other" relationships
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations - bidirectional relationship
+  mainPatientId String
+  mainPatient   Patient @relation("MainPatient", fields: [mainPatientId], references: [id], onDelete: Cascade)
+
+  relatedPatientId String
+  relatedPatient   Patient @relation("RelatedPatient", fields: [relatedPatientId], references: [id], onDelete: Cascade)
+
+  @@unique([mainPatientId, relatedPatientId]) // Prevent duplicate relationships
+  @@map("patient_relationships")
 }
 
 // Consultation Type model for doctors to define their consultation offerings
