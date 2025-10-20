@@ -58,6 +58,8 @@ export class PatientService {
         isDeleted: true,
         createdAt: true,
         updatedAt: true,
+        canAddRelatives: true,
+        canBookForRelatives: true,
       },
     });
   }
