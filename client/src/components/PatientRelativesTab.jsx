@@ -29,7 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from './ui/alert-dialog';
-import AddRelativeDialog from './AddRelativeDialog';
+import AddRelativeSheet from './AddRelativeSheet';
 
 const PatientRelativesTab = ({ patient }) => {
   console.log({ patient });
@@ -356,8 +356,8 @@ const PatientRelativesTab = ({ patient }) => {
         </div>
       )}
 
-      {/* Add Relative Dialog */}
-      <AddRelativeDialog
+      {/* Add Relative Sheet */}
+      <AddRelativeSheet
         open={addRelativeOpen}
         onOpenChange={setAddRelativeOpen}
         mainPatient={patient}

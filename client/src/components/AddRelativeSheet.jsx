@@ -201,9 +201,12 @@ const AddRelativeSheet = ({ open, onOpenChange, mainPatient, onSuccess }) => {
   if (!open) return null;
 
   return (
-    <SheetContent title='Ajouter un proche' onClose={handleClose}>
-      <div className='space-y-4'>
-        <div className='text-sm text-muted-foreground'>
+    <SheetContent
+      title="Ajouter un proche"
+      onClose={handleClose}
+    >
+      <div className="space-y-4">
+        <div className="text-sm text-muted-foreground">
           Ajoutez un nouveau patient ou sélectionnez un patient existant comme
           proche de <strong>{mainPatient?.name}</strong>
         </div>
