@@ -49,7 +49,7 @@ export class AuthController {
     response.cookie('access_token', result.access_token, {
       httpOnly: true,
       secure: isProduction, // Only send over HTTPS in production
-      sameSite: isProduction ? 'none' : 'lax', // 'none' required for cross-site cookies in production
+      sameSite: 'none', //isProduction ? 'none' : 'lax', // 'none' required for cross-site cookies in production
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       path: '/', // Ensure cookie is available for all paths
     });
