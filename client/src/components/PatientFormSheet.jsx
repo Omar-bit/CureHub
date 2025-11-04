@@ -5,6 +5,16 @@ import { FormInput, FormSelect, FormTextarea } from './ui/form-field';
 import { Alert } from './ui/alert';
 
 const PatientFormSheet = ({ patient, isOpen, onClose, onSave }) => {
+  let patientFullName = ['', ''];
+  let patientFirstName = '';
+  let patientLastName = '';
+  if (patient != null) {
+    patientFullName = patient.name.includes('!SP!')
+      ? patient.name.split('!SP!')
+      : patient.name.split(' ');
+    patientFirstName = patientFullName[0] || '';
+    patientLastName = patientFullName.slice(1).join(' ') || '';
+  }
   const [formData, setFormData] = useState({
     lastName: '',
     firstName: '',
@@ -22,10 +32,8 @@ const PatientFormSheet = ({ patient, isOpen, onClose, onSave }) => {
 
   useEffect(() => {
     if (patient) {
-      // Split the name into first and last name
-      const nameParts = (patient.name || '').split(' ');
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '';
+      const firstName = patientFirstName;
+      const lastName = patientLastName;
 
       setFormData({
         lastName: lastName,
@@ -67,7 +75,7 @@ const PatientFormSheet = ({ patient, isOpen, onClose, onSave }) => {
       const payload = {
         ...formData,
         // Combine first and last name for backend compatibility
-        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        name: `${formData.firstName} !SP! ${formData.lastName}`.trim(),
         phoneNumber: formData.mobilePhone, // Map to existing backend field
       };
 

@@ -19,6 +19,11 @@ import {
 
 const PatientCard = ({ patient, onEdit, onDelete, onView }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+
+  const patientName = patient.name.includes('!SP!')
+    ? patient.name.split('!SP!').join(' ')
+    : patient.name;
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('fr-FR');
@@ -99,7 +104,7 @@ const PatientCard = ({ patient, onEdit, onDelete, onView }) => {
       <div className='flex items-center justify-between'>
         <div className='flex-1'>
           <h3 className='text-lg font-semibold text-gray-900 mb-1'>
-            {patient.name}
+            {patientName}
           </h3>
           <p className='text-sm text-gray-600 mb-2'>
             Née le {formatDate(patient.dateOfBirth)} •{' '}

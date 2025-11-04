@@ -40,7 +40,9 @@ const PatientDetailsSheet = ({
     past: [],
   });
   const [loadingAppointments, setLoadingAppointments] = useState(false);
-
+  const patientName = patient.name.includes('!SP!')
+    ? patient.name.split('!SP!').join(' ')
+    : patient.name;
   // Fetch appointments when patient changes or tab becomes active
   useEffect(() => {
     if (patient?.id && (activeTab === 'historique' || isOpen)) {
@@ -178,9 +180,7 @@ const PatientDetailsSheet = ({
             <User className='w-10 h-10 text-primary' />
           )}
         </div>
-        <h3 className='text-xl font-semibold text-foreground'>
-          {patient.name}
-        </h3>
+        <h3 className='text-xl font-semibold text-foreground'>{patientName}</h3>
         <p className='text-muted-foreground'>
           {calculateAge(patient.dateOfBirth)} years old • {patient.gender}
         </p>
@@ -261,7 +261,7 @@ const PatientDetailsSheet = ({
               <User className='w-6 h-6 text-primary' />
             )}
           </div>
-          <SheetTitle className='text-left'>{patient.name}</SheetTitle>
+          <SheetTitle className='text-left'>{patientName}</SheetTitle>
         </div>
       </SheetHeader>
 
