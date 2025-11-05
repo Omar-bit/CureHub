@@ -177,9 +177,9 @@ const AppointmentForm = ({
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.title.trim()) {
-      newErrors.title = 'Title is required';
-    }
+    // if (!formData.title.trim()) {
+    //   newErrors.title = 'Title is required';
+    // }
 
     if (!formData.date) {
       newErrors.date = 'Date is required';
@@ -239,7 +239,7 @@ const AppointmentForm = ({
       const endDateTime = addMinutes(startDateTime, selectedType.duration);
 
       const appointmentData = {
-        title: formData.title.trim(),
+        title: selectedPatient?.name || '', //patients names
         startTime: startDateTime.toISOString(),
         endTime: endDateTime.toISOString(),
         patientId: formData.patientId,
@@ -294,7 +294,7 @@ const AppointmentForm = ({
       <form onSubmit={handleSubmit} className={inline ? 'space-y-6' : 'p-6'}>
         <div className='space-y-6'>
           {/* Title */}
-          <div>
+          {/* <div>
             <label className='block text-sm font-medium text-gray-700 mb-2'>
               <FileText className='h-4 w-4 inline mr-2' />
               Title *
@@ -312,31 +312,11 @@ const AppointmentForm = ({
             {errors.title && (
               <p className='mt-1 text-sm text-red-600'>{errors.title}</p>
             )}
-          </div>
-
-          {/* Date */}
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
-              <Calendar className='h-4 w-4 inline mr-2' />
-              Date *
-            </label>
-            <input
-              type='date'
-              name='date'
-              value={formData.date}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.date ? 'border-red-300' : 'border-gray-300'
-              }`}
-            />
-            {errors.date && (
-              <p className='mt-1 text-sm text-red-600'>{errors.date}</p>
-            )}
-          </div>
+          </div> */}
 
           {/* Patient */}
           <div className='relative'>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
+            <label className='block text-xs font-medium text-cyan-800 mb-2'>
               <User className='h-4 w-4 inline mr-2' />
               Patient *
             </label>
@@ -348,7 +328,7 @@ const AppointmentForm = ({
               </div>
               <input
                 type='text'
-                value={patientSearch}
+                value={patientSearch?.replace('!SP!', '')}
                 onChange={handlePatientSearch}
                 onFocus={() => setShowPatientDropdown(true)}
                 className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
@@ -395,7 +375,7 @@ const AppointmentForm = ({
                           </div>
                           <div className='flex-1'>
                             <h4 className='font-medium text-gray-900'>
-                              {patient.name}
+                              {patient.name.replace('!SP!', ' ')}
                             </h4>
                             <p className='text-sm text-gray-500'>
                               {patient.dateOfBirth &&
@@ -447,9 +427,29 @@ const AppointmentForm = ({
             )}
           </div>
 
+          {/* Date */}
+          <div>
+            <label className='block text-xs font-medium text-cyan-800 mb-2'>
+              <Calendar className='h-4 w-4 inline mr-2' />
+              Date *
+            </label>
+            <input
+              type='date'
+              name='date'
+              value={formData.date}
+              onChange={handleChange}
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                errors.date ? 'border-red-300' : 'border-gray-300'
+              }`}
+            />
+            {errors.date && (
+              <p className='mt-1 text-sm text-red-600'>{errors.date}</p>
+            )}
+          </div>
+
           {/* Consultation Type */}
           <div className='relative'>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
+            <label className='block text-xs font-medium text-cyan-800 mb-2'>
               <CreditCard className='h-4 w-4 inline mr-2' />
               Consultation Type *
             </label>
@@ -757,7 +757,7 @@ const AppointmentForm = ({
           {/* Time Selection - only show when date and consultation type are selected */}
           {formData.date && formData.consultationTypeId && (
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label className='block text-xs font-medium text-cyan-800 mb-2'>
                 <Clock className='h-4 w-4 inline mr-2' />
                 Select Time *
               </label>
@@ -778,7 +778,7 @@ const AppointmentForm = ({
 
           {/* Description */}
           <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
+            <label className='block text-xs font-medium text-cyan-800 mb-2'>
               Description
             </label>
             <textarea
@@ -794,7 +794,7 @@ const AppointmentForm = ({
           {/* Status (only for editing) */}
           {appointment && (
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label className='block text-xs font-medium text-sky-500 mb-2'>
                 Status
               </label>
               <select
