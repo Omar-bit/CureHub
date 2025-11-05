@@ -122,6 +122,29 @@ const MeetingsSection = () => {
     }
   };
 
+  const handlePatientCreated = async (patientData) => {
+    try {
+      const newPatient = await patientAPI.create(patientData);
+
+      // Refresh patients list
+      const patientsData = await patientAPI.getAll();
+      setPatients(patientsData.patients || patientsData || []);
+
+      showSuccess('Patient created successfully!');
+      return newPatient;
+    } catch (error) {
+      console.error('Error creating patient:', error);
+
+      if (error.response?.data?.message) {
+        showError(error.response.data.message);
+      } else {
+        showError('Failed to create patient. Please try again.');
+      }
+
+      throw error;
+    }
+  };
+
   const handleDeleteAppointment = async (appointment) => {
     if (
       !confirm(
@@ -204,6 +227,7 @@ const MeetingsSection = () => {
         isOpen={isAppointmentFormOpen}
         onClose={handleCloseModals}
         onSave={handleSaveAppointment}
+        onPatientCreated={handlePatientCreated}
         patients={patients}
         consultationTypes={consultationTypes}
         selectedDate={selectedDateTime}

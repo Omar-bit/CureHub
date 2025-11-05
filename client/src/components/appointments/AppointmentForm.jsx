@@ -17,6 +17,8 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import TimeSlotSelector from '../ui/TimeSlotSelector';
+import PatientFormSheet from '../PatientFormSheet';
+import { Sheet } from '../ui/sheet';
 
 const AppointmentForm = ({
   appointment = null,
@@ -27,6 +29,7 @@ const AppointmentForm = ({
   consultationTypes = [],
   selectedDate = null,
   inline = false,
+  onPatientCreated = null, // Callback when a new patient is created
 }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -45,6 +48,8 @@ const AppointmentForm = ({
   const [showConsultationDropdown, setShowConsultationDropdown] =
     useState(false);
   const [selectedLocation, setSelectedLocation] = useState('ONSITE'); // Default to ONSITE (au cabinet)
+  const [showPatientFormSheet, setShowPatientFormSheet] = useState(false);
+  const [prefilledPatientName, setPrefilledPatientName] = useState(null);
 
   useEffect(() => {
     if (appointment) {
@@ -167,6 +172,40 @@ const AppointmentForm = ({
     setFormData((prev) => ({ ...prev, patientId: patient.id }));
     setPatientSearch(patient.name);
     setShowPatientDropdown(false);
+  };
+
+  const handleCreateNewPatient = () => {
+    // Parse the search text to pre-fill first and last name
+    const searchText = patientSearch.trim();
+    const nameParts = searchText.split(' ').filter((part) => part.length > 0);
+
+    setPrefilledPatientName({
+      firstName: nameParts[0] || '',
+      lastName: nameParts.slice(1).join(' ') || '',
+    });
+    setShowPatientFormSheet(true);
+    setShowPatientDropdown(false);
+  };
+
+  const handlePatientSaved = async (patientData) => {
+    try {
+      // Call the parent's callback to refresh patient list
+      if (onPatientCreated) {
+        const newPatient = await onPatientCreated(patientData);
+
+        // Select the newly created patient
+        if (newPatient) {
+          setFormData((prev) => ({ ...prev, patientId: newPatient.id }));
+          setPatientSearch(newPatient.name);
+        }
+      }
+
+      setShowPatientFormSheet(false);
+      setPrefilledPatientName(null);
+    } catch (error) {
+      // Error is handled by the parent component
+      throw error;
+    }
   };
 
   // Filter patients based on search
@@ -352,10 +391,11 @@ const AppointmentForm = ({
                     </span>
                     <button
                       type='button'
-                      className='flex items-center space-x-1 text-blue-600 hover:text-blue-700 text-sm'
+                      onClick={handleCreateNewPatient}
+                      className='flex items-center space-x-1 text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors'
                     >
-                      {/* <UserPlus className='h-4 w-4' />
-                      <span>Nouveau patient</span> */}
+                      <UserPlus className='h-4 w-4' />
+                      <span>Nouveau patient</span>
                     </button>
                   </div>
                 </div>
@@ -850,15 +890,49 @@ const AppointmentForm = ({
   );
 
   if (inline) {
-    return <div className='bg-white  rounded-lg'>{content}</div>;
+    return (
+      <>
+        <div className='bg-white  rounded-lg'>{content}</div>
+
+        {/* Patient Form Sheet */}
+        {showPatientFormSheet && (
+          <PatientFormSheet
+            patient={prefilledPatientName}
+            isOpen={showPatientFormSheet}
+            onClose={() => {
+              setShowPatientFormSheet(false);
+              setPrefilledPatientName(null);
+            }}
+            onSave={handlePatientSaved}
+          />
+        )}
+      </>
+    );
   }
 
   return (
-    <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
-      <div className='bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto'>
-        {content}
+    <>
+      <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
+        <div className='bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto'>
+          {content}
+        </div>
       </div>
-    </div>
+
+      {/* Patient Form Sheet */}
+      {showPatientFormSheet && (
+        <Sheet>
+          <PatientFormSheet
+            patient={prefilledPatientName}
+            isOpen={showPatientFormSheet}
+            onClose={() => {
+              setShowPatientFormSheet(false);
+              setPrefilledPatientName(null);
+            }}
+            onSave={handlePatientSaved}
+          />
+        </Sheet>
+      )}
+    </>
   );
 };
 

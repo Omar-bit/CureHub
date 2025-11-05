@@ -8,13 +8,23 @@ const PatientFormSheet = ({ patient, isOpen, onClose, onSave }) => {
   let patientFullName = ['', ''];
   let patientFirstName = '';
   let patientLastName = '';
+
+  // Handle both full patient object and prefilled name object
   if (patient != null) {
-    patientFullName = patient.name.includes('!SP!')
-      ? patient.name.split('!SP!')
-      : patient.name.split(' ');
-    patientFirstName = patientFullName[0] || '';
-    patientLastName = patientFullName.slice(1).join(' ') || '';
+    if (patient.name) {
+      // Full patient object with name field
+      patientFullName = patient.name.includes('!SP!')
+        ? patient.name.split('!SP!')
+        : patient.name.split(' ');
+      patientFirstName = patientFullName[0] || '';
+      patientLastName = patientFullName.slice(1).join(' ') || '';
+    } else if (patient.firstName || patient.lastName) {
+      // Pre-filled name object (from appointment form)
+      patientFirstName = patient.firstName || '';
+      patientLastName = patient.lastName || '';
+    }
   }
+
   const [formData, setFormData] = useState({
     lastName: '',
     firstName: '',
@@ -32,22 +42,39 @@ const PatientFormSheet = ({ patient, isOpen, onClose, onSave }) => {
 
   useEffect(() => {
     if (patient) {
-      const firstName = patientFirstName;
-      const lastName = patientLastName;
+      // Determine if this is a full patient object or just pre-filled names
+      const isFullPatient = patient.name !== undefined;
+
+      let firstName = '';
+      let lastName = '';
+
+      if (isFullPatient) {
+        // Full patient object
+        const fullName = patient.name.includes('!SP!')
+          ? patient.name.split('!SP!')
+          : patient.name.split(' ');
+        firstName = fullName[0] || '';
+        lastName = fullName.slice(1).join(' ') || '';
+      } else {
+        // Pre-filled name object
+        firstName = patient.firstName || '';
+        lastName = patient.lastName || '';
+      }
 
       setFormData({
         lastName: lastName,
         firstName: firstName,
-        dateOfBirth: patient.dateOfBirth
-          ? patient.dateOfBirth.split('T')[0]
-          : '',
-        gender: patient.gender || 'MALE',
-        email: patient.email || '',
-        mobilePhone: patient.phoneNumber || '',
+        dateOfBirth:
+          isFullPatient && patient.dateOfBirth
+            ? patient.dateOfBirth.split('T')[0]
+            : '',
+        gender: (isFullPatient && patient.gender) || 'MALE',
+        email: (isFullPatient && patient.email) || '',
+        mobilePhone: (isFullPatient && patient.phoneNumber) || '',
         landlinePhone: '',
-        address: patient.address || '',
+        address: (isFullPatient && patient.address) || '',
         showProvisionalCode: false,
-        profileImage: patient.profileImage || '',
+        profileImage: (isFullPatient && patient.profileImage) || '',
       });
     } else {
       setFormData({
@@ -115,11 +142,12 @@ const PatientFormSheet = ({ patient, isOpen, onClose, onSave }) => {
 
   if (!isOpen) return null;
 
+  // Determine title based on patient type
+  const isEditMode = patient && patient.name !== undefined;
+  const sheetTitle = isEditMode ? 'Modifier Patient' : 'Nouveau patient';
+
   return (
-    <SheetContent
-      title={patient ? 'Modifier Patient' : 'Nouveau patient'}
-      onClose={onClose}
-    >
+    <SheetContent title={sheetTitle} onClose={onClose}>
       <form onSubmit={handleSubmit} className='space-y-6'>
         {errors.general && (
           <Alert variant='destructive'>{errors.general}</Alert>
@@ -281,7 +309,7 @@ const PatientFormSheet = ({ patient, isOpen, onClose, onSave }) => {
             disabled={isLoading}
             className='bg-purple-600 hover:bg-purple-700'
           >
-            {patient ? 'Modifier' : 'Enregistrer'}
+            {isEditMode ? 'Modifier' : 'Enregistrer'}
           </Button>
         </SheetFooter>
       </form>

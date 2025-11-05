@@ -95,6 +95,28 @@ const AppointmentPanel = ({
     }
   };
 
+  const handlePatientCreated = async (patientData) => {
+    try {
+      const newPatient = await patientAPI.create(patientData);
+
+      // Refresh patients list
+      await loadInitialData();
+
+      showSuccess('Patient created successfully!');
+      return newPatient;
+    } catch (error) {
+      console.error('Error creating patient:', error);
+
+      if (error.response?.data?.message) {
+        showError(error.response.data.message);
+      } else {
+        showError('Failed to create patient. Please try again.');
+      }
+
+      throw error;
+    }
+  };
+
   const handleEditAppointment = () => {
     setCurrentMode('edit');
   };
@@ -181,6 +203,7 @@ const AppointmentPanel = ({
                   }
                 }}
                 onSave={handleSaveAppointment}
+                onPatientCreated={handlePatientCreated}
                 patients={patients}
                 consultationTypes={consultationTypes}
                 selectedDate={selectedDateTime}
