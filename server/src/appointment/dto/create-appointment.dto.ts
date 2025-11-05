@@ -52,10 +52,13 @@ export class CreateAppointmentDto {
   @IsOptional()
   notes?: string;
 
-  @ApiProperty({ description: 'Patient ID' })
+  @ApiProperty({
+    description: 'Patient ID (optional for "Sans fiche" appointments)',
+    required: false,
+  })
   @IsString()
-  @IsNotEmpty()
-  patientId: string;
+  @IsOptional()
+  patientId?: string;
 
   @ApiProperty({ description: 'Consultation type ID', required: false })
   @IsString()

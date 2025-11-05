@@ -308,8 +308,8 @@ model Appointment {
   doctorId String
   doctor   DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
 
-  patientId String
-  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patientId String?
+  patient   Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
   consultationTypeId String?
   consultationType   DoctorConsultationType? @relation(fields: [consultationTypeId], references: [id], onDelete: SetNull)

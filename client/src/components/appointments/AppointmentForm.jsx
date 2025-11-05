@@ -50,6 +50,8 @@ const AppointmentForm = ({
   const [selectedLocation, setSelectedLocation] = useState('ONSITE'); // Default to ONSITE (au cabinet)
   const [showPatientFormSheet, setShowPatientFormSheet] = useState(false);
   const [prefilledPatientName, setPrefilledPatientName] = useState(null);
+  const [isWithoutFile, setIsWithoutFile] = useState(false); // Track if "Sans fiche" is selected
+  const [withoutFileName, setWithoutFileName] = useState(''); // Store name for "Sans fiche" appointments
 
   useEffect(() => {
     if (appointment) {
@@ -67,10 +69,19 @@ const AppointmentForm = ({
         status: appointment.status || 'SCHEDULED',
       });
 
-      // Set patient search if editing
-      const patient = patients.find((p) => p.id === appointment.patientId);
-      if (patient) {
-        setPatientSearch(patient.name);
+      // Check if this is a "Sans fiche" appointment
+      if (!appointment.patientId && appointment.title) {
+        setIsWithoutFile(true);
+        setWithoutFileName(appointment.title);
+        setPatientSearch(appointment.title);
+      } else {
+        // Set patient search if editing with patient
+        const patient = patients.find((p) => p.id === appointment.patientId);
+        if (patient) {
+          setPatientSearch(patient.name);
+        }
+        setIsWithoutFile(false);
+        setWithoutFileName('');
       }
 
       // Set the correct location tab if editing
@@ -162,6 +173,10 @@ const AppointmentForm = ({
     setPatientSearch(value);
     setShowPatientDropdown(true);
 
+    // Reset "Sans fiche" mode when typing
+    setIsWithoutFile(false);
+    setWithoutFileName('');
+
     // Clear selected patient if search changes
     if (formData.patientId && value !== selectedPatient?.name) {
       setFormData((prev) => ({ ...prev, patientId: '' }));
@@ -171,6 +186,16 @@ const AppointmentForm = ({
   const handlePatientSelect = (patient) => {
     setFormData((prev) => ({ ...prev, patientId: patient.id }));
     setPatientSearch(patient.name);
+    setShowPatientDropdown(false);
+    setIsWithoutFile(false);
+    setWithoutFileName('');
+  };
+
+  const handleSansFiche = () => {
+    // Select "Sans fiche" mode
+    setIsWithoutFile(true);
+    setWithoutFileName(patientSearch.trim() || '');
+    setFormData((prev) => ({ ...prev, patientId: '' })); // Clear patient ID
     setShowPatientDropdown(false);
   };
 
@@ -230,8 +255,13 @@ const AppointmentForm = ({
       newErrors.startTime = 'Start time is required';
     }
 
-    if (!formData.patientId) {
+    if (!formData.patientId && !isWithoutFile) {
       newErrors.patientId = 'Patient is required';
+    }
+
+    if (isWithoutFile && !withoutFileName.trim()) {
+      newErrors.patientId =
+        'Patient name is required for Sans fiche appointments';
     }
 
     if (!formData.consultationTypeId) {
@@ -280,10 +310,10 @@ const AppointmentForm = ({
       const endDateTime = addMinutes(startDateTime, selectedType.duration);
 
       const appointmentData = {
-        title: selectedPatient?.name || '', //patients names
+        title: isWithoutFile ? withoutFileName : selectedPatient?.name || '', // Use Sans fiche name or patient name
         startTime: startDateTime.toISOString(),
         endTime: endDateTime.toISOString(),
-        patientId: formData.patientId,
+        patientId: isWithoutFile ? null : formData.patientId, // null for Sans fiche appointments
         consultationTypeId: formData.consultationTypeId,
         description: formData.description.trim(),
         status: formData.status,
@@ -391,14 +421,24 @@ const AppointmentForm = ({
                     <span className='text-sm font-medium text-gray-600'>
                       PATIENT
                     </span>
-                    <button
-                      type='button'
-                      onClick={handleCreateNewPatient}
-                      className='flex items-center space-x-1 text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors'
-                    >
-                      <UserPlus className='h-4 w-4' />
-                      <span>Nouveau patient</span>
-                    </button>
+                    <div className='flex items-center space-x-2'>
+                      <button
+                        type='button'
+                        onClick={handleSansFiche}
+                        className='flex items-center space-x-1 text-gray-600 hover:text-gray-700 text-sm font-medium transition-colors'
+                      >
+                        <FileText className='h-4 w-4' />
+                        <span>Sans fiche</span>
+                      </button>
+                      <button
+                        type='button'
+                        onClick={handleCreateNewPatient}
+                        className='flex items-center space-x-1 text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors'
+                      >
+                        <UserPlus className='h-4 w-4' />
+                        <span>Nouveau patient</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -454,7 +494,8 @@ const AppointmentForm = ({
               <p className='mt-1 text-sm text-red-600'>{errors.patientId}</p>
             )}
 
-            {selectedPatient && (
+            {/* Display selected patient or Sans fiche */}
+            {selectedPatient && !isWithoutFile && (
               <div className='mt-2 p-3 bg-gray-50 rounded-lg'>
                 <p className='text-sm text-gray-600'>
                   <strong>Contact:</strong> {selectedPatient.phoneNumber} |{' '}
@@ -465,6 +506,31 @@ const AppointmentForm = ({
                     <strong>Address:</strong> {selectedPatient.address}
                   </p>
                 )}
+              </div>
+            )}
+
+            {/* Display Sans fiche selection */}
+            {isWithoutFile && withoutFileName && (
+              <div className='mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg'>
+                <div className='flex items-center justify-between'>
+                  <div className='flex items-center space-x-2'>
+                    <FileText className='h-4 w-4 text-blue-600' />
+                    <span className='text-sm font-medium text-blue-900'>
+                      Sans fiche: {withoutFileName}
+                    </span>
+                  </div>
+                  <button
+                    type='button'
+                    onClick={() => {
+                      setIsWithoutFile(false);
+                      setWithoutFileName('');
+                      setPatientSearch('');
+                    }}
+                    className='text-blue-600 hover:text-blue-800'
+                  >
+                    <X className='h-4 w-4' />
+                  </button>
+                </div>
               </div>
             )}
           </div>

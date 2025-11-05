@@ -33,8 +33,10 @@ export class AppointmentService {
       ...appointmentData
     } = createAppointmentDto;
 
-    // Verify patient belongs to doctor
-    await this.verifyPatientBelongsToDoctor(patientId, doctorId);
+    // Verify patient belongs to doctor (only if patientId is provided)
+    if (patientId) {
+      await this.verifyPatientBelongsToDoctor(patientId, doctorId);
+    }
 
     // Verify consultation type belongs to doctor (if provided)
     if (consultationTypeId) {
@@ -60,7 +62,7 @@ export class AppointmentService {
         startTime: new Date(startTime),
         endTime: new Date(endTime),
         doctorId,
-        patientId,
+        patientId: patientId || null, // Allow null for "Sans fiche" appointments
         consultationTypeId,
       },
       include: {

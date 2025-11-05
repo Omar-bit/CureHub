@@ -253,42 +253,51 @@ const AppointmentDetails = ({
                 <User className='h-4 w-4 mr-2' />
                 Patient Information
               </h4>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                <div>
-                  <p className='text-sm text-gray-600'>Name</p>
-                  <p className='font-medium text-gray-900'>
-                    {appointment.patient?.name}
-                  </p>
+              {appointment.patient ? (
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  <div>
+                    <p className='text-sm text-gray-600'>Name</p>
+                    <p className='font-medium text-gray-900'>
+                      {appointment.patient.name}
+                    </p>
+                  </div>
+                  {appointment.patient.email && (
+                    <div>
+                      <p className='text-sm text-gray-600'>Email</p>
+                      <div className='flex items-center space-x-2'>
+                        <Mail className='h-4 w-4 text-gray-400' />
+                        <a
+                          href={`mailto:${appointment.patient.email}`}
+                          className='text-blue-600 hover:text-blue-800'
+                        >
+                          {appointment.patient.email}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  {appointment.patient.phoneNumber && (
+                    <div>
+                      <p className='text-sm text-gray-600'>Phone</p>
+                      <div className='flex items-center space-x-2'>
+                        <Phone className='h-4 w-4 text-gray-400' />
+                        <a
+                          href={`tel:${appointment.patient.phoneNumber}`}
+                          className='text-blue-600 hover:text-blue-800'
+                        >
+                          {appointment.patient.phoneNumber}
+                        </a>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                {appointment.patient?.email && (
-                  <div>
-                    <p className='text-sm text-gray-600'>Email</p>
-                    <div className='flex items-center space-x-2'>
-                      <Mail className='h-4 w-4 text-gray-400' />
-                      <a
-                        href={`mailto:${appointment.patient.email}`}
-                        className='text-blue-600 hover:text-blue-800'
-                      >
-                        {appointment.patient.email}
-                      </a>
-                    </div>
-                  </div>
-                )}
-                {appointment.patient?.phoneNumber && (
-                  <div>
-                    <p className='text-sm text-gray-600'>Phone</p>
-                    <div className='flex items-center space-x-2'>
-                      <Phone className='h-4 w-4 text-gray-400' />
-                      <a
-                        href={`tel:${appointment.patient.phoneNumber}`}
-                        className='text-blue-600 hover:text-blue-800'
-                      >
-                        {appointment.patient.phoneNumber}
-                      </a>
-                    </div>
-                  </div>
-                )}
-              </div>
+              ) : (
+                <div className='flex items-center space-x-2 text-gray-600'>
+                  <FileText className='h-4 w-4' />
+                  <span className='font-medium'>
+                    Sans fiche: {appointment.title || 'No name provided'}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Date and Time */}
