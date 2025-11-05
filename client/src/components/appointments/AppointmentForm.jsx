@@ -195,6 +195,8 @@ const AppointmentForm = ({
 
         // Select the newly created patient
         if (newPatient) {
+          console.log('New patient created:', newPatient);
+          // Directly set the patient data instead of calling handlePatientSelect
           setFormData((prev) => ({ ...prev, patientId: newPatient.id }));
           setPatientSearch(newPatient.name);
         }

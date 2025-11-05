@@ -124,11 +124,17 @@ const MeetingsSection = () => {
 
   const handlePatientCreated = async (patientData) => {
     try {
+      console.log('Creating patient with data:', patientData);
       const newPatient = await patientAPI.create(patientData);
+      console.log('Patient created successfully:', newPatient);
 
-      // Refresh patients list
-      const patientsData = await patientAPI.getAll();
-      setPatients(patientsData.patients || patientsData || []);
+      // Add the new patient to the list immediately for instant selection
+      setPatients((prev) => {
+        console.log('Current patients count:', prev.length);
+        const updated = [...prev, newPatient];
+        console.log('Updated patients count:', updated.length);
+        return updated;
+      });
 
       showSuccess('Patient created successfully!');
       return newPatient;
