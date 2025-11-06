@@ -3,6 +3,7 @@ CREATE TABLE `appointment_patients` (
     `id` VARCHAR(191) NOT NULL,
     `appointmentId` VARCHAR(191) NOT NULL,
     `patientId` VARCHAR(191) NOT NULL,
+    `isPrimary` BOOLEAN NOT NULL DEFAULT false,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
     UNIQUE INDEX `appointment_patients_appointmentId_patientId_key`(`appointmentId`, `patientId`),
