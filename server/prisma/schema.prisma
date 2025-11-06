@@ -137,11 +137,12 @@ model Patient {
   updatedAt DateTime @updatedAt
 
   // Relations
-  doctorId     String
-  doctor       DoctorProfile     @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  appointments Appointment[]
-  tasks        Task[]
-  documents    PatientDocument[]
+  doctorId            String
+  doctor              DoctorProfile        @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  appointments        Appointment[] // Keep for backward compatibility (primary patient)
+  appointmentPatients AppointmentPatient[] // New many-to-many relation
+  tasks               Task[]
+  documents           PatientDocument[]
 
   // Patient relationships (as the main patient)
   relatedPatients        PatientRelationship[] @relation("MainPatient")
@@ -308,8 +309,10 @@ model Appointment {
   doctorId String
   doctor   DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
 
-  patientId String?
+  patientId String? // Keep for backward compatibility - primary patient
   patient   Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  appointmentPatients AppointmentPatient[] // Multiple patients support
 
   consultationTypeId String?
   consultationType   DoctorConsultationType? @relation(fields: [consultationTypeId], references: [id], onDelete: SetNull)
@@ -318,6 +321,20 @@ model Appointment {
   updatedAt DateTime @updatedAt
 
   @@map("appointments")
+}
+
+// Junction table for appointments with multiple patients
+model AppointmentPatient {
+  id            String      @id @default(cuid())
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  patientId     String
+  patient       Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  isPrimary     Boolean     @default(false) // Mark the primary patient
+  createdAt     DateTime    @default(now())
+
+  @@unique([appointmentId, patientId]) // Prevent duplicate patient assignments
+  @@map("appointment_patients")
 }
 
 // Task model for doctor task management

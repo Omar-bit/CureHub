@@ -27,15 +27,26 @@ export class AppointmentService {
   ): Promise<Appointment> {
     const {
       patientId,
+      patientIds,
       consultationTypeId,
       startTime,
       endTime,
       ...appointmentData
     } = createAppointmentDto;
 
-    // Verify patient belongs to doctor (only if patientId is provided)
-    if (patientId) {
-      await this.verifyPatientBelongsToDoctor(patientId, doctorId);
+    // Determine which patients to use
+    const patientsToAdd =
+      patientIds && patientIds.length > 0
+        ? patientIds
+        : patientId
+          ? [patientId]
+          : [];
+
+    // Verify all patients belong to doctor
+    if (patientsToAdd.length > 0) {
+      for (const pid of patientsToAdd) {
+        await this.verifyPatientBelongsToDoctor(pid, doctorId);
+      }
     }
 
     // Verify consultation type belongs to doctor (if provided)
@@ -56,14 +67,24 @@ export class AppointmentService {
     // Validate appointment times
     this.validateAppointmentTimes(new Date(startTime), new Date(endTime));
 
+    // Create appointment with patients
     return this.prisma.appointment.create({
       data: {
         ...appointmentData,
         startTime: new Date(startTime),
         endTime: new Date(endTime),
         doctorId,
-        patientId: patientId || null, // Allow null for "Sans fiche" appointments
+        patientId: patientsToAdd.length > 0 ? patientsToAdd[0] : null, // First patient as primary for backward compatibility
         consultationTypeId,
+        appointmentPatients:
+          patientsToAdd.length > 0
+            ? {
+                create: patientsToAdd.map((pid, index) => ({
+                  patientId: pid,
+                  isPrimary: index === 0, // First patient is primary
+                })),
+              }
+            : undefined,
       },
       include: {
         patient: {
@@ -73,6 +94,19 @@ export class AppointmentService {
             profileImage: true,
             email: true,
             phoneNumber: true,
+          },
+        },
+        appointmentPatients: {
+          include: {
+            patient: {
+              select: {
+                id: true,
+                name: true,
+                profileImage: true,
+                email: true,
+                phoneNumber: true,
+              },
+            },
           },
         },
         consultationType: true,
@@ -165,6 +199,19 @@ export class AppointmentService {
               phoneNumber: true,
             },
           },
+          appointmentPatients: {
+            include: {
+              patient: {
+                select: {
+                  id: true,
+                  name: true,
+                  profileImage: true,
+                  email: true,
+                  phoneNumber: true,
+                },
+              },
+            },
+          },
           consultationType: true,
         },
       }),
@@ -193,6 +240,22 @@ export class AppointmentService {
             dateOfBirth: true,
             gender: true,
             address: true,
+          },
+        },
+        appointmentPatients: {
+          include: {
+            patient: {
+              select: {
+                id: true,
+                name: true,
+                profileImage: true,
+                email: true,
+                phoneNumber: true,
+                dateOfBirth: true,
+                gender: true,
+                address: true,
+              },
+            },
           },
         },
         consultationType: true,
@@ -227,15 +290,26 @@ export class AppointmentService {
 
     const {
       patientId,
+      patientIds,
       consultationTypeId,
       startTime,
       endTime,
       ...appointmentData
     } = updateAppointmentDto;
 
-    // Verify patient belongs to doctor (if changing patient)
-    if (patientId && patientId !== appointment.patientId) {
-      await this.verifyPatientBelongsToDoctor(patientId, doctorId);
+    // Determine which patients to use
+    const patientsToUpdate =
+      patientIds && patientIds.length > 0
+        ? patientIds
+        : patientId
+          ? [patientId]
+          : null;
+
+    // Verify all patients belong to doctor (if changing patients)
+    if (patientsToUpdate && patientsToUpdate.length > 0) {
+      for (const pid of patientsToUpdate) {
+        await this.verifyPatientBelongsToDoctor(pid, doctorId);
+      }
     }
 
     // Verify consultation type belongs to doctor (if provided)
@@ -257,15 +331,27 @@ export class AppointmentService {
       await this.checkTimeConflicts(doctorId, newStartTime, newEndTime, id);
     }
 
-    return this.prisma.appointment.update({
+    // Update appointment and patients
+    const updateData: any = {
+      ...appointmentData,
+      ...(startTime && { startTime: new Date(startTime) }),
+      ...(endTime && { endTime: new Date(endTime) }),
+      ...(consultationTypeId && { consultationTypeId }),
+    };
+
+    // If patients are being updated
+    if (patientsToUpdate) {
+      updateData.patientId = patientsToUpdate[0]; // First patient as primary
+
+      // Delete existing patient associations and create new ones
+      await this.prisma.appointmentPatient.deleteMany({
+        where: { appointmentId: id },
+      });
+    }
+
+    const updatedAppointment = await this.prisma.appointment.update({
       where: { id },
-      data: {
-        ...appointmentData,
-        ...(startTime && { startTime: new Date(startTime) }),
-        ...(endTime && { endTime: new Date(endTime) }),
-        ...(patientId && { patientId }),
-        ...(consultationTypeId && { consultationTypeId }),
-      },
+      data: updateData,
       include: {
         patient: {
           select: {
@@ -276,9 +362,38 @@ export class AppointmentService {
             phoneNumber: true,
           },
         },
+        appointmentPatients: {
+          include: {
+            patient: {
+              select: {
+                id: true,
+                name: true,
+                profileImage: true,
+                email: true,
+                phoneNumber: true,
+              },
+            },
+          },
+        },
         consultationType: true,
       },
     });
+
+    // Create new patient associations if provided
+    if (patientsToUpdate && patientsToUpdate.length > 0) {
+      await this.prisma.appointmentPatient.createMany({
+        data: patientsToUpdate.map((pid, index) => ({
+          appointmentId: id,
+          patientId: pid,
+          isPrimary: index === 0,
+        })),
+      });
+
+      // Fetch updated appointment with new associations
+      return this.findOne(id, doctorId);
+    }
+
+    return updatedAppointment;
   }
 
   async remove(id: string, doctorId: string): Promise<void> {
@@ -315,6 +430,17 @@ export class AppointmentService {
             profileImage: true,
           },
         },
+        appointmentPatients: {
+          include: {
+            patient: {
+              select: {
+                id: true,
+                name: true,
+                profileImage: true,
+              },
+            },
+          },
+        },
         consultationType: true,
       },
     });
@@ -347,6 +473,17 @@ export class AppointmentService {
             id: true,
             name: true,
             profileImage: true,
+          },
+        },
+        appointmentPatients: {
+          include: {
+            patient: {
+              select: {
+                id: true,
+                name: true,
+                profileImage: true,
+              },
+            },
           },
         },
         consultationType: true,

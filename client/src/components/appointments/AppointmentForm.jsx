@@ -50,8 +50,7 @@ const AppointmentForm = ({
   const [selectedLocation, setSelectedLocation] = useState('ONSITE'); // Default to ONSITE (au cabinet)
   const [showPatientFormSheet, setShowPatientFormSheet] = useState(false);
   const [prefilledPatientName, setPrefilledPatientName] = useState(null);
-  const [isWithoutFile, setIsWithoutFile] = useState(false); // Track if "Sans fiche" is selected
-  const [withoutFileName, setWithoutFileName] = useState(''); // Store name for "Sans fiche" appointments
+  const [selectedPatients, setSelectedPatients] = useState([]); // Array of selected patient objects (includes sans fiche patients)
 
   useEffect(() => {
     if (appointment) {
@@ -69,19 +68,32 @@ const AppointmentForm = ({
         status: appointment.status || 'SCHEDULED',
       });
 
-      // Check if this is a "Sans fiche" appointment
-      if (!appointment.patientId && appointment.title) {
-        setIsWithoutFile(true);
-        setWithoutFileName(appointment.title);
-        setPatientSearch(appointment.title);
-      } else {
-        // Set patient search if editing with patient
+      // Load multiple patients if available
+      if (
+        appointment.appointmentPatients &&
+        appointment.appointmentPatients.length > 0
+      ) {
+        const loadedPatients = appointment.appointmentPatients.map(
+          (ap) => ap.patient
+        );
+        setSelectedPatients(loadedPatients);
+        setPatientSearch(''); // Clear search when editing with multiple patients
+      } else if (!appointment.patientId && appointment.title) {
+        // Check if this is a "Sans fiche" appointment
+        const sansFichePatient = {
+          id: 'sans-fiche-' + Date.now(),
+          name: appointment.title,
+          isSansFiche: true,
+        };
+        setSelectedPatients([sansFichePatient]);
+        setPatientSearch('');
+      } else if (appointment.patientId) {
+        // Set patient search if editing with single patient
         const patient = patients.find((p) => p.id === appointment.patientId);
         if (patient) {
-          setPatientSearch(patient.name);
+          setSelectedPatients([patient]);
+          setPatientSearch('');
         }
-        setIsWithoutFile(false);
-        setWithoutFileName('');
       }
 
       // Set the correct location tab if editing
@@ -98,6 +110,7 @@ const AppointmentForm = ({
         date: format(selectedDate, 'yyyy-MM-dd'),
         startTime: '09:00',
       }));
+      setSelectedPatients([]);
     } else {
       // Reset form
       setFormData({
@@ -111,6 +124,7 @@ const AppointmentForm = ({
         status: 'SCHEDULED',
       });
       setPatientSearch('');
+      setSelectedPatients([]);
     }
     setErrors({});
   }, [appointment, selectedDate, isOpen, patients, consultationTypes]);
@@ -172,30 +186,36 @@ const AppointmentForm = ({
     const value = e.target.value;
     setPatientSearch(value);
     setShowPatientDropdown(true);
-
-    // Reset "Sans fiche" mode when typing
-    setIsWithoutFile(false);
-    setWithoutFileName('');
-
-    // Clear selected patient if search changes
-    if (formData.patientId && value !== selectedPatient?.name) {
-      setFormData((prev) => ({ ...prev, patientId: '' }));
-    }
   };
 
   const handlePatientSelect = (patient) => {
-    setFormData((prev) => ({ ...prev, patientId: patient.id }));
-    setPatientSearch(patient.name);
+    // Check if patient is already selected
+    if (selectedPatients.find((p) => p.id === patient.id)) {
+      return; // Don't add duplicate patients
+    }
+
+    // Add patient to the list
+    setSelectedPatients((prev) => [...prev, patient]);
+    setPatientSearch(''); // Clear search after adding
     setShowPatientDropdown(false);
-    setIsWithoutFile(false);
-    setWithoutFileName('');
+  };
+
+  const handleRemovePatient = (patientId) => {
+    setSelectedPatients((prev) => prev.filter((p) => p.id !== patientId));
   };
 
   const handleSansFiche = () => {
-    // Select "Sans fiche" mode
-    setIsWithoutFile(true);
-    setWithoutFileName(patientSearch.trim() || '');
-    setFormData((prev) => ({ ...prev, patientId: '' })); // Clear patient ID
+    // Create a "Sans fiche" patient object
+    const sansFicheName = patientSearch.trim() || 'Sans fiche';
+    const sansFichePatient = {
+      id: 'sans-fiche-' + Date.now(), // Unique temporary ID
+      name: sansFicheName,
+      isSansFiche: true, // Mark as sans fiche
+    };
+
+    // Add to selected patients
+    setSelectedPatients((prev) => [...prev, sansFichePatient]);
+    setPatientSearch(''); // Clear search
     setShowPatientDropdown(false);
   };
 
@@ -255,13 +275,9 @@ const AppointmentForm = ({
       newErrors.startTime = 'Start time is required';
     }
 
-    if (!formData.patientId && !isWithoutFile) {
-      newErrors.patientId = 'Patient is required';
-    }
-
-    if (isWithoutFile && !withoutFileName.trim()) {
-      newErrors.patientId =
-        'Patient name is required for Sans fiche appointments';
+    // Validate patient selection
+    if (selectedPatients.length === 0) {
+      newErrors.patientId = 'At least one patient is required';
     }
 
     if (!formData.consultationTypeId) {
@@ -309,11 +325,22 @@ const AppointmentForm = ({
       const startDateTime = new Date(`${formData.date}T${formData.startTime}`);
       const endDateTime = addMinutes(startDateTime, selectedType.duration);
 
+      // Separate regular patients from sans fiche patients
+      const regularPatients = selectedPatients.filter((p) => !p.isSansFiche);
+      const sansFichePatients = selectedPatients.filter((p) => p.isSansFiche);
+
+      // Get patient IDs array (only regular patients)
+      const patientIds = regularPatients.map((p) => p.id);
+
+      // Create title from all patient names
+      const allPatientNames = selectedPatients.map((p) => p.name).join(', ');
+
       const appointmentData = {
-        title: isWithoutFile ? withoutFileName : selectedPatient?.name || '', // Use Sans fiche name or patient name
+        title: allPatientNames,
         startTime: startDateTime.toISOString(),
         endTime: endDateTime.toISOString(),
-        patientId: isWithoutFile ? null : formData.patientId, // null for Sans fiche appointments
+        patientIds: patientIds.length > 0 ? patientIds : undefined, // Send array of patient IDs (only if there are regular patients)
+        patientId: patientIds.length === 0 ? null : undefined, // null if only sans fiche patients
         consultationTypeId: formData.consultationTypeId,
         description: formData.description.trim(),
         status: formData.status,
@@ -332,9 +359,6 @@ const AppointmentForm = ({
     }
   };
 
-  const selectedPatient = patients.find(
-    (p) => p.id === parseInt(formData.patientId)
-  );
   // Ensure we're properly parsing the consultation type ID
   const selectedConsultationType = formData.consultationTypeId
     ? consultationTypes.find(
@@ -494,43 +518,72 @@ const AppointmentForm = ({
               <p className='mt-1 text-sm text-red-600'>{errors.patientId}</p>
             )}
 
-            {/* Display selected patient or Sans fiche */}
-            {selectedPatient && !isWithoutFile && (
-              <div className='mt-2 p-3 bg-gray-50 rounded-lg'>
-                <p className='text-sm text-gray-600'>
-                  <strong>Contact:</strong> {selectedPatient.phoneNumber} |{' '}
-                  {selectedPatient.email}
-                </p>
-                {selectedPatient.address && (
-                  <p className='text-sm text-gray-600'>
-                    <strong>Address:</strong> {selectedPatient.address}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Display Sans fiche selection */}
-            {isWithoutFile && withoutFileName && (
-              <div className='mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg'>
+            {/* Display selected patients */}
+            {selectedPatients.length > 0 && (
+              <div className='mt-2 space-y-2'>
                 <div className='flex items-center justify-between'>
-                  <div className='flex items-center space-x-2'>
-                    <FileText className='h-4 w-4 text-blue-600' />
-                    <span className='text-sm font-medium text-blue-900'>
-                      Sans fiche: {withoutFileName}
-                    </span>
-                  </div>
-                  <button
-                    type='button'
-                    onClick={() => {
-                      setIsWithoutFile(false);
-                      setWithoutFileName('');
-                      setPatientSearch('');
-                    }}
-                    className='text-blue-600 hover:text-blue-800'
-                  >
-                    <X className='h-4 w-4' />
-                  </button>
+                  <span className='text-sm font-medium text-gray-700'>
+                    Selected Patients ({selectedPatients.length})
+                  </span>
                 </div>
+                {selectedPatients.map((patient) => (
+                  <div
+                    key={patient.id}
+                    className={`p-3 rounded-lg border ${
+                      patient.isSansFiche
+                        ? 'bg-blue-50 border-blue-200'
+                        : 'bg-gray-50 border-gray-200'
+                    }`}
+                  >
+                    <div className='flex items-center justify-between'>
+                      <div className='flex items-center space-x-3'>
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            patient.isSansFiche ? 'bg-blue-200' : 'bg-gray-200'
+                          }`}
+                        >
+                          {patient.isSansFiche ? (
+                            <FileText className='h-4 w-4 text-blue-600' />
+                          ) : (
+                            <User className='h-4 w-4 text-gray-500' />
+                          )}
+                        </div>
+                        <div>
+                          <p
+                            className={`text-sm font-medium ${
+                              patient.isSansFiche
+                                ? 'text-blue-900'
+                                : 'text-gray-900'
+                            }`}
+                          >
+                            {patient.name}
+                            {patient.isSansFiche && (
+                              <span className='ml-2 text-xs text-blue-600'>
+                                (Sans fiche)
+                              </span>
+                            )}
+                          </p>
+                          {patient.phoneNumber && !patient.isSansFiche && (
+                            <p className='text-xs text-gray-600'>
+                              {patient.phoneNumber}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        type='button'
+                        onClick={() => handleRemovePatient(patient.id)}
+                        className={`transition-colors ${
+                          patient.isSansFiche
+                            ? 'text-blue-500 hover:text-blue-700'
+                            : 'text-red-500 hover:text-red-700'
+                        }`}
+                      >
+                        <X className='h-4 w-4' />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>

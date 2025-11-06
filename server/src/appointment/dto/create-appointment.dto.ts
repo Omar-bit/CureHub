@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsDateString,
   IsEnum,
+  IsArray,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { AppointmentStatus } from '@prisma/client';
@@ -59,6 +60,16 @@ export class CreateAppointmentDto {
   @IsString()
   @IsOptional()
   patientId?: string;
+
+  @ApiProperty({
+    description: 'Array of patient IDs for appointments with multiple patients',
+    required: false,
+    type: [String],
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  patientIds?: string[];
 
   @ApiProperty({ description: 'Consultation type ID', required: false })
   @IsString()
