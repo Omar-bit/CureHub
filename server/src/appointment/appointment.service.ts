@@ -55,6 +55,23 @@ export class AppointmentService {
         consultationTypeId,
         doctorId,
       );
+
+      // Verify consultation type is enabled for all patients
+      for (const pid of patientsToAdd) {
+        const isEnabled = await this.isConsultationTypeEnabledForPatient(
+          pid,
+          consultationTypeId,
+        );
+        if (!isEnabled) {
+          const patient = await this.prisma.patient.findUnique({
+            where: { id: pid },
+            select: { name: true },
+          });
+          throw new BadRequestException(
+            `Consultation type is not enabled for patient ${patient?.name || pid}`,
+          );
+        }
+      }
     }
 
     // Check for time conflicts
@@ -318,6 +335,35 @@ export class AppointmentService {
         consultationTypeId,
         doctorId,
       );
+
+      // Get patients for this appointment
+      const checkPatients =
+        patientsToUpdate ||
+        (await this.prisma.appointmentPatient
+          .findMany({
+            where: { appointmentId: id },
+            select: { patientId: true },
+          })
+          .then((aps) => aps.map((ap) => ap.patientId)));
+
+      // Verify consultation type is enabled for all patients
+      if (checkPatients && checkPatients.length > 0) {
+        for (const pid of checkPatients) {
+          const isEnabled = await this.isConsultationTypeEnabledForPatient(
+            pid,
+            consultationTypeId,
+          );
+          if (!isEnabled) {
+            const patient = await this.prisma.patient.findUnique({
+              where: { id: pid },
+              select: { name: true },
+            });
+            throw new BadRequestException(
+              `Consultation type is not enabled for patient ${patient?.name || pid}`,
+            );
+          }
+        }
+      }
     }
 
     // Check for time conflicts (if changing time)
@@ -784,5 +830,22 @@ export class AppointmentService {
     }
 
     return slots;
+  }
+
+  private async isConsultationTypeEnabledForPatient(
+    patientId: string,
+    consultationTypeId: string,
+  ): Promise<boolean> {
+    const access = await this.prisma.patientConsultationTypeAccess.findUnique({
+      where: {
+        patientId_consultationTypeId: {
+          patientId,
+          consultationTypeId,
+        },
+      },
+    });
+
+    // If no record exists, default to enabled
+    return access ? access.isEnabled : true;
   }
 }

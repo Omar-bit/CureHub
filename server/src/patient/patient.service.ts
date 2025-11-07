@@ -15,6 +15,7 @@ import * as bcrypt from 'bcrypt';
 import { EmailService } from '../email/email.service';
 import { CreatePatientRelationshipDto } from './dto/create-patient-relationship.dto';
 import { UpdatePatientPermissionsDto } from './dto/update-patient-permissions.dto';
+import { UpdatePatientConsultationTypeAccessDto } from './dto/patient-consultation-type-access.dto';
 
 @Injectable()
 export class PatientService {
@@ -497,5 +498,138 @@ export class PatientService {
     });
 
     return updatedPatient;
+  }
+
+  /**
+   * Get all consultation types with their access status for a patient
+   */
+  async getPatientConsultationTypeAccess(patientId: string, doctorId: string) {
+    // Verify patient belongs to doctor
+    await this.findOne(patientId, doctorId);
+
+    // Get all consultation types for the doctor
+    const consultationTypes = await this.prisma.doctorConsultationType.findMany(
+      {
+        where: {
+          doctorId,
+          enabled: true, // Only show enabled consultation types
+        },
+        select: {
+          id: true,
+          name: true,
+          color: true,
+          location: true,
+          duration: true,
+          price: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      },
+    );
+
+    // Get patient-specific access settings
+    const accessSettings =
+      await this.prisma.patientConsultationTypeAccess.findMany({
+        where: {
+          patientId,
+        },
+        select: {
+          consultationTypeId: true,
+          isEnabled: true,
+        },
+      });
+
+    // Create a map for quick lookup
+    const accessMap = new Map(
+      accessSettings.map((access) => [
+        access.consultationTypeId,
+        access.isEnabled,
+      ]),
+    );
+
+    // Combine consultation types with their access status
+    return consultationTypes.map((ct) => ({
+      ...ct,
+      isEnabled: accessMap.has(ct.id) ? accessMap.get(ct.id) : true, // Default to enabled
+    }));
+  }
+
+  /**
+   * Update consultation type access for a patient
+   */
+  async updatePatientConsultationTypeAccess(
+    patientId: string,
+    doctorId: string,
+    accessDto: UpdatePatientConsultationTypeAccessDto,
+  ) {
+    // Verify patient belongs to doctor
+    await this.findOne(patientId, doctorId);
+
+    // Verify consultation type belongs to doctor
+    const consultationType = await this.prisma.doctorConsultationType.findFirst(
+      {
+        where: {
+          id: accessDto.consultationTypeId,
+          doctorId,
+        },
+      },
+    );
+
+    if (!consultationType) {
+      throw new NotFoundException('Consultation type not found');
+    }
+
+    // Upsert the access record
+    const access = await this.prisma.patientConsultationTypeAccess.upsert({
+      where: {
+        patientId_consultationTypeId: {
+          patientId,
+          consultationTypeId: accessDto.consultationTypeId,
+        },
+      },
+      create: {
+        patientId,
+        consultationTypeId: accessDto.consultationTypeId,
+        isEnabled: accessDto.isEnabled,
+      },
+      update: {
+        isEnabled: accessDto.isEnabled,
+      },
+      include: {
+        consultationType: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    return {
+      consultationTypeId: access.consultationTypeId,
+      consultationTypeName: access.consultationType.name,
+      isEnabled: access.isEnabled,
+    };
+  }
+
+  /**
+   * Check if a consultation type is enabled for a patient
+   */
+  async isConsultationTypeEnabledForPatient(
+    patientId: string,
+    consultationTypeId: string,
+  ): Promise<boolean> {
+    const access = await this.prisma.patientConsultationTypeAccess.findUnique({
+      where: {
+        patientId_consultationTypeId: {
+          patientId,
+          consultationTypeId,
+        },
+      },
+    });
+
+    // If no record exists, default to enabled
+    return access ? access.isEnabled : true;
   }
 }

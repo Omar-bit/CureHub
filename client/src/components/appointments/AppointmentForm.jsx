@@ -19,6 +19,7 @@ import {
 import TimeSlotSelector from '../ui/TimeSlotSelector';
 import PatientFormSheet from '../PatientFormSheet';
 import { Sheet } from '../ui/sheet';
+import { patientAPI } from '../../services/api';
 
 const AppointmentForm = ({
   appointment = null,
@@ -51,6 +52,9 @@ const AppointmentForm = ({
   const [showPatientFormSheet, setShowPatientFormSheet] = useState(false);
   const [prefilledPatientName, setPrefilledPatientName] = useState(null);
   const [selectedPatients, setSelectedPatients] = useState([]); // Array of selected patient objects (includes sans fiche patients)
+  const [patientConsultationAccess, setPatientConsultationAccess] = useState(
+    {}
+  ); // Store consultation type access for each patient
 
   useEffect(() => {
     if (appointment) {
@@ -128,6 +132,40 @@ const AppointmentForm = ({
     }
     setErrors({});
   }, [appointment, selectedDate, isOpen, patients, consultationTypes]);
+
+  // Fetch consultation type access for selected patients
+  useEffect(() => {
+    const fetchPatientAccess = async () => {
+      const accessMap = {};
+      for (const patient of selectedPatients) {
+        if (patient.id && !patient.isSansFiche) {
+          try {
+            const access = await patientAPI.getConsultationTypeAccess(
+              patient.id
+            );
+            // Create a map of consultation type ID to isEnabled status
+            accessMap[patient.id] = access.reduce((acc, ct) => {
+              acc[ct.id] = ct.isEnabled;
+              return acc;
+            }, {});
+          } catch (error) {
+            console.error(
+              `Failed to fetch consultation type access for patient ${patient.id}:`,
+              error
+            );
+            accessMap[patient.id] = {};
+          }
+        }
+      }
+      setPatientConsultationAccess(accessMap);
+    };
+
+    if (selectedPatients.length > 0) {
+      fetchPatientAccess();
+    } else {
+      setPatientConsultationAccess({});
+    }
+  }, [selectedPatients]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -259,6 +297,25 @@ const AppointmentForm = ({
   const filteredPatients = patients.filter((patient) =>
     patient.name.toLowerCase().includes(patientSearch.toLowerCase())
   );
+
+  // Check if a consultation type is enabled for all selected patients
+  const isConsultationTypeAvailable = (consultationTypeId) => {
+    // If no patients selected or all are "sans fiche", all consultation types are available
+    if (
+      selectedPatients.length === 0 ||
+      selectedPatients.every((p) => p.isSansFiche)
+    ) {
+      return true;
+    }
+
+    // Check if the consultation type is enabled for all patients
+    return selectedPatients.every((patient) => {
+      if (patient.isSansFiche) return true; // Sans fiche patients can access all types
+      const access = patientConsultationAccess[patient.id];
+      if (!access) return true; // If we don't have access data yet, assume enabled
+      return access[consultationTypeId] !== false; // Enabled if not explicitly disabled
+    });
+  };
 
   const validateForm = () => {
     const newErrors = {};
@@ -768,11 +825,98 @@ const AppointmentForm = ({
                       <div className='space-y-2'>
                         {consultationTypes
                           .filter((type) => type.location === 'ONSITE')
-                          .map((type) => (
+                          .map((type) => {
+                            const isAvailable = isConsultationTypeAvailable(
+                              type.id
+                            );
+                            return (
+                              <div
+                                key={type.id}
+                                onClick={() =>
+                                  isAvailable &&
+                                  handleConsultationTypeSelect(type)
+                                }
+                                className={`p-3 rounded-lg transition-colors ${
+                                  isAvailable
+                                    ? 'cursor-pointer hover:bg-gray-50'
+                                    : 'cursor-not-allowed opacity-50 bg-gray-50'
+                                } ${
+                                  formData.consultationTypeId ===
+                                  String(type.id)
+                                    ? 'bg-blue-50 border border-blue-200'
+                                    : 'border border-gray-200'
+                                }`}
+                              >
+                                <div className='flex items-center justify-between'>
+                                  <div className='flex items-center space-x-3'>
+                                    <div
+                                      className='w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold'
+                                      style={{
+                                        backgroundColor:
+                                          type.color || '#3B82F6',
+                                      }}
+                                    >
+                                      {type.duration}
+                                    </div>
+                                    <div>
+                                      <h4
+                                        className={`font-medium ${
+                                          isAvailable
+                                            ? 'text-gray-900'
+                                            : 'text-gray-500'
+                                        }`}
+                                      >
+                                        {type.name}
+                                        {!isAvailable && (
+                                          <span className='ml-2 text-xs text-red-500'>
+                                            (Non disponible)
+                                          </span>
+                                        )}
+                                      </h4>
+                                    </div>
+                                  </div>
+                                  <div className='text-right'>
+                                    <p
+                                      className={`font-semibold ${
+                                        isAvailable
+                                          ? 'text-gray-900'
+                                          : 'text-gray-500'
+                                      }`}
+                                    >
+                                      ${type.price}
+                                    </p>
+                                    <p className='text-xs text-gray-500'>
+                                      {type.duration} min.
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedLocation === 'ONLINE' && (
+                    <div className='space-y-2'>
+                      {consultationTypes
+                        .filter((type) => type.location === 'ONLINE')
+                        .map((type) => {
+                          const isAvailable = isConsultationTypeAvailable(
+                            type.id
+                          );
+                          return (
                             <div
                               key={type.id}
-                              onClick={() => handleConsultationTypeSelect(type)}
-                              className={`p-3 rounded-lg cursor-pointer transition-colors hover:bg-gray-50 ${
+                              onClick={() =>
+                                isAvailable &&
+                                handleConsultationTypeSelect(type)
+                              }
+                              className={`p-3 rounded-lg transition-colors ${
+                                isAvailable
+                                  ? 'cursor-pointer hover:bg-gray-50'
+                                  : 'cursor-not-allowed opacity-50 bg-gray-50'
+                              } ${
                                 formData.consultationTypeId === String(type.id)
                                   ? 'bg-blue-50 border border-blue-200'
                                   : 'border border-gray-200'
@@ -789,13 +933,30 @@ const AppointmentForm = ({
                                     {type.duration}
                                   </div>
                                   <div>
-                                    <h4 className='font-medium text-gray-900'>
+                                    <h4
+                                      className={`font-medium ${
+                                        isAvailable
+                                          ? 'text-gray-900'
+                                          : 'text-gray-500'
+                                      }`}
+                                    >
                                       {type.name}
+                                      {!isAvailable && (
+                                        <span className='ml-2 text-xs text-red-500'>
+                                          (Non disponible)
+                                        </span>
+                                      )}
                                     </h4>
                                   </div>
                                 </div>
                                 <div className='text-right'>
-                                  <p className='font-semibold text-gray-900'>
+                                  <p
+                                    className={`font-semibold ${
+                                      isAvailable
+                                        ? 'text-gray-900'
+                                        : 'text-gray-500'
+                                    }`}
+                                  >
                                     ${type.price}
                                   </p>
                                   <p className='text-xs text-gray-500'>
@@ -804,52 +965,8 @@ const AppointmentForm = ({
                                 </div>
                               </div>
                             </div>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedLocation === 'ONLINE' && (
-                    <div className='space-y-2'>
-                      {consultationTypes
-                        .filter((type) => type.location === 'ONLINE')
-                        .map((type) => (
-                          <div
-                            key={type.id}
-                            onClick={() => handleConsultationTypeSelect(type)}
-                            className={`p-3 rounded-lg cursor-pointer transition-colors hover:bg-gray-50 ${
-                              formData.consultationTypeId === String(type.id)
-                                ? 'bg-blue-50 border border-blue-200'
-                                : 'border border-gray-200'
-                            }`}
-                          >
-                            <div className='flex items-center justify-between'>
-                              <div className='flex items-center space-x-3'>
-                                <div
-                                  className='w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold'
-                                  style={{
-                                    backgroundColor: type.color || '#3B82F6',
-                                  }}
-                                >
-                                  {type.duration}
-                                </div>
-                                <div>
-                                  <h4 className='font-medium text-gray-900'>
-                                    {type.name}
-                                  </h4>
-                                </div>
-                              </div>
-                              <div className='text-right'>
-                                <p className='font-semibold text-gray-900'>
-                                  ${type.price}
-                                </p>
-                                <p className='text-xs text-gray-500'>
-                                  {type.duration} min.
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                     </div>
                   )}
 
@@ -857,43 +974,72 @@ const AppointmentForm = ({
                     <div className='space-y-2'>
                       {consultationTypes
                         .filter((type) => type.location === 'ATHOME')
-                        .map((type) => (
-                          <div
-                            key={type.id}
-                            onClick={() => handleConsultationTypeSelect(type)}
-                            className={`p-3 rounded-lg cursor-pointer transition-colors hover:bg-gray-50 ${
-                              formData.consultationTypeId === String(type.id)
-                                ? 'bg-blue-50 border border-blue-200'
-                                : 'border border-gray-200'
-                            }`}
-                          >
-                            <div className='flex items-center justify-between'>
-                              <div className='flex items-center space-x-3'>
-                                <div
-                                  className='w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold'
-                                  style={{
-                                    backgroundColor: type.color || '#3B82F6',
-                                  }}
-                                >
-                                  {type.duration}
+                        .map((type) => {
+                          const isAvailable = isConsultationTypeAvailable(
+                            type.id
+                          );
+                          return (
+                            <div
+                              key={type.id}
+                              onClick={() =>
+                                isAvailable &&
+                                handleConsultationTypeSelect(type)
+                              }
+                              className={`p-3 rounded-lg transition-colors ${
+                                isAvailable
+                                  ? 'cursor-pointer hover:bg-gray-50'
+                                  : 'cursor-not-allowed opacity-50 bg-gray-50'
+                              } ${
+                                formData.consultationTypeId === String(type.id)
+                                  ? 'bg-blue-50 border border-blue-200'
+                                  : 'border border-gray-200'
+                              }`}
+                            >
+                              <div className='flex items-center justify-between'>
+                                <div className='flex items-center space-x-3'>
+                                  <div
+                                    className='w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold'
+                                    style={{
+                                      backgroundColor: type.color || '#3B82F6',
+                                    }}
+                                  >
+                                    {type.duration}
+                                  </div>
+                                  <div>
+                                    <h4
+                                      className={`font-medium ${
+                                        isAvailable
+                                          ? 'text-gray-900'
+                                          : 'text-gray-500'
+                                      }`}
+                                    >
+                                      {type.name}
+                                      {!isAvailable && (
+                                        <span className='ml-2 text-xs text-red-500'>
+                                          (Non disponible)
+                                        </span>
+                                      )}
+                                    </h4>
+                                  </div>
                                 </div>
-                                <div>
-                                  <h4 className='font-medium text-gray-900'>
-                                    {type.name}
-                                  </h4>
+                                <div className='text-right'>
+                                  <p
+                                    className={`font-semibold ${
+                                      isAvailable
+                                        ? 'text-gray-900'
+                                        : 'text-gray-500'
+                                    }`}
+                                  >
+                                    ${type.price}
+                                  </p>
+                                  <p className='text-xs text-gray-500'>
+                                    {type.duration} min.
+                                  </p>
                                 </div>
-                              </div>
-                              <div className='text-right'>
-                                <p className='font-semibold text-gray-900'>
-                                  ${type.price}
-                                </p>
-                                <p className='text-xs text-gray-500'>
-                                  {type.duration} min.
-                                </p>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                     </div>
                   )}
                 </div>

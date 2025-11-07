@@ -124,6 +124,20 @@ export const patientAPI = {
     api
       .patch(`/patients/${patientId}/permissions`, permissions)
       .then((res) => res.data),
+
+  // Consultation Type Access API
+
+  // Get all consultation types with their access status for a patient
+  getConsultationTypeAccess: (patientId) =>
+    api
+      .get(`/patients/${patientId}/consultation-type-access`)
+      .then((res) => res.data),
+
+  // Update consultation type access for a patient
+  updateConsultationTypeAccess: (patientId, accessData) =>
+    api
+      .patch(`/patients/${patientId}/consultation-type-access`, accessData)
+      .then((res) => res.data),
 };
 
 export const consultationTypesAPI = {

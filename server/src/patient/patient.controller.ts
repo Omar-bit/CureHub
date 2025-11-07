@@ -21,6 +21,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CreatePatientRelationshipDto } from './dto/create-patient-relationship.dto';
 import { UpdatePatientPermissionsDto } from './dto/update-patient-permissions.dto';
+import { UpdatePatientConsultationTypeAccessDto } from './dto/patient-consultation-type-access.dto';
 
 @Controller('patients')
 @UseGuards(JwtAuthGuard)
@@ -195,6 +196,46 @@ export class PatientController {
       patientId,
       user.doctorProfile.id,
       permissionsDto,
+    );
+  }
+
+  // Consultation Type Access Endpoints
+
+  @Get(':id/consultation-type-access')
+  async getPatientConsultationTypeAccess(
+    @CurrentUser() user: any,
+    @Param('id') patientId: string,
+  ) {
+    // Ensure user is a doctor and has a doctor profile
+    if (user.role !== 'DOCTOR' || !user.doctorProfile?.id) {
+      throw new Error(
+        'Only doctors can access patient consultation type settings',
+      );
+    }
+
+    return this.patientService.getPatientConsultationTypeAccess(
+      patientId,
+      user.doctorProfile.id,
+    );
+  }
+
+  @Patch(':id/consultation-type-access')
+  async updatePatientConsultationTypeAccess(
+    @CurrentUser() user: any,
+    @Param('id') patientId: string,
+    @Body() accessDto: UpdatePatientConsultationTypeAccessDto,
+  ) {
+    // Ensure user is a doctor and has a doctor profile
+    if (user.role !== 'DOCTOR' || !user.doctorProfile?.id) {
+      throw new Error(
+        'Only doctors can update patient consultation type settings',
+      );
+    }
+
+    return this.patientService.updatePatientConsultationTypeAccess(
+      patientId,
+      user.doctorProfile.id,
+      accessDto,
     );
   }
 }

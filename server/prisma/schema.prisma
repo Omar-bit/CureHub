@@ -149,6 +149,9 @@ model Patient {
   // Relationships where this patient is the related one
   relationshipsAsRelated PatientRelationship[] @relation("RelatedPatient")
 
+  // Disabled consultation types for this patient
+  disabledConsultationTypes PatientConsultationTypeAccess[]
+
   @@map("patients")
 }
 
@@ -199,6 +202,9 @@ model DoctorConsultationType {
   // Timeplan relations
   timeSlotConsultationTypes TimeSlotConsultationType[]
   appointments              Appointment[]
+
+  // Patient access control
+  patientAccess PatientConsultationTypeAccess[]
 
   @@map("doctor_consultation_types")
 }
@@ -434,4 +440,22 @@ model PatientDocument {
   doctor   DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
 
   @@map("patient_documents")
+}
+
+// Patient consultation type access control
+// Tracks which consultation types are disabled for specific patients
+model PatientConsultationTypeAccess {
+  id                 String   @id @default(cuid())
+  patientId          String
+  consultationTypeId String
+  isEnabled          Boolean  @default(true) // false means disabled for this patient
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // Relations
+  patient          Patient                @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  consultationType DoctorConsultationType @relation(fields: [consultationTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([patientId, consultationTypeId]) // One record per patient-consultation type pair
+  @@map("patient_consultation_type_access")
 }
