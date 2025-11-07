@@ -1,5 +1,6 @@
 import React from 'react';
 import { CalendarUtils } from './CalendarUtils';
+import { splitPatientName } from '../../lib/patient';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 
 const WeekView = ({
@@ -189,7 +190,18 @@ const WeekView = ({
                             )}
                           </div>
                           <div className='truncate text-xs'>
-                            {appointment.patient?.name}
+                            {appointment.patient
+                              ? (() => {
+                                  if (appointment.patient.name) {
+                                    const { firstName, lastName } =
+                                      splitPatientName(appointment.patient.name);
+                                    return `${firstName} ${lastName}`.trim();
+                                  }
+                                  return `${appointment.patient.firstName || ''} ${
+                                    appointment.patient.lastName || ''
+                                  }`.trim();
+                                })()
+                              : ''}
                           </div>
                           {appointment.consultationType && (
                             <div className='text-xs opacity-80 truncate'>

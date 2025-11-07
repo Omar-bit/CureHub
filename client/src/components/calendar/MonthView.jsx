@@ -1,5 +1,6 @@
 import React from 'react';
 import { CalendarUtils } from './CalendarUtils';
+import { splitPatientName } from '../../lib/patient';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 
 const MonthView = ({
@@ -75,9 +76,20 @@ const MonthView = ({
                 onAppointmentClick?.(appointment);
               }}
             >
-              <div className='font-medium'>
+                <div className='font-medium'>
                 {CalendarUtils.formatTime(new Date(appointment.startTime))}{' '}
-                {appointment.patient?.name}
+                {appointment.patient
+                  ? (() => {
+                      if (appointment.patient.name) {
+                        const { firstName, lastName } =
+                          splitPatientName(appointment.patient.name);
+                        return `${firstName} ${lastName}`.trim();
+                      }
+                      return `${appointment.patient.firstName || ''} ${
+                        appointment.patient.lastName || ''
+                      }`.trim();
+                    })()
+                  : ''}
               </div>
             </div>
           ))}
