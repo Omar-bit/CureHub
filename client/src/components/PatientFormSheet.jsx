@@ -3,27 +3,10 @@ import { SheetContent, SheetFooter } from './ui/sheet';
 import { Button } from './ui/button';
 import { FormInput, FormSelect, FormTextarea } from './ui/form-field';
 import { Alert } from './ui/alert';
+import { splitPatientName, buildPatientName } from '../lib/patient';
 
 const PatientFormSheet = ({ patient, isOpen, onClose, onSave }) => {
-  let patientFullName = ['', ''];
-  let patientFirstName = '';
-  let patientLastName = '';
-
-  // Handle both full patient object and prefilled name object
-  if (patient != null) {
-    if (patient.name) {
-      // Full patient object with name field
-      patientFullName = patient.name.includes('!SP!')
-        ? patient.name.split('!SP!')
-        : patient.name.split(' ');
-      patientFirstName = patientFullName[0] || '';
-      patientLastName = patientFullName.slice(1).join(' ') || '';
-    } else if (patient.firstName || patient.lastName) {
-      // Pre-filled name object (from appointment form)
-      patientFirstName = patient.firstName || '';
-      patientLastName = patient.lastName || '';
-    }
-  }
+  // initial parsing is done when the sheet opens (see useEffect)
 
   const [formData, setFormData] = useState({
     lastName: '',
@@ -49,12 +32,10 @@ const PatientFormSheet = ({ patient, isOpen, onClose, onSave }) => {
       let lastName = '';
 
       if (isFullPatient) {
-        // Full patient object
-        const fullName = patient.name.includes('!SP!')
-          ? patient.name.split('!SP!')
-          : patient.name.split(' ');
-        firstName = fullName[0] || '';
-        lastName = fullName.slice(1).join(' ') || '';
+        // Full patient object -> use helper to parse
+        const parsed = splitPatientName(patient.name);
+        firstName = parsed.firstName || '';
+        lastName = parsed.lastName || '';
       } else {
         // Pre-filled name object
         firstName = patient.firstName || '';
@@ -102,7 +83,7 @@ const PatientFormSheet = ({ patient, isOpen, onClose, onSave }) => {
       const payload = {
         ...formData,
         // Combine first and last name for backend compatibility
-        name: `${formData.firstName} !SP! ${formData.lastName}`.trim(),
+        name: buildPatientName(formData.firstName, formData.lastName),
         phoneNumber: formData.mobilePhone, // Map to existing backend field
       };
 

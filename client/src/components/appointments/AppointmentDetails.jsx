@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '../ui/button';
+import { splitPatientName } from '../../lib/patient';
 
 const AppointmentDetails = ({
   appointment,
@@ -116,6 +117,35 @@ const AppointmentDetails = ({
       default:
         return 'In Clinic';
     }
+  };
+
+  const renderPatientName = (patient) => {
+    if (!patient) return '—';
+
+    // If stored as single `name` field, split it using helper to avoid showing the separator
+    if (patient.name) {
+      const { firstName, lastName } = splitPatientName(patient.name);
+      const full = `${firstName} ${lastName}`.trim();
+      if (full) return full;
+    }
+
+    // Fallback to separate fields if available
+    if (patient.firstName || patient.lastName) {
+      return `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
+    }
+
+    // Last resort: raw name or appointment title
+    return patient.name || appointment.title || '—';
+  };
+
+  const renderTitle = (title) => {
+    if (!title) return '';
+    // If title contains the special separator, treat it as a patient name
+    if (typeof title === 'string' && title.includes('!SP!')) {
+      const { firstName, lastName } = splitPatientName(title);
+      return `${firstName} ${lastName}`.trim();
+    }
+    return title;
   };
 
   const handleStatusChange = (newStatus) => {
@@ -220,7 +250,7 @@ const AppointmentDetails = ({
             {appointment.title && (
               <div>
                 <h3 className='text-lg font-medium text-gray-900 mb-2'>
-                  {appointment.title}
+                  {renderTitle(appointment.title)}
                 </h3>
               </div>
             )}
@@ -258,7 +288,7 @@ const AppointmentDetails = ({
                   <div>
                     <p className='text-sm text-gray-600'>Name</p>
                     <p className='font-medium text-gray-900'>
-                      {appointment.patient.name}
+                      {renderPatientName(appointment.patient)}
                     </p>
                   </div>
                   {appointment.patient.email && (
