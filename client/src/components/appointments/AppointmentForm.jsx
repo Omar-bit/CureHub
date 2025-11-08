@@ -20,6 +20,7 @@ import TimeSlotSelector from '../ui/TimeSlotSelector';
 import PatientFormSheet from '../PatientFormSheet';
 import { Sheet } from '../ui/sheet';
 import { patientAPI } from '../../services/api';
+import { splitPatientName } from '../../lib/patient';
 
 const AppointmentForm = ({
   appointment = null,
@@ -270,6 +271,19 @@ const AppointmentForm = ({
     setShowPatientDropdown(false);
   };
 
+  const renderPatientLabel = (patient) => {
+    if (!patient) return '';
+    // If stored in `name` field, prefer parsing it
+    if (patient.name) {
+      const { firstName, lastName } = splitPatientName(patient.name);
+      const full = `${firstName} ${lastName}`.trim();
+      if (full) return full;
+    }
+
+    // Fallback to separate fields
+    return `${patient.firstName || ''} ${patient.lastName || ''}`.trim() || patient.name || '';
+  };
+
   const handlePatientSaved = async (patientData) => {
     try {
       // Call the parent's callback to refresh patient list
@@ -389,8 +403,10 @@ const AppointmentForm = ({
       // Get patient IDs array (only regular patients)
       const patientIds = regularPatients.map((p) => p.id);
 
-      // Create title from all patient names
-      const allPatientNames = selectedPatients.map((p) => p.name).join(', ');
+      // Create title from all patient names (rendered without separator)
+      const allPatientNames = selectedPatients
+        .map((p) => renderPatientLabel(p))
+        .join(', ');
 
       const appointmentData = {
         title: allPatientNames,
@@ -538,15 +554,15 @@ const AppointmentForm = ({
                           </div>
                           <div className='flex-1'>
                             <h4 className='font-medium text-gray-900'>
-                              {patient.name.replace('!SP!', ' ')}
+                              {renderPatientLabel(patient)}
                             </h4>
-                            <p className='text-sm text-gray-500'>
-                              {patient.dateOfBirth &&
-                                `Née le ${format(
-                                  new Date(patient.dateOfBirth),
-                                  'dd/MM/yyyy'
-                                )}`}
-                            </p>
+                              <p className='text-sm text-gray-500'>
+                                {patient.dateOfBirth &&
+                                  `Née le ${format(
+                                    new Date(patient.dateOfBirth),
+                                    'dd/MM/yyyy'
+                                  )}`}
+                              </p>
                           </div>
                           <div className='text-right'>
                             <span className='text-sm text-gray-400'>V</span>
@@ -613,7 +629,7 @@ const AppointmentForm = ({
                                 : 'text-gray-900'
                             }`}
                           >
-                            {patient.name}
+                            {renderPatientLabel(patient)}
                             {patient.isSansFiche && (
                               <span className='ml-2 text-xs text-blue-600'>
                                 (Sans fiche)
