@@ -56,6 +56,8 @@ const AppointmentForm = ({
   const [patientConsultationAccess, setPatientConsultationAccess] = useState(
     {}
   ); // Store consultation type access for each patient
+  const [durationPerPatient, setDurationPerPatient] = useState(20); // Duration per patient in minutes
+  const [isManualDuration, setIsManualDuration] = useState(false); // Track if duration was manually changed
 
   useEffect(() => {
     if (appointment) {
@@ -107,6 +109,20 @@ const AppointmentForm = ({
       );
       if (consultationType) {
         setSelectedLocation(consultationType.location);
+
+        // Calculate duration per patient if editing with multiple patients
+        const numberOfPatients = appointment.appointmentPatients?.length || 1;
+        const startTime = new Date(appointment.startTime);
+        const endTime = new Date(appointment.endTime);
+        const totalMinutes = Math.round((endTime - startTime) / (1000 * 60));
+        const calculatedDurationPerPatient = Math.round(
+          totalMinutes / numberOfPatients
+        );
+
+        setDurationPerPatient(calculatedDurationPerPatient);
+        setIsManualDuration(
+          calculatedDurationPerPatient !== consultationType.duration
+        );
       }
     } else if (selectedDate) {
       // Creating new appointment with selected date
@@ -130,6 +146,8 @@ const AppointmentForm = ({
       });
       setPatientSearch('');
       setSelectedPatients([]);
+      setDurationPerPatient(20);
+      setIsManualDuration(false);
     }
     setErrors({});
   }, [appointment, selectedDate, isOpen, patients, consultationTypes]);
@@ -167,6 +185,21 @@ const AppointmentForm = ({
       setPatientConsultationAccess({});
     }
   }, [selectedPatients]);
+
+  // Auto-calculate duration based on number of patients and consultation type
+  useEffect(() => {
+    if (!isManualDuration && formData.consultationTypeId) {
+      const selectedType = consultationTypes.find(
+        (ct) =>
+          ct.id === parseInt(formData.consultationTypeId) ||
+          ct.id === formData.consultationTypeId
+      );
+
+      if (selectedType) {
+        setDurationPerPatient(selectedType.duration);
+      }
+    }
+  }, [formData.consultationTypeId, consultationTypes, isManualDuration]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -207,6 +240,10 @@ const AppointmentForm = ({
     // Set the location tab based on the selected type
     setSelectedLocation(type.location);
 
+    // Update duration per patient and reset manual override
+    setDurationPerPatient(type.duration);
+    setIsManualDuration(false);
+
     // Clear any consultation type selection error
     if (errors.consultationTypeId) {
       setErrors((prev) => ({ ...prev, consultationTypeId: '' }));
@@ -241,6 +278,16 @@ const AppointmentForm = ({
 
   const handleRemovePatient = (patientId) => {
     setSelectedPatients((prev) => prev.filter((p) => p.id !== patientId));
+  };
+
+  const handleIncreaseDuration = () => {
+    setDurationPerPatient((prev) => prev + 5); // Increase by 5 minutes
+    setIsManualDuration(true);
+  };
+
+  const handleDecreaseDuration = () => {
+    setDurationPerPatient((prev) => Math.max(5, prev - 5)); // Decrease by 5 minutes, minimum 5
+    setIsManualDuration(true);
   };
 
   const handleSansFiche = () => {
@@ -281,7 +328,11 @@ const AppointmentForm = ({
     }
 
     // Fallback to separate fields
-    return `${patient.firstName || ''} ${patient.lastName || ''}`.trim() || patient.name || '';
+    return (
+      `${patient.firstName || ''} ${patient.lastName || ''}`.trim() ||
+      patient.name ||
+      ''
+    );
   };
 
   const handlePatientSaved = async (patientData) => {
@@ -392,9 +443,13 @@ const AppointmentForm = ({
         );
       }
 
+      // Calculate total duration based on number of patients and duration per patient
+      const numberOfPatients = Math.max(1, selectedPatients.length);
+      const totalDuration = durationPerPatient * numberOfPatients;
+
       // Combine date and time into ISO strings
       const startDateTime = new Date(`${formData.date}T${formData.startTime}`);
-      const endDateTime = addMinutes(startDateTime, selectedType.duration);
+      const endDateTime = addMinutes(startDateTime, totalDuration);
 
       // Separate regular patients from sans fiche patients
       const regularPatients = selectedPatients.filter((p) => !p.isSansFiche);
@@ -556,13 +611,13 @@ const AppointmentForm = ({
                             <h4 className='font-medium text-gray-900'>
                               {renderPatientLabel(patient)}
                             </h4>
-                              <p className='text-sm text-gray-500'>
-                                {patient.dateOfBirth &&
-                                  `Née le ${format(
-                                    new Date(patient.dateOfBirth),
-                                    'dd/MM/yyyy'
-                                  )}`}
-                              </p>
+                            <p className='text-sm text-gray-500'>
+                              {patient.dateOfBirth &&
+                                `Née le ${format(
+                                  new Date(patient.dateOfBirth),
+                                  'dd/MM/yyyy'
+                                )}`}
+                            </p>
                           </div>
                           <div className='text-right'>
                             <span className='text-sm text-gray-400'>V</span>
@@ -1077,6 +1132,42 @@ const AppointmentForm = ({
             )}
           </div>
 
+          {/* Duration Display and Controls */}
+          {formData.consultationTypeId && selectedPatients.length > 0 && (
+            <div>
+              <label className='block text-xs font-medium text-cyan-800 mb-2'>
+                <Clock className='h-4 w-4 inline mr-2' />
+                Duration
+              </label>
+              <div className='flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-gray-50'>
+                <div className='flex items-center space-x-2'>
+                  <span className='text-lg font-semibold text-gray-900'>
+                    {selectedPatients.length} × {durationPerPatient} min.
+                  </span>
+                  <span className='text-sm text-gray-500'>
+                    ({durationPerPatient} min/pers.)
+                  </span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <button
+                    type='button'
+                    onClick={handleDecreaseDuration}
+                    className='w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-gray-300 hover:bg-gray-100 transition-colors'
+                  >
+                    <span className='text-lg font-bold text-gray-600'>−</span>
+                  </button>
+                  <button
+                    type='button'
+                    onClick={handleIncreaseDuration}
+                    className='w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-gray-300 hover:bg-gray-100 transition-colors'
+                  >
+                    <span className='text-lg font-bold text-gray-600'>+</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Time Selection - only show when date and consultation type are selected */}
           {formData.date && formData.consultationTypeId && (
             <div>
@@ -1094,6 +1185,9 @@ const AppointmentForm = ({
                     handleChange({ target: { name: 'startTime', value: time } })
                   }
                   error={errors.startTime}
+                  totalDuration={
+                    durationPerPatient * Math.max(1, selectedPatients.length)
+                  }
                 />
               </div>
             </div>

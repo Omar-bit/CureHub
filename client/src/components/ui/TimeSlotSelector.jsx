@@ -10,6 +10,7 @@ const TimeSlotSelector = ({
   value,
   onChange,
   error,
+  totalDuration, // Total duration including all patients
 }) => {
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -19,7 +20,7 @@ const TimeSlotSelector = ({
     (ct) => ct.id === parseInt(consultationTypeId)
   );
 
-  const duration = consultationType?.duration || 30;
+  const duration = totalDuration || consultationType?.duration || 30;
 
   useEffect(() => {
     if (selectedDate && consultationTypeId) {
