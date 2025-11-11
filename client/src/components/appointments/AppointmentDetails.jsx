@@ -20,6 +20,7 @@ import {
   Building2,
   Stethoscope,
   Video as VideoOn,
+  AlertCircle,
 } from 'lucide-react';
 // date-fns format removed (not used)
 import { Button } from '../ui/button';
@@ -37,6 +38,8 @@ const AppointmentDetails = ({
 }) => {
   const [activeTab, setActiveTab] = useState('motif'); // 'motif' | 'documents' | 'honoraires' | 'chronologie'
   const [selectedStatusChip, setSelectedStatusChip] = useState(null); // Track which status chip is active (visual state)
+  const [isDragging, setIsDragging] = useState(false); // Track drag state for file upload
+  const [uploadedFiles, setUploadedFiles] = useState([]); // Track uploaded files
 
   // When inline mode is true, show content if appointment exists, regardless of isOpen
   // When inline mode is false (modal/overlay), require both isOpen and appointment
@@ -111,6 +114,61 @@ const AppointmentDetails = ({
           icon: <Building2 className='w-4 h-4 text-green-600' />,
           label: 'Consultation au cabinet',
         };
+    }
+  };
+
+  // Handle drag and drop for file uploads
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      // Add files to uploadedFiles state
+      const newFiles = files.map((file) => ({
+        id: Math.random(),
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        file: file,
+      }));
+      setUploadedFiles((prev) => [...prev, ...newFiles]);
+      // TODO: Upload files to server via API
+      // Example: await documentsApi.upload(appointment.id, newFiles);
+    }
+  };
+
+  const handleFileInputChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      const newFiles = files.map((file) => ({
+        id: Math.random(),
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        file: file,
+      }));
+      setUploadedFiles((prev) => [...prev, ...newFiles]);
+      // TODO: Upload files to server via API
+      // Example: await documentsApi.upload(appointment.id, newFiles);
     }
   };
 
@@ -289,10 +347,89 @@ const AppointmentDetails = ({
                 </div>
               </TabsContent>
 
-              <TabsContent value='documents'>
-                <div className='bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-600'>
-                  Documents du patient et pièces jointes liés au rendez-vous.
+              <TabsContent value='documents' className='space-y-4'>
+                {/* Help message box */}
+                <div className='bg-purple-50 border border-purple-200 rounded-lg p-4 flex gap-3'>
+                  <div className='flex-shrink-0'>
+                    <div className='flex items-center justify-center w-8 h-8 bg-purple-100 rounded-full'>
+                      <AlertCircle className='w-5 h-5 text-purple-600' />
+                    </div>
+                  </div>
+                  <div className='flex-1'>
+                    <p className='text-sm text-gray-700'>
+                      Vous pouvez également bloquer l'accès aux documents transmis, tant que la (télé)consultation n'est pas régléiée.
+                    </p>
+                    <p className='text-sm text-gray-600 mt-2'>
+                      Un levier supplémentaire pour lutter contre les impayés.
+                    </p>
+                  </div>
+                  <div className='flex-shrink-0'>
+                    <svg className='w-6 h-6 text-purple-400' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                      <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M7 16V4m0 0L3 8m0 0l4 4m10-4v12m0 0l4-4m0 0l-4-4' />
+                    </svg>
+                  </div>
                 </div>
+
+                {/* File upload area */}
+                <div
+                  onDragEnter={handleDragEnter}
+                  onDragLeave={handleDragLeave}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                    isDragging
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-300 bg-white hover:border-gray-400'
+                  }`}
+                >
+                  <input
+                    type='file'
+                    id='file-input'
+                    multiple
+                    onChange={handleFileInputChange}
+                    className='hidden'
+                  />
+                  
+                  <div className='flex flex-col items-center justify-center'>
+                    <FileText className='w-10 h-10 text-blue-400 mb-3' />
+                    
+                    <label htmlFor='file-input' className='mb-2'>
+                      <button
+                        type='button'
+                        onClick={() => document.getElementById('file-input')?.click()}
+                        className='text-blue-500 hover:text-blue-700 font-medium text-sm'
+                      >
+                        Partager un fichier
+                      </button>
+                    </label>
+                    
+                    <p className='text-sm text-gray-500'>ou déposez-le ici</p>
+                  </div>
+                </div>
+
+                {/* Uploaded files list */}
+                {uploadedFiles.length > 0 && (
+                  <div className='space-y-2'>
+                    <p className='text-sm font-medium text-gray-700'>Fichiers uploadés ({uploadedFiles.length})</p>
+                    {uploadedFiles.map((file) => (
+                      <div key={file.id} className='flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg'>
+                        <div className='flex items-center gap-2 flex-1 min-w-0'>
+                          <FileText className='w-4 h-4 text-gray-400 flex-shrink-0' />
+                          <div className='min-w-0'>
+                            <p className='text-sm font-medium text-gray-900 truncate'>{file.name}</p>
+                            <p className='text-xs text-gray-500'>{(file.size / 1024).toFixed(2)} KB</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setUploadedFiles((prev) => prev.filter((f) => f.id !== file.id))}
+                          className='p-1 text-gray-400 hover:text-red-600 transition-colors'
+                        >
+                          <Trash2 className='w-4 h-4' />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value='honoraires'>
