@@ -40,6 +40,7 @@ const AppointmentDetails = ({
   const [selectedStatusChip, setSelectedStatusChip] = useState(null); // Track which status chip is active (visual state)
   const [isDragging, setIsDragging] = useState(false); // Track drag state for file upload
   const [uploadedFiles, setUploadedFiles] = useState([]); // Track uploaded files
+  const [showVideoCall, setShowVideoCall] = useState(false); // Track if video call panel is visible
 
   // When inline mode is true, show content if appointment exists, regardless of isOpen
   // When inline mode is false (modal/overlay), require both isOpen and appointment
@@ -279,8 +280,15 @@ const AppointmentDetails = ({
             <button className='p-2 bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition-colors'>
               <Stethoscope className='w-4 h-4 text-gray-600' />
             </button>
-            <button className='p-2 bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition-colors'>
-              <VideoOn className='w-4 h-4 text-gray-600' />
+            <button 
+              onClick={() => setShowVideoCall(!showVideoCall)}
+              className={`p-2 rounded-full transition-colors ${
+                showVideoCall
+                  ? 'bg-purple-100 border border-purple-300'
+                  : 'bg-white border border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <VideoOn className={`w-4 h-4 ${showVideoCall ? 'text-purple-600' : 'text-gray-600'}`} />
             </button>
             <button className='p-2 bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition-colors'>
               <Phone className='w-4 h-4 text-gray-600' />
@@ -296,6 +304,34 @@ const AppointmentDetails = ({
 
         {/* Tabs and content area */}
         <div className='px-4 border-t border-gray-200 pt-4'>
+          {/* Video call panel (shown when video button is clicked) */}
+          {showVideoCall && (
+            <div className='mb-6 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white'>
+              <div className='flex items-start justify-between mb-4'>
+                <h3 className='text-lg font-semibold'>téléconsult<span className='text-yellow-300'>✨</span></h3>
+                <button 
+                  onClick={() => setShowVideoCall(false)}
+                  className='px-4 py-1.5 bg-white text-purple-600 rounded-full text-sm font-medium hover:bg-gray-100 transition-colors flex-shrink-0'
+                >
+                  Convertir
+                </button>
+              </div>
+
+              <div className='flex items-start gap-3'>
+                <div className='w-6 h-6 bg-blue-300 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5'>
+                  <span className='text-xs font-bold text-blue-600'>i</span>
+                </div>
+                <div>
+                  <p className='font-semibold text-white mb-1'>CONVERSION</p>
+                  <p className='text-sm leading-relaxed text-white'>
+                    Vous pouvez convertir ce rendez-vous en téléconsultation.
+                    Une notification sera envoyée à votre patient(e) pour le prévenir.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className='grid grid-cols-4 gap-0 bg-transparent border-b border-gray-200 p-0 h-auto'>
               <TabsTrigger 
