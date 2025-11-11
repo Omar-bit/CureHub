@@ -1,6 +1,7 @@
 import React from 'react';
 import { CalendarUtils } from './CalendarUtils';
 import { splitPatientName } from '../../lib/patient';
+import { getAppointmentColorClasses } from '../../lib/consultationStyles';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 
 const MonthView = ({
@@ -53,50 +54,51 @@ const MonthView = ({
         </div>
 
         {/* Appointments */}
-        <div className='space-y-1'>
-          {dayAppointments.slice(0, 3).map((appointment) => (
-            <div
-              key={appointment.id}
-              className={`
-                text-xs p-1 rounded cursor-pointer truncate
-                ${
-                  appointment.status === 'CANCELLED'
-                    ? 'bg-gray-200 text-gray-600'
-                    : 'bg-blue-100 text-blue-800'
-                }
-                ${
-                  appointment.status === 'COMPLETED'
-                    ? 'bg-green-100 text-green-800'
-                    : ''
-                }
-                hover:opacity-80 transition-opacity
-              `}
-              onClick={(e) => {
-                e.stopPropagation();
-                onAppointmentClick?.(appointment);
-              }}
-            >
-                <div className='font-medium'>
-                {CalendarUtils.formatTime(new Date(appointment.startTime))}{' '}
-                {appointment.patient
-                  ? (() => {
-                      if (appointment.patient.name) {
-                        const { firstName, lastName } =
-                          splitPatientName(appointment.patient.name);
-                        return `${firstName} ${lastName}`.trim();
-                      }
-                      return `${appointment.patient.firstName || ''} ${
-                        appointment.patient.lastName || ''
-                      }`.trim();
-                    })()
-                  : ''}
+        <div className='space-y-0.5'>
+          {dayAppointments.slice(0, 3).map((appointment) => {
+            const colorClasses = getAppointmentColorClasses(appointment);
+            const startTime = CalendarUtils.formatTime(new Date(appointment.startTime));
+            return (
+              <div
+                key={appointment.id}
+                className={`
+                  flex items-center gap-1.5 cursor-pointer rounded-md overflow-hidden
+                  hover:opacity-90 transition-opacity text-xs
+                `}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAppointmentClick?.(appointment);
+                }}
+              >
+                {/* Time Badge */}
+                <div className={`${colorClasses.bgColor} text-white px-2 py-1 font-bold whitespace-nowrap flex-shrink-0 rounded-sm text-xs`}>
+                  {startTime}
+                </div>
+                
+                {/* Appointment Info */}
+                <div className='flex-1 min-w-0'>
+                  <div className='text-xs font-medium text-gray-900 truncate'>
+                    {appointment.patient
+                      ? (() => {
+                          if (appointment.patient.name) {
+                            const { firstName, lastName } =
+                              splitPatientName(appointment.patient.name);
+                            return `${firstName} ${lastName}`.trim();
+                          }
+                          return `${appointment.patient.firstName || ''} ${
+                            appointment.patient.lastName || ''
+                          }`.trim();
+                        })()
+                      : ''}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {/* Show more indicator */}
           {dayAppointments.length > 3 && (
-            <div className='text-xs text-gray-500 font-medium'>
+            <div className='text-xs text-gray-500 font-medium px-1'>
               +{dayAppointments.length - 3} more
             </div>
           )}

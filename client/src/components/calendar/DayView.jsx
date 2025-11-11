@@ -1,6 +1,7 @@
 import React from 'react';
 import { CalendarUtils } from './CalendarUtils';
 import { splitPatientName } from '../../lib/patient';
+import { getAppointmentColorClasses } from '../../lib/consultationStyles';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 
 const DayView = ({
@@ -94,7 +95,7 @@ const DayView = ({
               // value={CalendarUtils.formatDateInput(currentDate)}
               value={''}
               onChange={
-                (e) => 'test'
+                () => 'test'
                 // onDateChange(new Date(e.target.value + 'T00:00:00'))
               }
               className='border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
@@ -112,7 +113,7 @@ const DayView = ({
           }}
         >
           {/* Time labels and slots */}
-          {timeSlots.map((timeSlot, index) => (
+          {timeSlots.map((timeSlot) => (
             <div key={timeSlot} className='relative'>
               <div className='flex'>
                 {/* Time label */}
@@ -132,44 +133,50 @@ const DayView = ({
           ))}
 
           {/* Appointments */}
-          {dayAppointments.map((appointment) => (
-            <div
-              key={appointment.id}
-              style={getAppointmentStyle(appointment)}
-              className={`
-                bg-blue-500 text-white rounded-lg p-2 cursor-pointer shadow-sm
-                hover:bg-blue-600 transition-colors text-xs
-                ${appointment.status === 'CANCELLED' ? 'bg-gray-400' : ''}
-                ${appointment.status === 'COMPLETED' ? 'bg-green-500' : ''}
-              `}
-              onClick={() => onAppointmentClick?.(appointment)}
-            >
-              <div className='font-medium truncate'>
-                {appointment.patient
-                  ? (() => {
-                      if (appointment.patient.name) {
-                        const { firstName, lastName } = splitPatientName(
-                          appointment.patient.name
-                        );
-                        return `${firstName} ${lastName}`.trim();
-                      }
-                      return `${appointment.patient.firstName || ''} ${
-                        appointment.patient.lastName || ''
-                      }`.trim();
-                    })()
-                  : ''}
-              </div>
-              <div className='text-xs opacity-90 truncate'>
-                {CalendarUtils.formatTime(new Date(appointment.startTime))} -
-                {CalendarUtils.formatTime(new Date(appointment.endTime))}
-              </div>
-              {appointment.consultationType && (
-                <div className='text-xs opacity-80 truncate'>
-                  {appointment.consultationType.name}
+          {dayAppointments.map((appointment) => {
+            const colorClasses = getAppointmentColorClasses(appointment);
+            const startTime = CalendarUtils.formatTime(new Date(appointment.startTime));
+            return (
+              <div
+                key={appointment.id}
+                style={getAppointmentStyle(appointment)}
+                className={`
+                  flex items-center gap-2 cursor-pointer
+                  ${colorClasses.hoverBg} transition-all rounded-lg overflow-hidden
+                `}
+                onClick={() => onAppointmentClick?.(appointment)}
+              >
+                {/* Time Badge */}
+                <div className={`${colorClasses.bgColor} text-white px-3 py-2 font-bold text-xs whitespace-nowrap flex-shrink-0 rounded-l-lg`}>
+                  {startTime}
                 </div>
-              )}
-            </div>
-          ))}
+                
+                {/* Appointment Info */}
+                <div className='flex-1 min-w-0 px-2 py-1'>
+                  <div className='text-xs font-medium text-gray-900 truncate'>
+                    {appointment.patient
+                      ? (() => {
+                          if (appointment.patient.name) {
+                            const { firstName, lastName } = splitPatientName(
+                              appointment.patient.name
+                            );
+                            return `${firstName} ${lastName}`.trim();
+                          }
+                          return `${appointment.patient.firstName || ''} ${
+                            appointment.patient.lastName || ''
+                          }`.trim();
+                        })()
+                      : ''}
+                  </div>
+                  {appointment.absenceCount > 0 && (
+                    <div className='text-xs text-gray-600'>
+                      {appointment.absenceCount} abs
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
