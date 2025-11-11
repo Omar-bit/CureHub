@@ -84,6 +84,36 @@ const AppointmentDetails = ({
     // Example: await appointmentAPI.update(appointment.id, { status: chipName });
   };
 
+  // Get consultation badge color and icon based on consultation type location
+  const getConsultationBadgeStyle = () => {
+    const location = appointment.consultationType?.location;
+    
+    switch (location) {
+      case 'ONLINE':
+        return {
+          bgColor: 'bg-blue-100',
+          textColor: 'text-blue-700',
+          icon: <VideoOn className='w-4 h-4 text-blue-600' />,
+          label: 'Téléconsultation',
+        };
+      case 'ATHOME':
+        return {
+          bgColor: 'bg-red-100',
+          textColor: 'text-red-700',
+          icon: <Home className='w-4 h-4 text-red-600' />,
+          label: 'Visite à domicile',
+        };
+      case 'ONSITE':
+      default:
+        return {
+          bgColor: 'bg-green-100',
+          textColor: 'text-green-700',
+          icon: <Building2 className='w-4 h-4 text-green-600' />,
+          label: 'Consultation au cabinet',
+        };
+    }
+  };
+
   
 
   const content = (
@@ -173,9 +203,14 @@ const AppointmentDetails = ({
         {/* Consultation type badge with duration and action icons */}
         <div className='px-4 flex items-center justify-between'>
           <div className='flex items-center gap-3'>
-            <span className='inline-flex items-center justify-center w-10 h-10 bg-green-100 rounded-full font-semibold text-green-700 text-sm'>
-              {appointment.consultationType?.duration || '30'}
-            </span>
+            {(() => {
+              const style = getConsultationBadgeStyle();
+              return (
+                <span className={`inline-flex items-center justify-center w-10 h-10 ${style.bgColor} rounded-full font-semibold ${style.textColor} text-sm`}>
+                  {appointment.consultationType?.duration || '30'}
+                </span>
+              );
+            })()}
             <div>
               <p className='font-medium text-gray-900'>{appointment.consultationType?.name || 'Consultation'}</p>
               <p className='text-xs text-gray-500'>{getDuration()}</p>
