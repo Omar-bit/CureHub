@@ -1,6 +1,7 @@
 import React from 'react';
 import { CalendarUtils } from './CalendarUtils';
 import { splitPatientName } from '../../lib/patient';
+import { getAppointmentColorClasses } from '../../lib/consultationStyles';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 
 const WeekView = ({
@@ -33,7 +34,7 @@ const WeekView = ({
     onTimeSlotClick?.(slotDate);
   };
 
-  const getAppointmentStyle = (appointment, dayIndex) => {
+  const getAppointmentStyle = (appointment) => {
     const startTime = CalendarUtils.formatTime(new Date(appointment.startTime));
     const duration = CalendarUtils.getAppointmentDuration(
       appointment.startTime,
@@ -161,55 +162,47 @@ const WeekView = ({
                       }}
                     >
                       {/* Appointments for this day */}
-                      {getDayAppointments(day).map((appointment) => (
-                        <div
-                          key={appointment.id}
-                          style={getAppointmentStyle(appointment, dayIndex)}
-                          className={`
-                            bg-blue-500 text-white rounded p-1 cursor-pointer shadow-sm
-                            hover:bg-blue-600 transition-colors text-xs
-                            ${
-                              appointment.status === 'CANCELLED'
-                                ? 'bg-gray-400'
-                                : ''
-                            }
-                            ${
-                              appointment.status === 'COMPLETED'
-                                ? 'bg-green-500'
-                                : ''
-                            }
-                          `}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onAppointmentClick?.(appointment);
-                          }}
-                        >
-                          <div className='font-medium truncate text-xs'>
-                            {CalendarUtils.formatTime(
-                              new Date(appointment.startTime)
-                            )}
-                          </div>
-                          <div className='truncate text-xs'>
-                            {appointment.patient
-                              ? (() => {
-                                  if (appointment.patient.name) {
-                                    const { firstName, lastName } =
-                                      splitPatientName(appointment.patient.name);
-                                    return `${firstName} ${lastName}`.trim();
-                                  }
-                                  return `${appointment.patient.firstName || ''} ${
-                                    appointment.patient.lastName || ''
-                                  }`.trim();
-                                })()
-                              : ''}
-                          </div>
-                          {appointment.consultationType && (
-                            <div className='text-xs opacity-80 truncate'>
-                              {appointment.consultationType.name}
+                      {getDayAppointments(day).map((appointment) => {
+                        const colorClasses = getAppointmentColorClasses(appointment);
+                        const startTime = CalendarUtils.formatTime(new Date(appointment.startTime));
+                        return (
+                          <div
+                            key={appointment.id}
+                            style={getAppointmentStyle(appointment)}
+                            className={`
+                              flex items-center gap-1.5 cursor-pointer
+                              ${colorClasses.hoverBg} transition-all rounded-lg overflow-hidden text-xs
+                            `}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onAppointmentClick?.(appointment);
+                            }}
+                          >
+                            {/* Time Badge */}
+                            <div className={`${colorClasses.bgColor} text-white px-2 py-1 font-bold whitespace-nowrap flex-shrink-0 rounded-l-lg`}>
+                              {startTime}
                             </div>
-                          )}
-                        </div>
-                      ))}
+                            
+                            {/* Appointment Info */}
+                            <div className='flex-1 min-w-0 px-1 py-0.5'>
+                              <div className='text-xs font-medium text-gray-900 truncate'>
+                                {appointment.patient
+                                  ? (() => {
+                                      if (appointment.patient.name) {
+                                        const { firstName, lastName } =
+                                          splitPatientName(appointment.patient.name);
+                                        return `${firstName} ${lastName}`.trim();
+                                      }
+                                      return `${appointment.patient.firstName || ''} ${
+                                        appointment.patient.lastName || ''
+                                      }`.trim();
+                                    })()
+                                  : ''}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
