@@ -1184,6 +1184,9 @@ const AppointmentForm = ({
                   onChange={(time) =>
                     handleChange({ target: { name: 'startTime', value: time } })
                   }
+                  onDateChange={(newDate) =>
+                    handleChange({ target: { name: 'date', value: newDate } })
+                  }
                   error={errors.startTime}
                   totalDuration={
                     durationPerPatient * Math.max(1, selectedPatients.length)

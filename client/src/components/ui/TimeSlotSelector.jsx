@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { format } from 'date-fns';
-import { Clock, Calendar } from 'lucide-react';
+import { format, addDays, isSameDay, startOfDay } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { appointmentAPI } from '../../services/api';
 
 const TimeSlotSelector = ({
@@ -11,9 +12,12 @@ const TimeSlotSelector = ({
   onChange,
   error,
   totalDuration, // Total duration including all patients
+  onDateChange, // Callback to update the parent's selected date
 }) => {
-  const [availableSlots, setAvailableSlots] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [daySlots, setDaySlots] = useState([]); // Array of { date, slots, loading }
+  const [visibleDays, setVisibleDays] = useState(5); // Number of days to show
+  const [startDayOffset, setStartDayOffset] = useState(0); // Offset for navigation
+  const [selectedDayIndex, setSelectedDayIndex] = useState(0); // Currently selected day
 
   // Get consultation type details
   const consultationType = consultationTypes.find(
@@ -22,88 +26,223 @@ const TimeSlotSelector = ({
 
   const duration = totalDuration || consultationType?.duration || 30;
 
+  // Initialize days to load
   useEffect(() => {
     if (selectedDate && consultationTypeId) {
-      loadAvailableSlots();
-    } else {
-      setAvailableSlots([]);
+      initializeDays();
     }
-  }, [selectedDate, consultationTypeId]);
+  }, [selectedDate, consultationTypeId, startDayOffset]);
 
-  const loadAvailableSlots = async () => {
+  const initializeDays = () => {
+    const baseDate = startOfDay(new Date(selectedDate));
+    const days = [];
+
+    // Create array of days to load
+    for (let i = 0; i < visibleDays; i++) {
+      const dayDate = addDays(baseDate, startDayOffset + i);
+      days.push({
+        date: dayDate,
+        slots: [],
+        loading: true,
+      });
+    }
+
+    setDaySlots(days);
+
+    // Load slots for each day
+    days.forEach((day, index) => {
+      loadSlotsForDay(day.date, index);
+    });
+
+    // Update selected day index based on current selectedDate
+    const selectedIndex = days.findIndex((day) =>
+      isSameDay(day.date, new Date(selectedDate))
+    );
+    if (selectedIndex !== -1) {
+      setSelectedDayIndex(selectedIndex);
+    }
+  };
+
+  const loadSlotsForDay = async (date, dayIndex) => {
     try {
-      setLoading(true);
-
-      // Use the new backend endpoint to get available slots
       const response = await appointmentAPI.getAvailableSlots(
-        selectedDate,
+        format(date, 'yyyy-MM-dd'),
         consultationTypeId
       );
 
-      // Transform the backend response to match the expected format
+      // Transform the backend response
       const formattedSlots = response.slots
         .filter((slot) => slot.available)
         .map((slot) => ({
           time: slot.time,
-          displayTime: format(new Date(`2000-01-01T${slot.time}`), 'h:mm a'),
+          displayTime: format(new Date(`2000-01-01T${slot.time}`), 'HH:mm'),
           available: slot.available,
         }));
 
-      setAvailableSlots(formattedSlots);
+      // Update the specific day's slots
+      setDaySlots((prev) => {
+        const newDays = [...prev];
+        if (newDays[dayIndex]) {
+          newDays[dayIndex] = {
+            ...newDays[dayIndex],
+            slots: formattedSlots,
+            loading: false,
+          };
+        }
+        return newDays;
+      });
     } catch (error) {
       console.error('Error loading available time slots:', error);
-      setAvailableSlots([]);
-    } finally {
-      setLoading(false);
+      setDaySlots((prev) => {
+        const newDays = [...prev];
+        if (newDays[dayIndex]) {
+          newDays[dayIndex] = {
+            ...newDays[dayIndex],
+            slots: [],
+            loading: false,
+          };
+        }
+        return newDays;
+      });
     }
   };
 
-  if (loading) {
-    return (
-      <div className='flex items-center justify-center p-8'>
-        <div className='flex items-center space-x-2 text-gray-600'>
-          <Clock className='h-5 w-5 animate-spin' />
-          <span>Loading available times...</span>
-        </div>
-      </div>
-    );
-  }
+  const handlePrevious = () => {
+    setStartDayOffset((prev) => Math.max(0, prev - 1));
+  };
 
-  if (!loading && availableSlots.length === 0) {
+  const handleNext = () => {
+    setStartDayOffset((prev) => prev + 1);
+  };
+
+  const handleDaySelect = (dayIndex, date) => {
+    setSelectedDayIndex(dayIndex);
+    if (onDateChange) {
+      onDateChange(format(date, 'yyyy-MM-dd'));
+    }
+  };
+
+  const handleTimeSelect = (time, date) => {
+    onChange(time);
+    if (onDateChange) {
+      onDateChange(format(date, 'yyyy-MM-dd'));
+    }
+  };
+
+  const getSelectedDateTime = () => {
+    if (!value) return null;
+    const currentDay = daySlots[selectedDayIndex];
+    if (!currentDay) return null;
+    return `${format(currentDay.date, 'yyyy-MM-dd')}T${value}`;
+  };
+
+  if (!consultationTypeId || !selectedDate) {
     return (
       <div className='text-center p-8 text-gray-500'>
         <Clock className='h-8 w-8 mx-auto mb-2' />
-        <p>No available time slots for this day</p>
-        <p className='text-sm mt-1'>
-          Try selecting a different date or consultation type
-        </p>
+        <p>Please select a consultation type first</p>
       </div>
     );
   }
 
-  return (
-    <div className='space-y-3'>
-      <div className='text-sm text-gray-600 mb-3'>
-        Available times for{' '}
-        {format(new Date(selectedDate), 'EEEE, MMMM d, yyyy')}
-      </div>
+  const isLoading = daySlots.some((day) => day.loading);
 
-      <div className='grid grid-cols-3 gap-2 max-h-64 overflow-y-auto'>
-        {availableSlots.map((slot) => (
-          <button
-            key={slot.time}
-            type='button'
-            onClick={() => onChange(slot.time)}
-            className={`p-3 text-sm border rounded-lg transition-colors text-center ${
-              value === slot.time
-                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
-            }`}
-          >
-            <div className='font-medium'>{slot.displayTime}</div>
-            <div className='text-xs text-gray-500 mt-1'>{duration} min</div>
-          </button>
-        ))}
+  return (
+    <div className='space-y-4'>
+      {/* Days Navigation */}
+      <div className='flex items-center gap-2'>
+        <button
+          type='button'
+          onClick={handlePrevious}
+          disabled={startDayOffset === 0}
+          className='p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
+        >
+          <ChevronLeft className='h-5 w-5' />
+        </button>
+
+        <div className='flex-1 overflow-x-auto'>
+          <div className='flex gap-3 min-w-max'>
+            {daySlots.map((day, index) => {
+              const isSelected = index === selectedDayIndex;
+              const hasSlots = day.slots.length > 0;
+              const dayName = format(day.date, 'EEEE', { locale: fr });
+              const dateNum = format(day.date, 'd', { locale: fr });
+              const monthName = format(day.date, 'MMM', { locale: fr });
+
+              return (
+                <div key={index} className='flex-shrink-0 w-32'>
+                  {/* Day Header */}
+                  <div
+                    className={`text-center p-3 rounded-t-lg border ${
+                      isSelected
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-300 bg-gray-50'
+                    }`}
+                  >
+                    <div className='text-xs font-medium uppercase text-gray-500'>
+                      {dayName}
+                    </div>
+                    <div className='text-lg font-semibold mt-1'>
+                      {dateNum} {monthName.toLowerCase()}.
+                    </div>
+                  </div>
+
+                  {/* Time Slots Column */}
+                  <div className='border border-t-0 border-gray-300 rounded-b-lg bg-white max-h-96 overflow-y-auto'>
+                    {day.loading ? (
+                      <div className='flex items-center justify-center p-8'>
+                        <Clock className='h-5 w-5 animate-spin text-gray-400' />
+                      </div>
+                    ) : !hasSlots ? (
+                      <div className='text-center p-4 text-sm text-gray-400'>
+                        Aucune dispo pour cet acte.
+                      </div>
+                    ) : (
+                      <div className='p-2 space-y-1'>
+                        {day.slots.map((slot) => {
+                          const isSlotSelected =
+                            value === slot.time &&
+                            isSameDay(day.date, new Date(selectedDate));
+
+                          return (
+                            <button
+                              key={slot.time}
+                              type='button'
+                              onClick={() => {
+                                handleDaySelect(index, day.date);
+                                handleTimeSelect(slot.time, day.date);
+                              }}
+                              className={`w-full px-3 py-2 text-sm rounded-md transition-colors text-center flex items-center justify-center gap-2 ${
+                                isSlotSelected
+                                  ? 'bg-amber-400 text-white font-medium'
+                                  : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
+                              }`}
+                            >
+                              <span>{slot.displayTime}</span>
+                              {isSlotSelected && (
+                                <span className='w-4 h-4 bg-white rounded-full flex items-center justify-center'>
+                                  <span className='w-2 h-2 bg-amber-400 rounded-full'></span>
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <button
+          type='button'
+          onClick={handleNext}
+          className='p-2 rounded-lg border border-gray-300 hover:bg-gray-50'
+        >
+          <ChevronRight className='h-5 w-5' />
+        </button>
       </div>
 
       {error && <p className='mt-1 text-sm text-red-600'>{error}</p>}
