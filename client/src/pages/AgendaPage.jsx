@@ -59,6 +59,7 @@ const TabContent = ({
   appointmentPanelProps,
   onCloseAppointmentPanel,
   onAppointmentCreated,
+  onAppointmentDeleted,
 }) => {
   const renderTabContent = () => {
     switch (activeTab) {
@@ -70,6 +71,7 @@ const TabContent = ({
             mode='create'
             onClose={onCloseAppointmentPanel}
             onAppointmentCreated={onAppointmentCreated}
+            onAppointmentDeleted={onAppointmentDeleted}
             {...appointmentPanelProps}
           />
         );
@@ -235,6 +237,14 @@ const AgendaPage = () => {
     }
   };
 
+  const handleAppointmentDeleted = async () => {
+    if (calendarRef.current) {
+      await calendarRef.current.refreshAppointments();
+    }
+    setSelectedAppointment(null);
+    setAppointmentPanelMode('create');
+  };
+
   // Handle calendar appointment click
   const handleAppointmentClick = (appointment) => {
     setSelectedAppointment(appointment);
@@ -330,6 +340,7 @@ const AgendaPage = () => {
               appointmentPanelProps={appointmentPanelProps}
               onCloseAppointmentPanel={handleCloseAppointmentPanel}
               onAppointmentCreated={handleAppointmentCreated}
+              onAppointmentDeleted={handleAppointmentDeleted}
             />
           </div>
         )}

@@ -8,6 +8,7 @@ import {
 } from '../services/api';
 import { showError, showSuccess } from '../lib/toast';
 import { Loader2, Plus } from 'lucide-react';
+import { ConfirmDialog } from './ui/confirm-dialog';
 
 const AppointmentPanel = ({
   mode = 'create', // 'create', 'view', 'edit'
@@ -15,12 +16,16 @@ const AppointmentPanel = ({
   selectedDateTime = null,
   onClose,
   onAppointmentCreated,
+  onAppointmentDeleted,
 }) => {
   const [patients, setPatients] = useState([]);
   const [consultationTypes, setConsultationTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentMode, setCurrentMode] = useState(mode);
   const [currentAppointment, setCurrentAppointment] = useState(appointment);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [appointmentToDelete, setAppointmentToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Load initial data
   useEffect(() => {
@@ -136,24 +141,39 @@ const AppointmentPanel = ({
     setCurrentMode('edit');
   };
 
-  const handleDeleteAppointment = async (appointment) => {
-    if (
-      !confirm(
-        'Are you sure you want to delete this appointment? This action cannot be undone.'
-      )
-    ) {
-      return;
-    }
+  const handleDeleteAppointment = (appointment) => {
+    setAppointmentToDelete(appointment);
+    setDeleteDialogOpen(true);
+  };
+
+  const closeDeleteDialog = () => {
+    if (isDeleting) return;
+    setDeleteDialogOpen(false);
+    setAppointmentToDelete(null);
+  };
+
+  const confirmDeleteAppointment = async () => {
+    if (!appointmentToDelete) return;
 
     try {
-      await appointmentAPI.delete(appointment.id);
+      setIsDeleting(true);
+      await appointmentAPI.delete(appointmentToDelete.id);
       showSuccess('Appointment deleted successfully!');
+
+      if (onAppointmentDeleted) {
+        await onAppointmentDeleted(appointmentToDelete);
+      }
+
+      setDeleteDialogOpen(false);
+      setAppointmentToDelete(null);
 
       // Close panel or switch to create mode
       onClose?.();
     } catch (error) {
       console.error('Error deleting appointment:', error);
       showError('Failed to delete appointment. Please try again.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -310,7 +330,20 @@ const AppointmentPanel = ({
   };
 
   return (
-    <div className='h-full bg-white overflow-hidden'>{renderContent()}</div>
+    <>
+      <div className='h-full bg-white overflow-hidden'>{renderContent()}</div>
+      <ConfirmDialog
+        isOpen={deleteDialogOpen}
+        onClose={closeDeleteDialog}
+        onConfirm={confirmDeleteAppointment}
+        title='Delete appointment'
+        description='This action will permanently remove the appointment and its related information.'
+        confirmText='Delete'
+        cancelText='Cancel'
+        variant='destructive'
+        isLoading={isDeleting}
+      />
+    </>
   );
 };
 
