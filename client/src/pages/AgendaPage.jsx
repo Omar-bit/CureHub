@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import PatientManagement from '../components/PatientManagement';
@@ -58,6 +58,7 @@ const TabContent = ({
   activeTab,
   appointmentPanelProps,
   onCloseAppointmentPanel,
+  onAppointmentCreated,
 }) => {
   const renderTabContent = () => {
     switch (activeTab) {
@@ -68,6 +69,7 @@ const TabContent = ({
           <AppointmentPanel
             mode='create'
             onClose={onCloseAppointmentPanel}
+            onAppointmentCreated={onAppointmentCreated}
             {...appointmentPanelProps}
           />
         );
@@ -213,11 +215,25 @@ const AgendaPage = () => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const calendarRef = useRef();
 
   // Appointment panel state
   const [appointmentPanelMode, setAppointmentPanelMode] = useState('create');
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [selectedDateTime, setSelectedDateTime] = useState(null);
+
+  // Handle appointment creation
+  const handleAppointmentCreated = async (appointmentDate) => {
+    if (calendarRef.current) {
+      // Refresh appointments to show the new one
+      await calendarRef.current.refreshAppointments();
+
+      // Navigate to the appointment's date
+      if (appointmentDate) {
+        calendarRef.current.navigateToDate(appointmentDate);
+      }
+    }
+  };
 
   // Handle calendar appointment click
   const handleAppointmentClick = (appointment) => {
@@ -296,6 +312,7 @@ const AgendaPage = () => {
           `}
         >
           <CalendarSection
+            ref={calendarRef}
             onAppointmentClick={handleAppointmentClick}
             onTimeSlotClick={handleTimeSlotClick}
           />
@@ -312,6 +329,7 @@ const AgendaPage = () => {
               activeTab={activeTab}
               appointmentPanelProps={appointmentPanelProps}
               onCloseAppointmentPanel={handleCloseAppointmentPanel}
+              onAppointmentCreated={handleAppointmentCreated}
             />
           </div>
         )}

@@ -14,6 +14,7 @@ const AppointmentPanel = ({
   appointment = null,
   selectedDateTime = null,
   onClose,
+  onAppointmentCreated,
 }) => {
   const [patients, setPatients] = useState([]);
   const [consultationTypes, setConsultationTypes] = useState([]);
@@ -71,11 +72,18 @@ const AppointmentPanel = ({
         setCurrentAppointment(newAppointment);
         setCurrentMode('view');
         showSuccess('Appointment created successfully!');
-      }
 
-      // Refresh calendar appointments
-      if (window.refreshCalendarAppointments) {
-        window.refreshCalendarAppointments();
+        const appointmentStart =
+          newAppointment.startTime ||
+          newAppointment.appointmentDate ||
+          appointmentData.startTime ||
+          appointmentData.appointmentDate ||
+          null;
+
+        // Notify parent component with the appointment date
+        if (onAppointmentCreated && appointmentStart) {
+          onAppointmentCreated(appointmentStart);
+        }
       }
     } catch (error) {
       console.error('Error saving appointment:', error);
@@ -141,11 +149,6 @@ const AppointmentPanel = ({
       await appointmentAPI.delete(appointment.id);
       showSuccess('Appointment deleted successfully!');
 
-      // Refresh calendar appointments
-      if (window.refreshCalendarAppointments) {
-        window.refreshCalendarAppointments();
-      }
-
       // Close panel or switch to create mode
       onClose?.();
     } catch (error) {
@@ -161,11 +164,6 @@ const AppointmentPanel = ({
       });
 
       setCurrentAppointment(updatedAppointment);
-
-      // Refresh calendar appointments
-      if (window.refreshCalendarAppointments) {
-        window.refreshCalendarAppointments();
-      }
 
       showSuccess(`Appointment status updated to ${newStatus.toLowerCase()}`);
     } catch (error) {

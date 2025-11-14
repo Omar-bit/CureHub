@@ -1,58 +1,69 @@
-import React, { useState } from 'react';
+import React, { useState, useImperativeHandle, forwardRef } from 'react';
 import { Calendar, Grid3X3, MoreHorizontal } from 'lucide-react';
 import DayView from './DayView';
 import WeekView from './WeekView';
 import MonthView from './MonthView';
 
-const CalendarView = ({
-  appointments = [],
-  onAppointmentClick,
-  onTimeSlotClick,
-  workingHours = { start: 8, end: 20 },
-  defaultView = 'day',
-}) => {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [view, setView] = useState(defaultView);
-
-  const viewOptions = [
-    { value: 'day', label: 'Day', icon: MoreHorizontal },
-    { value: 'week', label: 'Week', icon: Grid3X3 },
-    { value: 'month', label: 'Month', icon: Calendar },
-  ];
-
-  const handleDateChange = (newDate) => {
-    setCurrentDate(newDate);
-  };
-
-  const goToToday = () => {
-    setCurrentDate(new Date());
-  };
-
-  const renderCalendarView = () => {
-    const commonProps = {
-      currentDate,
-      appointments,
-      onDateChange: handleDateChange,
+const CalendarView = forwardRef(
+  (
+    {
+      appointments = [],
       onAppointmentClick,
       onTimeSlotClick,
-      workingHours,
+      workingHours = { start: 8, end: 20 },
+      defaultView = 'day',
+    },
+    ref
+  ) => {
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [view, setView] = useState(defaultView);
+
+    // Expose methods to parent components
+    useImperativeHandle(ref, () => ({
+      navigateToDate: (date) => {
+        setCurrentDate(new Date(date));
+      },
+    }));
+
+    const viewOptions = [
+      { value: 'day', label: 'Day', icon: MoreHorizontal },
+      { value: 'week', label: 'Week', icon: Grid3X3 },
+      { value: 'month', label: 'Month', icon: Calendar },
+    ];
+
+    const handleDateChange = (newDate) => {
+      setCurrentDate(newDate);
     };
 
-    switch (view) {
-      case 'day':
-        return <DayView {...commonProps} />;
-      case 'week':
-        return <WeekView {...commonProps} />;
-      case 'month':
-        return <MonthView {...commonProps} />;
-      default:
-        return <DayView {...commonProps} />;
-    }
-  };
+    const goToToday = () => {
+      setCurrentDate(new Date());
+    };
 
-  return (
-    <div className='h-full flex flex-col bg-white'>
-      {/* <div className='border-b border-gray-200 p-4'>
+    const renderCalendarView = () => {
+      const commonProps = {
+        currentDate,
+        appointments,
+        onDateChange: handleDateChange,
+        onAppointmentClick,
+        onTimeSlotClick,
+        workingHours,
+      };
+
+      switch (view) {
+        case 'day':
+          return <DayView {...commonProps} />;
+        case 'week':
+          return <WeekView {...commonProps} />;
+        case 'month':
+          return <MonthView {...commonProps} />;
+        default:
+          return <DayView {...commonProps} />;
+      }
+    };
+
+    return (
+      <div className='h-full flex flex-col bg-white'>
+        {/* <div className='border-b border-gray-200 p-4'>
         <div className='flex items-center justify-between'>
           <div className='flex items-center space-x-4'>
             <div className='flex bg-gray-100 rounded-lg p-1'>
@@ -103,10 +114,13 @@ const CalendarView = ({
         </div>
       </div> */}
 
-      {/* Calendar content */}
-      <div className='flex-1 overflow-hidden'>{renderCalendarView()}</div>
-    </div>
-  );
-};
+        {/* Calendar content */}
+        <div className='flex-1 overflow-hidden'>{renderCalendarView()}</div>
+      </div>
+    );
+  }
+);
+
+CalendarView.displayName = 'CalendarView';
 
 export default CalendarView;
