@@ -27,13 +27,19 @@ import { Button } from '../ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { splitPatientName } from '../../lib/patient';
 
+const STATUS_CHIP_TO_APPOINTMENT_STATUS = {
+  waiting: 'SCHEDULED',
+  seen: 'COMPLETED',
+  absent: 'NO_SHOW',
+};
+
 const AppointmentDetails = ({
   appointment,
   isOpen = false,
   onClose,
-  // onEdit removed - not used in this view
+  onEdit = null,
   onDelete,
-  // onStatusChange removed (not used in this view)
+  onStatusChange = null,
   inline = true,
 }) => {
   const [activeTab, setActiveTab] = useState('motif'); // 'motif' | 'documents' | 'honoraires' | 'chronologie'
@@ -61,7 +67,6 @@ const AppointmentDetails = ({
     }
   };
 
-
   const renderPatientName = (patient) => {
     if (!patient) return '—';
 
@@ -84,14 +89,19 @@ const AppointmentDetails = ({
   // Handle status chip clicks - Update visual state (API integration will come later)
   const handleStatusChipClick = (chipName) => {
     setSelectedStatusChip(chipName);
-    // TODO: Call API to update appointment status
-    // Example: await appointmentAPI.update(appointment.id, { status: chipName });
+
+    if (onStatusChange && appointment) {
+      const mappedStatus = STATUS_CHIP_TO_APPOINTMENT_STATUS[chipName];
+      if (mappedStatus) {
+        onStatusChange(appointment.id, mappedStatus);
+      }
+    }
   };
 
   // Get consultation badge color and icon based on consultation type location
   const getConsultationBadgeStyle = () => {
     const location = appointment.consultationType?.location;
-    
+
     switch (location) {
       case 'ONLINE':
         return {
@@ -173,8 +183,6 @@ const AppointmentDetails = ({
     }
   };
 
-  
-
   const content = (
     <>
       {/* Header - only show when not in inline mode */}
@@ -211,20 +219,32 @@ const AppointmentDetails = ({
             {renderPatientName(appointment.patient)}
           </h3>
           <div className='text-sm text-gray-600'>
-            Née le {appointment.patient?.dateOfBirth ? new Date(appointment.patient.dateOfBirth).toLocaleDateString('fr-FR') : '-'} •{' '}
-            {appointment.patient?.dateOfBirth ? (new Date().getFullYear() - new Date(appointment.patient.dateOfBirth).getFullYear()) : '-'} ans
+            Née le{' '}
+            {appointment.patient?.dateOfBirth
+              ? new Date(appointment.patient.dateOfBirth).toLocaleDateString(
+                  'fr-FR'
+                )
+              : '-'}{' '}
+            •{' '}
+            {appointment.patient?.dateOfBirth
+              ? new Date().getFullYear() -
+                new Date(appointment.patient.dateOfBirth).getFullYear()
+              : '-'}{' '}
+            ans
           </div>
           <div className='mt-2 flex items-center gap-3 text-xs text-gray-500'>
             {appointment.patient?.phoneNumber && <span>■ Téléphone</span>}
             {appointment.patient?.email && <span>■ Email</span>}
             {appointment.patient?.address && <span>■ Adresse</span>}
-            {appointment.patient && <span className='text-orange-600 font-medium'>1 absence</span>}
+            {appointment.patient && (
+              <span className='text-orange-600 font-medium'>1 absence</span>
+            )}
           </div>
         </div>
 
         {/* Status chips (view-only buttons) */}
         <div className='px-4 flex flex-wrap gap-3'>
-          <button 
+          <button
             onClick={() => handleStatusChipClick('waiting')}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
               selectedStatusChip === 'waiting'
@@ -232,10 +252,16 @@ const AppointmentDetails = ({
                 : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
             }`}
           >
-            <Circle className={`w-3 h-3 ${selectedStatusChip === 'waiting' ? 'fill-white' : 'fill-blue-500'}`} />
+            <Circle
+              className={`w-3 h-3 ${
+                selectedStatusChip === 'waiting'
+                  ? 'fill-white'
+                  : 'fill-blue-500'
+              }`}
+            />
             En salle d'attente
           </button>
-          <button 
+          <button
             onClick={() => handleStatusChipClick('seen')}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
               selectedStatusChip === 'seen'
@@ -243,10 +269,14 @@ const AppointmentDetails = ({
                 : 'bg-green-50 text-green-700 hover:bg-green-100'
             }`}
           >
-            <Circle className={`w-3 h-3 ${selectedStatusChip === 'seen' ? 'fill-white' : 'fill-green-500'}`} />
+            <Circle
+              className={`w-3 h-3 ${
+                selectedStatusChip === 'seen' ? 'fill-white' : 'fill-green-500'
+              }`}
+            />
             Patient vu
           </button>
-          <button 
+          <button
             onClick={() => handleStatusChipClick('absent')}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
               selectedStatusChip === 'absent'
@@ -254,7 +284,11 @@ const AppointmentDetails = ({
                 : 'bg-red-50 text-red-700 hover:bg-red-100'
             }`}
           >
-            <Circle className={`w-3 h-3 ${selectedStatusChip === 'absent' ? 'fill-white' : 'fill-red-500'}`} />
+            <Circle
+              className={`w-3 h-3 ${
+                selectedStatusChip === 'absent' ? 'fill-white' : 'fill-red-500'
+              }`}
+            />
             Patient absent
           </button>
         </div>
@@ -265,13 +299,17 @@ const AppointmentDetails = ({
             {(() => {
               const style = getConsultationBadgeStyle();
               return (
-                <span className={`inline-flex items-center justify-center w-10 h-10 ${style.bgColor} rounded-full font-semibold ${style.textColor} text-sm`}>
+                <span
+                  className={`inline-flex items-center justify-center w-10 h-10 ${style.bgColor} rounded-full font-semibold ${style.textColor} text-sm`}
+                >
                   {appointment.consultationType?.duration || '30'}
                 </span>
               );
             })()}
             <div>
-              <p className='font-medium text-gray-900'>{appointment.consultationType?.name || 'Consultation'}</p>
+              <p className='font-medium text-gray-900'>
+                {appointment.consultationType?.name || 'Consultation'}
+              </p>
               <p className='text-xs text-gray-500'>{getDuration()}</p>
             </div>
           </div>
@@ -280,7 +318,7 @@ const AppointmentDetails = ({
             <button className='p-2 bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition-colors'>
               <Stethoscope className='w-4 h-4 text-gray-600' />
             </button>
-            <button 
+            <button
               onClick={() => setShowVideoCall(!showVideoCall)}
               className={`p-2 rounded-full transition-colors ${
                 showVideoCall
@@ -288,15 +326,27 @@ const AppointmentDetails = ({
                   : 'bg-white border border-gray-200 hover:bg-gray-50'
               }`}
             >
-              <VideoOn className={`w-4 h-4 ${showVideoCall ? 'text-purple-600' : 'text-gray-600'}`} />
+              <VideoOn
+                className={`w-4 h-4 ${
+                  showVideoCall ? 'text-purple-600' : 'text-gray-600'
+                }`}
+              />
             </button>
             <button className='p-2 bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition-colors'>
               <Phone className='w-4 h-4 text-gray-600' />
             </button>
-            <button className='p-2 bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition-colors'>
+            <button
+              onClick={() => onEdit && onEdit(appointment)}
+              disabled={!onEdit}
+              className='p-2 bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+              title={onEdit ? 'Modifier le rendez-vous' : undefined}
+            >
               <Edit className='w-4 h-4 text-gray-600' />
             </button>
-            <button onClick={() => onDelete && onDelete(appointment)} className='p-2 bg-red-50 border border-red-200 rounded-full hover:bg-red-100 transition-colors'>
+            <button
+              onClick={() => onDelete && onDelete(appointment)}
+              className='p-2 bg-red-50 border border-red-200 rounded-full hover:bg-red-100 transition-colors'
+            >
               <Trash2 className='w-4 h-4 text-red-600' />
             </button>
           </div>
@@ -308,8 +358,10 @@ const AppointmentDetails = ({
           {showVideoCall && (
             <div className='mb-6 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white'>
               <div className='flex items-start justify-between mb-4'>
-                <h3 className='text-lg font-semibold'>téléconsult<span className='text-yellow-300'>✨</span></h3>
-                <button 
+                <h3 className='text-lg font-semibold'>
+                  téléconsult<span className='text-yellow-300'>✨</span>
+                </h3>
+                <button
                   onClick={() => setShowVideoCall(false)}
                   className='px-4 py-1.5 bg-white text-purple-600 rounded-full text-sm font-medium hover:bg-gray-100 transition-colors flex-shrink-0'
                 >
@@ -325,35 +377,36 @@ const AppointmentDetails = ({
                   <p className='font-semibold text-white mb-1'>CONVERSION</p>
                   <p className='text-sm leading-relaxed text-white'>
                     Vous pouvez convertir ce rendez-vous en téléconsultation.
-                    Une notification sera envoyée à votre patient(e) pour le prévenir.
+                    Une notification sera envoyée à votre patient(e) pour le
+                    prévenir.
                   </p>
                 </div>
               </div>
             </div>
           )}
-          
+
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className='grid grid-cols-4 gap-0 bg-transparent border-b border-gray-200 p-0 h-auto'>
-              <TabsTrigger 
-                value='motif' 
+              <TabsTrigger
+                value='motif'
                 className='rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent text-sm font-medium'
               >
                 Motif de Cs
               </TabsTrigger>
-              <TabsTrigger 
-                value='documents' 
+              <TabsTrigger
+                value='documents'
                 className='rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent text-sm font-medium'
               >
                 Documents
               </TabsTrigger>
-              <TabsTrigger 
-                value='honoraires' 
+              <TabsTrigger
+                value='honoraires'
                 className='rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent text-sm font-medium'
               >
                 Honoraires
               </TabsTrigger>
-              <TabsTrigger 
-                value='chronologie' 
+              <TabsTrigger
+                value='chronologie'
                 className='rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent text-sm font-medium'
               >
                 Chronologie
@@ -363,7 +416,9 @@ const AppointmentDetails = ({
             <div className='mt-6'>
               <TabsContent value='motif' className='space-y-4'>
                 <div>
-                  <label className='text-sm font-medium text-gray-700'>Motif de consultation</label>
+                  <label className='text-sm font-medium text-gray-700'>
+                    Motif de consultation
+                  </label>
                   <textarea
                     value={appointment.description || ''}
                     readOnly
@@ -373,7 +428,9 @@ const AppointmentDetails = ({
                 </div>
 
                 <div>
-                  <label className='text-sm font-medium text-red-600'>Note privée (invisible du patient)</label>
+                  <label className='text-sm font-medium text-red-600'>
+                    Note privée (invisible du patient)
+                  </label>
                   <textarea
                     value={appointment.notes || ''}
                     readOnly
@@ -393,15 +450,27 @@ const AppointmentDetails = ({
                   </div>
                   <div className='flex-1'>
                     <p className='text-sm text-gray-700'>
-                      Vous pouvez également bloquer l'accès aux documents transmis, tant que la (télé)consultation n'est pas régléiée.
+                      Vous pouvez également bloquer l'accès aux documents
+                      transmis, tant que la (télé)consultation n'est pas
+                      régléiée.
                     </p>
                     <p className='text-sm text-gray-600 mt-2'>
                       Un levier supplémentaire pour lutter contre les impayés.
                     </p>
                   </div>
                   <div className='flex-shrink-0'>
-                    <svg className='w-6 h-6 text-purple-400' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                      <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M7 16V4m0 0L3 8m0 0l4 4m10-4v12m0 0l4-4m0 0l-4-4' />
+                    <svg
+                      className='w-6 h-6 text-purple-400'
+                      fill='none'
+                      stroke='currentColor'
+                      viewBox='0 0 24 24'
+                    >
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        strokeWidth={2}
+                        d='M7 16V4m0 0L3 8m0 0l4 4m10-4v12m0 0l4-4m0 0l-4-4'
+                      />
                     </svg>
                   </div>
                 </div>
@@ -425,20 +494,22 @@ const AppointmentDetails = ({
                     onChange={handleFileInputChange}
                     className='hidden'
                   />
-                  
+
                   <div className='flex flex-col items-center justify-center'>
                     <FileText className='w-10 h-10 text-blue-400 mb-3' />
-                    
+
                     <label htmlFor='file-input' className='mb-2'>
                       <button
                         type='button'
-                        onClick={() => document.getElementById('file-input')?.click()}
+                        onClick={() =>
+                          document.getElementById('file-input')?.click()
+                        }
                         className='text-blue-500 hover:text-blue-700 font-medium text-sm'
                       >
                         Partager un fichier
                       </button>
                     </label>
-                    
+
                     <p className='text-sm text-gray-500'>ou déposez-le ici</p>
                   </div>
                 </div>
@@ -446,18 +517,31 @@ const AppointmentDetails = ({
                 {/* Uploaded files list */}
                 {uploadedFiles.length > 0 && (
                   <div className='space-y-2'>
-                    <p className='text-sm font-medium text-gray-700'>Fichiers uploadés ({uploadedFiles.length})</p>
+                    <p className='text-sm font-medium text-gray-700'>
+                      Fichiers uploadés ({uploadedFiles.length})
+                    </p>
                     {uploadedFiles.map((file) => (
-                      <div key={file.id} className='flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg'>
+                      <div
+                        key={file.id}
+                        className='flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg'
+                      >
                         <div className='flex items-center gap-2 flex-1 min-w-0'>
                           <FileText className='w-4 h-4 text-gray-400 flex-shrink-0' />
                           <div className='min-w-0'>
-                            <p className='text-sm font-medium text-gray-900 truncate'>{file.name}</p>
-                            <p className='text-xs text-gray-500'>{(file.size / 1024).toFixed(2)} KB</p>
+                            <p className='text-sm font-medium text-gray-900 truncate'>
+                              {file.name}
+                            </p>
+                            <p className='text-xs text-gray-500'>
+                              {(file.size / 1024).toFixed(2)} KB
+                            </p>
                           </div>
                         </div>
                         <button
-                          onClick={() => setUploadedFiles((prev) => prev.filter((f) => f.id !== file.id))}
+                          onClick={() =>
+                            setUploadedFiles((prev) =>
+                              prev.filter((f) => f.id !== file.id)
+                            )
+                          }
                           className='p-1 text-gray-400 hover:text-red-600 transition-colors'
                         >
                           <Trash2 className='w-4 h-4' />
@@ -473,9 +557,16 @@ const AppointmentDetails = ({
                   <div className='flex items-center justify-between'>
                     <div>
                       <p className='text-sm text-gray-600'>Honoraires</p>
-                      <p className='font-semibold text-gray-900 mt-1'>{appointment.consultationType ? `€ ${appointment.consultationType.price}` : '—'}</p>
+                      <p className='font-semibold text-gray-900 mt-1'>
+                        {appointment.consultationType
+                          ? `€ ${appointment.consultationType.price}`
+                          : '—'}
+                      </p>
                     </div>
-                    <Button onClick={() => {}} className='bg-gray-900 text-white hover:bg-gray-800'>
+                    <Button
+                      onClick={() => {}}
+                      className='bg-gray-900 text-white hover:bg-gray-800'
+                    >
                       Gérer le paiement
                     </Button>
                   </div>
@@ -495,7 +586,10 @@ const AppointmentDetails = ({
       {/* Footer actions */}
       <div className='border-t border-gray-200 bg-white p-4 flex justify-end gap-3'>
         {!inline && (
-          <button onClick={onClose} className='px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors'>
+          <button
+            onClick={onClose}
+            className='px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors'
+          >
             Fermer
           </button>
         )}

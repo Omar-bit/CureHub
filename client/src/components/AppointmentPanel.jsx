@@ -17,6 +17,7 @@ const AppointmentPanel = ({
   onClose,
   onAppointmentCreated,
   onAppointmentDeleted,
+  onAppointmentUpdated,
 }) => {
   const [patients, setPatients] = useState([]);
   const [consultationTypes, setConsultationTypes] = useState([]);
@@ -71,6 +72,10 @@ const AppointmentPanel = ({
         setCurrentAppointment(updatedAppointment);
         setCurrentMode('view');
         showSuccess('Appointment updated successfully!');
+
+        if (onAppointmentUpdated) {
+          onAppointmentUpdated(updatedAppointment);
+        }
       } else {
         // Create new appointment
         const newAppointment = await appointmentAPI.create(appointmentData);
