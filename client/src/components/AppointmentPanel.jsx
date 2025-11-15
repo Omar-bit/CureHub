@@ -184,9 +184,10 @@ const AppointmentPanel = ({
 
   const handleStatusChange = async (appointmentId, newStatus) => {
     try {
-      const updatedAppointment = await appointmentAPI.update(appointmentId, {
-        status: newStatus,
-      });
+      const updatedAppointment = await appointmentAPI.updateStatus(
+        appointmentId,
+        newStatus
+      );
 
       setCurrentAppointment(updatedAppointment);
 
@@ -256,7 +257,7 @@ const AppointmentPanel = ({
               return 'bg-green-100 text-green-800';
             case 'CANCELLED':
               return 'bg-red-100 text-red-800';
-            case 'NO_SHOW':
+            case 'ABSENT':
               return 'bg-gray-100 text-gray-800';
             default:
               return 'bg-gray-100 text-gray-800';
@@ -275,8 +276,8 @@ const AppointmentPanel = ({
               return 'Completed';
             case 'CANCELLED':
               return 'Cancelled';
-            case 'NO_SHOW':
-              return 'No Show';
+            case 'ABSENT':
+              return 'Absent';
             default:
               return status;
           }

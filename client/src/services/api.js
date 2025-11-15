@@ -218,6 +218,10 @@ export const appointmentAPI = {
   update: (id, data) =>
     api.patch(`/appointments/${id}`, data).then((res) => res.data),
 
+  // Update appointment status only
+  updateStatus: (id, status) =>
+    api.patch(`/appointments/${id}/status`, { status }).then((res) => res.data),
+
   // Delete an appointment
   delete: (id) => api.delete(`/appointments/${id}`).then((res) => res.data),
 

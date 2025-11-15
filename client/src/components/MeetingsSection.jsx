@@ -176,9 +176,10 @@ const MeetingsSection = () => {
 
   const handleStatusChange = async (appointmentId, newStatus) => {
     try {
-      const updatedAppointment = await appointmentAPI.update(appointmentId, {
-        status: newStatus,
-      });
+      const updatedAppointment = await appointmentAPI.updateStatus(
+        appointmentId,
+        newStatus
+      );
 
       setAppointments((prev) =>
         prev.map((apt) => (apt.id === appointmentId ? updatedAppointment : apt))

@@ -136,7 +136,7 @@ const PatientDetailsSheet = ({
       CONFIRMED: 'Confirmé',
       COMPLETED: 'Terminé',
       CANCELLED: 'Annulé',
-      NO_SHOW: 'Absent',
+      ABSENT: 'Absent',
     };
     return statusMap[status] || status;
   };

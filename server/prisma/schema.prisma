@@ -274,7 +274,7 @@ enum AppointmentStatus {
   IN_PROGRESS
   COMPLETED
   CANCELLED
-  NO_SHOW
+  ABSENT
 }
 
 // Task priority enum

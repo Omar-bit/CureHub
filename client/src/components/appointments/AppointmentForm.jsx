@@ -1228,7 +1228,7 @@ const AppointmentForm = ({
                 <option value='IN_PROGRESS'>In Progress</option>
                 <option value='COMPLETED'>Completed</option>
                 <option value='CANCELLED'>Cancelled</option>
-                <option value='NO_SHOW'>No Show</option>
+                <option value='ABSENT'>Absent</option>
               </select>
             </div>
           )}

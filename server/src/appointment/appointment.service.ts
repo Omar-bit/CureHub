@@ -442,6 +442,44 @@ export class AppointmentService {
     return updatedAppointment;
   }
 
+  async updateStatus(
+    id: string,
+    doctorId: string,
+    status: AppointmentStatus,
+  ): Promise<Appointment> {
+    await this.findOne(id, doctorId);
+
+    return this.prisma.appointment.update({
+      where: { id },
+      data: { status },
+      include: {
+        patient: {
+          select: {
+            id: true,
+            name: true,
+            profileImage: true,
+            email: true,
+            phoneNumber: true,
+          },
+        },
+        appointmentPatients: {
+          include: {
+            patient: {
+              select: {
+                id: true,
+                name: true,
+                profileImage: true,
+                email: true,
+                phoneNumber: true,
+              },
+            },
+          },
+        },
+        consultationType: true,
+      },
+    });
+  }
+
   async remove(id: string, doctorId: string): Promise<void> {
     await this.findOne(id, doctorId); // Verify ownership
 

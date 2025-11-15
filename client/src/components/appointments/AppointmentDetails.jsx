@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   X,
   Calendar,
@@ -30,7 +30,13 @@ import { splitPatientName } from '../../lib/patient';
 const STATUS_CHIP_TO_APPOINTMENT_STATUS = {
   waiting: 'SCHEDULED',
   seen: 'COMPLETED',
-  absent: 'NO_SHOW',
+  absent: 'ABSENT',
+};
+
+const APPOINTMENT_STATUS_TO_CHIP = {
+  SCHEDULED: 'waiting',
+  COMPLETED: 'seen',
+  ABSENT: 'absent',
 };
 
 const AppointmentDetails = ({
@@ -44,6 +50,7 @@ const AppointmentDetails = ({
 }) => {
   const [activeTab, setActiveTab] = useState('motif'); // 'motif' | 'documents' | 'honoraires' | 'chronologie'
   const [selectedStatusChip, setSelectedStatusChip] = useState(null); // Track which status chip is active (visual state)
+  const [isStatusUpdating, setIsStatusUpdating] = useState(false); // Track async state for chip actions
   const [isDragging, setIsDragging] = useState(false); // Track drag state for file upload
   const [uploadedFiles, setUploadedFiles] = useState([]); // Track uploaded files
   const [showVideoCall, setShowVideoCall] = useState(false); // Track if video call panel is visible
@@ -86,15 +93,36 @@ const AppointmentDetails = ({
     return patient.name || appointment.title || '—';
   };
 
-  // Handle status chip clicks - Update visual state (API integration will come later)
-  const handleStatusChipClick = (chipName) => {
+  useEffect(() => {
+    if (!appointment?.status) {
+      setSelectedStatusChip(null);
+      return;
+    }
+
+    setSelectedStatusChip(
+      APPOINTMENT_STATUS_TO_CHIP[appointment.status] || null
+    );
+  }, [appointment?.status]);
+
+  // Handle status chip clicks - Update backend and visual state
+  const handleStatusChipClick = async (chipName) => {
+    if (!appointment || isStatusUpdating) return;
+
+    const mappedStatus = STATUS_CHIP_TO_APPOINTMENT_STATUS[chipName];
+    if (!mappedStatus || selectedStatusChip === chipName) return;
+
+    const previousChip = selectedStatusChip;
     setSelectedStatusChip(chipName);
 
-    if (onStatusChange && appointment) {
-      const mappedStatus = STATUS_CHIP_TO_APPOINTMENT_STATUS[chipName];
-      if (mappedStatus) {
-        onStatusChange(appointment.id, mappedStatus);
-      }
+    if (!onStatusChange) return;
+
+    try {
+      setIsStatusUpdating(true);
+      await onStatusChange(appointment.id, mappedStatus);
+    } catch (error) {
+      setSelectedStatusChip(previousChip);
+    } finally {
+      setIsStatusUpdating(false);
     }
   };
 
@@ -246,7 +274,8 @@ const AppointmentDetails = ({
         <div className='px-4 flex flex-wrap gap-3'>
           <button
             onClick={() => handleStatusChipClick('waiting')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
+            disabled={isStatusUpdating}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
               selectedStatusChip === 'waiting'
                 ? 'bg-blue-500 text-white'
                 : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
@@ -263,7 +292,8 @@ const AppointmentDetails = ({
           </button>
           <button
             onClick={() => handleStatusChipClick('seen')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
+            disabled={isStatusUpdating}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
               selectedStatusChip === 'seen'
                 ? 'bg-green-500 text-white'
                 : 'bg-green-50 text-green-700 hover:bg-green-100'
@@ -278,7 +308,8 @@ const AppointmentDetails = ({
           </button>
           <button
             onClick={() => handleStatusChipClick('absent')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
+            disabled={isStatusUpdating}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
               selectedStatusChip === 'absent'
                 ? 'bg-red-500 text-white'
                 : 'bg-red-50 text-red-700 hover:bg-red-100'

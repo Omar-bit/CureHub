@@ -23,6 +23,7 @@ import {
   GetAppointmentsDto,
   GetAvailableSlotsDto,
   AvailableSlotsResponse,
+  UpdateAppointmentStatusDto,
 } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -172,6 +173,27 @@ export class AppointmentController {
       id,
       req.user.doctorProfile.id,
       updateAppointmentDto,
+    );
+  }
+
+  @Patch(':id/status')
+  @ApiOperation({ summary: 'Update appointment status' })
+  @ApiResponse({
+    status: 200,
+    description: 'Appointment status updated successfully',
+  })
+  @ApiResponse({ status: 400, description: 'Bad request - invalid status' })
+  @ApiResponse({ status: 404, description: 'Appointment not found' })
+  @UseGuards(JwtAuthGuard)
+  updateStatus(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() updateStatusDto: UpdateAppointmentStatusDto,
+  ) {
+    return this.appointmentService.updateStatus(
+      id,
+      req.user.doctorProfile.id,
+      updateStatusDto.status,
     );
   }
 
