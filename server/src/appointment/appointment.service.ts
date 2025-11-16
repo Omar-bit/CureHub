@@ -127,6 +127,7 @@ export class AppointmentService {
           },
         },
         consultationType: true,
+        documents: true,
       },
     });
   }
@@ -230,6 +231,7 @@ export class AppointmentService {
             },
           },
           consultationType: true,
+          documents: true,
         },
       }),
       this.prisma.appointment.count({ where }),
@@ -284,6 +286,7 @@ export class AppointmentService {
             clinicPhone: true,
           },
         },
+        documents: true,
       },
     });
 
@@ -422,6 +425,7 @@ export class AppointmentService {
           },
         },
         consultationType: true,
+        documents: true,
       },
     });
 
@@ -476,6 +480,7 @@ export class AppointmentService {
           },
         },
         consultationType: true,
+        documents: true,
       },
     });
   }
@@ -526,6 +531,7 @@ export class AppointmentService {
           },
         },
         consultationType: true,
+        documents: true,
       },
     });
   }
@@ -571,6 +577,7 @@ export class AppointmentService {
           },
         },
         consultationType: true,
+        documents: true,
       },
     });
   }

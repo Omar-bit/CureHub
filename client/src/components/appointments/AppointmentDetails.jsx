@@ -21,11 +21,14 @@ import {
   Stethoscope,
   Video as VideoOn,
   AlertCircle,
+  Download,
 } from 'lucide-react';
 // date-fns format removed (not used)
 import { Button } from '../ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { splitPatientName } from '../../lib/patient';
+import { appointmentAPI, appointmentDocumentsApi } from '../../services/api';
+import { showSuccess, showError } from '../../lib/toast';
 
 const STATUS_CHIP_TO_APPOINTMENT_STATUS = {
   waiting: 'SCHEDULED',
@@ -52,7 +55,10 @@ const AppointmentDetails = ({
   const [selectedStatusChip, setSelectedStatusChip] = useState(null); // Track which status chip is active (visual state)
   const [isStatusUpdating, setIsStatusUpdating] = useState(false); // Track async state for chip actions
   const [isDragging, setIsDragging] = useState(false); // Track drag state for file upload
-  const [uploadedFiles, setUploadedFiles] = useState([]); // Track uploaded files
+  const [uploadedFiles, setUploadedFiles] = useState([]); // Track uploaded files (local state before upload)
+  const [documents, setDocuments] = useState([]); // Existing documents from server
+  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
+  const [isUploadingDocument, setIsUploadingDocument] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false); // Track if video call panel is visible
 
   // When inline mode is true, show content if appointment exists, regardless of isOpen
@@ -102,7 +108,30 @@ const AppointmentDetails = ({
     setSelectedStatusChip(
       APPOINTMENT_STATUS_TO_CHIP[appointment.status] || null
     );
-  }, [appointment?.status]);
+
+    // Load documents when appointment changes
+    if (appointment?.id) {
+      loadDocuments();
+    }
+  }, [appointment?.status, appointment?.id]);
+
+  // Load documents from server
+  const loadDocuments = async () => {
+    if (!appointment?.id) return;
+
+    setIsLoadingDocuments(true);
+    try {
+      const docs = await appointmentDocumentsApi.getByAppointment(
+        appointment.id
+      );
+      setDocuments(docs || []);
+    } catch (error) {
+      console.error('Error loading documents:', error);
+      showError('Failed to load documents');
+    } finally {
+      setIsLoadingDocuments(false);
+    }
+  };
 
   // Handle status chip clicks - Update backend and visual state
   const handleStatusChipClick = async (chipName) => {
@@ -181,33 +210,70 @@ const AppointmentDetails = ({
 
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
-      // Add files to uploadedFiles state
-      const newFiles = files.map((file) => ({
-        id: Math.random(),
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        file: file,
-      }));
-      setUploadedFiles((prev) => [...prev, ...newFiles]);
-      // TODO: Upload files to server via API
-      // Example: await documentsApi.upload(appointment.id, newFiles);
+      uploadFiles(files);
     }
   };
 
   const handleFileInputChange = (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
-      const newFiles = files.map((file) => ({
-        id: Math.random(),
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        file: file,
-      }));
-      setUploadedFiles((prev) => [...prev, ...newFiles]);
-      // TODO: Upload files to server via API
-      // Example: await documentsApi.upload(appointment.id, newFiles);
+      uploadFiles(files);
+    }
+  };
+
+  // Upload files to server
+  const uploadFiles = async (files) => {
+    if (!appointment?.id || files.length === 0) return;
+
+    setIsUploadingDocument(true);
+    try {
+      // Upload each file
+      for (const file of files) {
+        await appointmentDocumentsApi.upload(file, appointment.id);
+      }
+
+      showSuccess(`${files.length} document(s) uploaded successfully`);
+      // Reload documents list
+      await loadDocuments();
+    } catch (error) {
+      console.error('Error uploading documents:', error);
+      showError('Failed to upload documents');
+    } finally {
+      setIsUploadingDocument(false);
+    }
+  };
+
+  // Delete a document
+  const handleDeleteDocument = async (documentId) => {
+    if (!window.confirm('Are you sure you want to delete this document?')) {
+      return;
+    }
+
+    try {
+      await appointmentDocumentsApi.delete(documentId);
+      showSuccess('Document deleted successfully');
+      await loadDocuments();
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      showError('Failed to delete document');
+    }
+  };
+
+  // Download a document
+  const handleDownloadDocument = async (documentId, fileName) => {
+    try {
+      const response = await appointmentDocumentsApi.download(documentId);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      showError('Failed to download document');
     }
   };
 
@@ -535,9 +601,12 @@ const AppointmentDetails = ({
                         onClick={() =>
                           document.getElementById('file-input')?.click()
                         }
-                        className='text-blue-500 hover:text-blue-700 font-medium text-sm'
+                        disabled={isUploadingDocument}
+                        className='text-blue-500 hover:text-blue-700 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed'
                       >
-                        Partager un fichier
+                        {isUploadingDocument
+                          ? 'Uploading...'
+                          : 'Partager un fichier'}
                       </button>
                     </label>
 
@@ -545,40 +614,68 @@ const AppointmentDetails = ({
                   </div>
                 </div>
 
-                {/* Uploaded files list */}
-                {uploadedFiles.length > 0 && (
+                {/* Uploaded documents list from server */}
+                {isLoadingDocuments ? (
+                  <div className='text-center py-4'>
+                    <p className='text-sm text-gray-500'>
+                      Loading documents...
+                    </p>
+                  </div>
+                ) : documents.length > 0 ? (
                   <div className='space-y-2'>
                     <p className='text-sm font-medium text-gray-700'>
-                      Fichiers uploadés ({uploadedFiles.length})
+                      Documents ({documents.length})
                     </p>
-                    {uploadedFiles.map((file) => (
+                    {documents.map((doc) => (
                       <div
-                        key={file.id}
-                        className='flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg'
+                        key={doc.id}
+                        className='flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors'
                       >
                         <div className='flex items-center gap-2 flex-1 min-w-0'>
                           <FileText className='w-4 h-4 text-gray-400 flex-shrink-0' />
                           <div className='min-w-0'>
                             <p className='text-sm font-medium text-gray-900 truncate'>
-                              {file.name}
+                              {doc.originalName}
                             </p>
                             <p className='text-xs text-gray-500'>
-                              {(file.size / 1024).toFixed(2)} KB
+                              {(doc.fileSize / 1024).toFixed(2)} KB
+                              {doc.category && doc.category !== 'AUTRE' && (
+                                <span className='ml-2'>• {doc.category}</span>
+                              )}
+                              {doc.description && (
+                                <span className='ml-2'>
+                                  • {doc.description}
+                                </span>
+                              )}
                             </p>
                           </div>
                         </div>
-                        <button
-                          onClick={() =>
-                            setUploadedFiles((prev) =>
-                              prev.filter((f) => f.id !== file.id)
-                            )
-                          }
-                          className='p-1 text-gray-400 hover:text-red-600 transition-colors'
-                        >
-                          <Trash2 className='w-4 h-4' />
-                        </button>
+                        <div className='flex items-center gap-2'>
+                          <button
+                            onClick={() =>
+                              handleDownloadDocument(doc.id, doc.originalName)
+                            }
+                            className='p-1 text-gray-400 hover:text-blue-600 transition-colors'
+                            title='Download'
+                          >
+                            <Download className='w-4 h-4' />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteDocument(doc.id)}
+                            className='p-1 text-gray-400 hover:text-red-600 transition-colors'
+                            title='Delete'
+                          >
+                            <Trash2 className='w-4 h-4' />
+                          </button>
+                        </div>
                       </div>
                     ))}
+                  </div>
+                ) : (
+                  <div className='text-center py-4'>
+                    <p className='text-sm text-gray-500'>
+                      No documents uploaded yet
+                    </p>
                   </div>
                 )}
               </TabsContent>

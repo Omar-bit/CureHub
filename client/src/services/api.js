@@ -401,3 +401,62 @@ export const documentsApi = {
   getDownloadUrl: (documentId) =>
     `${API_BASE_URL}/patient-documents/${documentId}/download`,
 };
+
+// Appointment Documents API
+export const appointmentDocumentsApi = {
+  // Upload a document for an appointment
+  upload: (file, appointmentId, category, description) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('appointmentId', appointmentId);
+    if (category) formData.append('category', category);
+    if (description) formData.append('description', description);
+
+    return api
+      .post('/appointment-documents/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+      .then((res) => res.data);
+  },
+
+  // Get all documents for an appointment
+  getByAppointment: (appointmentId, filters = {}) => {
+    const params = new URLSearchParams(filters);
+    return api
+      .get(
+        `/appointment-documents/appointment/${appointmentId}?${params.toString()}`
+      )
+      .then((res) => res.data);
+  },
+
+  // Get document categories
+  getCategories: () =>
+    api.get('/appointment-documents/categories').then((res) => res.data),
+
+  // Get a specific document
+  get: (documentId) =>
+    api.get(`/appointment-documents/${documentId}`).then((res) => res.data),
+
+  // Update a document
+  update: (documentId, data) =>
+    api
+      .put(`/appointment-documents/${documentId}`, data)
+      .then((res) => res.data),
+
+  // Delete a document
+  delete: (documentId) =>
+    api.delete(`/appointment-documents/${documentId}`).then((res) => res.data),
+
+  // Download a document
+  download: (documentId) => {
+    return api.get(`/appointment-documents/${documentId}/download`, {
+      responseType: 'blob',
+    });
+  },
+
+  // Get download URL for a document
+  getDownloadUrl: (documentId) =>
+    `${API_BASE_URL}/appointment-documents/${documentId}/download`,
+};
