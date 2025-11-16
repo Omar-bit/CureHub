@@ -15,7 +15,11 @@ export class CreateAppointmentDto {
   @IsOptional()
   title?: string;
 
-  @ApiProperty({ description: 'Appointment description', required: false })
+  @ApiProperty({
+    description:
+      'Motif de consultation (consultation reason) - visible to patient',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   description?: string;
@@ -46,7 +50,8 @@ export class CreateAppointmentDto {
   status?: AppointmentStatus;
 
   @ApiProperty({
-    description: 'Doctor notes about the appointment',
+    description:
+      'Note privée (private note) - visible only to doctor, not to patient',
     required: false,
   })
   @IsString()

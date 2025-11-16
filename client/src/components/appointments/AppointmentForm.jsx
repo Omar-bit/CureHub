@@ -40,6 +40,7 @@ const AppointmentForm = ({
     patientId: '',
     consultationTypeId: '',
     description: '',
+    notes: '',
     status: 'SCHEDULED',
   });
 
@@ -72,6 +73,7 @@ const AppointmentForm = ({
         patientId: appointment.patientId || '',
         consultationTypeId: appointment.consultationTypeId || '',
         description: appointment.description || '',
+        notes: appointment.notes || '',
         status: appointment.status || 'SCHEDULED',
       });
 
@@ -141,6 +143,7 @@ const AppointmentForm = ({
         patientId: '',
         consultationTypeId: '',
         description: '',
+        notes: '',
         location: '',
         status: 'SCHEDULED',
       });
@@ -471,6 +474,7 @@ const AppointmentForm = ({
         patientId: patientIds.length === 0 ? null : undefined, // null if only sans fiche patients
         consultationTypeId: formData.consultationTypeId,
         description: formData.description.trim(),
+        notes: formData.notes.trim(),
         status: formData.status,
       };
 
@@ -1199,15 +1203,30 @@ const AppointmentForm = ({
           {/* Description */}
           <div>
             <label className='block text-xs font-medium text-cyan-800 mb-2'>
-              Description
+              Motif de consultation
             </label>
             <textarea
               name='description'
               value={formData.description}
               onChange={handleChange}
-              rows={3}
+              rows={4}
               className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-              placeholder='Additional notes or instructions...'
+              placeholder='Décrivez le motif de la consultation...'
+            />
+          </div>
+
+          {/* Private Notes */}
+          <div>
+            <label className='block text-xs font-medium text-red-600 mb-2'>
+              Note privée (invisible du patient)
+            </label>
+            <textarea
+              name='notes'
+              value={formData.notes}
+              onChange={handleChange}
+              rows={3}
+              className='w-full px-3 py-2 border border-pink-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-pink-50'
+              placeholder='Notes privées non visibles par le patient...'
             />
           </div>
 
