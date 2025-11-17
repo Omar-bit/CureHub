@@ -19,6 +19,65 @@ const WeekView = ({
     60
   );
 
+  // Function to detect overlapping appointments and assign columns
+  const calculateAppointmentLayout = (appointments) => {
+    const sortedAppointments = [...appointments].sort(
+      (a, b) => new Date(a.startTime) - new Date(b.startTime)
+    );
+
+    const columns = [];
+    const appointmentLayouts = [];
+
+    sortedAppointments.forEach((appointment) => {
+      const startTime = new Date(appointment.startTime).getTime();
+      const endTime = new Date(appointment.endTime).getTime();
+
+      // Find a column where this appointment doesn't overlap with any existing appointment
+      let columnIndex = 0;
+      let placed = false;
+
+      while (!placed) {
+        if (!columns[columnIndex]) {
+          columns[columnIndex] = [];
+        }
+
+        // Check if this appointment overlaps with any appointment in this column
+        const overlaps = columns[columnIndex].some((existingAppointment) => {
+          const existingStart = new Date(
+            existingAppointment.startTime
+          ).getTime();
+          const existingEnd = new Date(existingAppointment.endTime).getTime();
+
+          return (
+            (startTime >= existingStart && startTime < existingEnd) ||
+            (endTime > existingStart && endTime <= existingEnd) ||
+            (startTime <= existingStart && endTime >= existingEnd)
+          );
+        });
+
+        if (!overlaps) {
+          columns[columnIndex].push(appointment);
+          appointmentLayouts.push({
+            appointment,
+            column: columnIndex,
+            totalColumns: 0, // Will be updated later
+          });
+          placed = true;
+        } else {
+          columnIndex++;
+        }
+      }
+    });
+
+    // Update totalColumns for each appointment
+    const maxColumns = columns.length;
+    appointmentLayouts.forEach((layout) => {
+      layout.totalColumns = maxColumns;
+    });
+
+    return appointmentLayouts;
+  };
+
   const goToPreviousWeek = () => {
     onDateChange(CalendarUtils.goToPreviousWeek(currentDate));
   };
@@ -34,7 +93,7 @@ const WeekView = ({
     onTimeSlotClick?.(slotDate);
   };
 
-  const getAppointmentStyle = (appointment) => {
+  const getAppointmentStyle = (appointment, column, totalColumns) => {
     const startTime = CalendarUtils.formatTime(new Date(appointment.startTime));
     const duration = CalendarUtils.getAppointmentDuration(
       appointment.startTime,
@@ -46,18 +105,36 @@ const WeekView = ({
     );
     const height = CalendarUtils.getTimeSlotHeight(duration);
 
+    const leftOffset = 2;
+    const rightOffset = 2;
+    const availableWidth = `calc(100% - ${leftOffset + rightOffset}px)`;
+    const columnWidth =
+      totalColumns > 1
+        ? `calc(${availableWidth} / ${totalColumns})`
+        : availableWidth;
+    const leftPosition =
+      totalColumns > 1
+        ? `calc(${leftOffset}px + (${availableWidth} / ${totalColumns}) * ${column})`
+        : `${leftOffset}px`;
+
     return {
       position: 'absolute',
       top: `${position}px`,
       height: `${height}px`,
-      left: '2px',
-      right: '2px',
+      left: leftPosition,
+      width: columnWidth,
       zIndex: 10,
+      paddingRight: totalColumns > 1 ? '1px' : '0',
     };
   };
 
   const getDayAppointments = (day) => {
     return CalendarUtils.getAppointmentsForDay(appointments, day);
+  };
+
+  const getDayAppointmentLayouts = (day) => {
+    const dayAppointments = getDayAppointments(day);
+    return calculateAppointmentLayout(dayAppointments);
   };
 
   return (
@@ -162,47 +239,62 @@ const WeekView = ({
                       }}
                     >
                       {/* Appointments for this day */}
-                      {getDayAppointments(day).map((appointment) => {
-                        const colorClasses = getAppointmentColorClasses(appointment);
-                        const startTime = CalendarUtils.formatTime(new Date(appointment.startTime));
-                        return (
-                          <div
-                            key={appointment.id}
-                            style={getAppointmentStyle(appointment)}
-                            className={`
+                      {getDayAppointmentLayouts(day).map(
+                        ({ appointment, column, totalColumns }) => {
+                          const colorClasses =
+                            getAppointmentColorClasses(appointment);
+                          const startTime = CalendarUtils.formatTime(
+                            new Date(appointment.startTime)
+                          );
+                          return (
+                            <div
+                              key={appointment.id}
+                              style={getAppointmentStyle(
+                                appointment,
+                                column,
+                                totalColumns
+                              )}
+                              className={`
                               flex items-center gap-1.5 cursor-pointer
                               ${colorClasses.hoverBg} transition-all rounded-lg overflow-hidden text-xs
                             `}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onAppointmentClick?.(appointment);
-                            }}
-                          >
-                            {/* Time Badge */}
-                            <div className={`${colorClasses.bgColor} text-white px-2 py-1 font-bold whitespace-nowrap flex-shrink-0 rounded-l-lg`}>
-                              {startTime}
-                            </div>
-                            
-                            {/* Appointment Info */}
-                            <div className='flex-1 min-w-0 px-1 py-0.5'>
-                              <div className='text-xs font-medium text-gray-900 truncate'>
-                                {appointment.patient
-                                  ? (() => {
-                                      if (appointment.patient.name) {
-                                        const { firstName, lastName } =
-                                          splitPatientName(appointment.patient.name);
-                                        return `${firstName} ${lastName}`.trim();
-                                      }
-                                      return `${appointment.patient.firstName || ''} ${
-                                        appointment.patient.lastName || ''
-                                      }`.trim();
-                                    })()
-                                  : ''}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onAppointmentClick?.(appointment);
+                              }}
+                            >
+                              {/* Time Badge */}
+                              <div
+                                className={`${colorClasses.bgColor} text-white px-2 py-1 font-bold whitespace-nowrap flex-shrink-0 rounded-l-lg`}
+                              >
+                                {startTime}
+                              </div>
+
+                              {/* Appointment Info */}
+                              <div className='flex-1 min-w-0 px-1 py-0.5'>
+                                <div className='text-xs font-medium text-gray-900 truncate'>
+                                  {appointment.patient
+                                    ? (() => {
+                                        if (appointment.patient.name) {
+                                          const { firstName, lastName } =
+                                            splitPatientName(
+                                              appointment.patient.name
+                                            );
+                                          return `${firstName} ${lastName}`.trim();
+                                        }
+                                        return `${
+                                          appointment.patient.firstName || ''
+                                        } ${
+                                          appointment.patient.lastName || ''
+                                        }`.trim();
+                                      })()
+                                    : ''}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        }
+                      )}
                     </div>
                   )}
                 </div>

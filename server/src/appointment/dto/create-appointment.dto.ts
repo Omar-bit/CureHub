@@ -5,6 +5,7 @@ import {
   IsDateString,
   IsEnum,
   IsArray,
+  IsBoolean,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { AppointmentStatus } from '@prisma/client';
@@ -80,4 +81,13 @@ export class CreateAppointmentDto {
   @IsString()
   @IsOptional()
   consultationTypeId?: string;
+
+  @ApiProperty({
+    description: 'Skip conflict checking (for manual time selection)',
+    required: false,
+    default: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  skipConflictCheck?: boolean;
 }

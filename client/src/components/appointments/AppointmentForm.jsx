@@ -15,11 +15,21 @@ import {
   Video,
   Home,
   ChevronDown,
+  AlertTriangle,
 } from 'lucide-react';
 import TimeSlotSelector from '../ui/TimeSlotSelector';
 import PatientFormSheet from '../PatientFormSheet';
 import { Sheet } from '../ui/sheet';
-import { patientAPI } from '../../services/api';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '../ui/dialog';
+import { Button } from '../ui/button';
+import { patientAPI, appointmentAPI } from '../../services/api';
 import { splitPatientName } from '../../lib/patient';
 
 const AppointmentForm = ({
@@ -59,6 +69,10 @@ const AppointmentForm = ({
   ); // Store consultation type access for each patient
   const [durationPerPatient, setDurationPerPatient] = useState(20); // Duration per patient in minutes
   const [isManualDuration, setIsManualDuration] = useState(false); // Track if duration was manually changed
+  const [useManualTime, setUseManualTime] = useState(false); // Track if using manual time input
+  const [manualTime, setManualTime] = useState(''); // Manual time input
+  const [showConflictDialog, setShowConflictDialog] = useState(false); // Show conflict confirmation dialog
+  const [conflictDetails, setConflictDetails] = useState(null); // Details of the conflicting appointment
 
   useEffect(() => {
     if (appointment) {
@@ -76,6 +90,9 @@ const AppointmentForm = ({
         notes: appointment.notes || '',
         status: appointment.status || 'SCHEDULED',
       });
+
+      // Set manual time when editing
+      setManualTime(format(startDate, 'HH:mm'));
 
       // Load multiple patients if available
       if (
@@ -134,6 +151,7 @@ const AppointmentForm = ({
         startTime: '09:00',
       }));
       setSelectedPatients([]);
+      setManualTime('09:00');
     } else {
       // Reset form
       setFormData({
@@ -147,6 +165,8 @@ const AppointmentForm = ({
         location: '',
         status: 'SCHEDULED',
       });
+      setPatientSearch('');
+      setManualTime('09:00');
       setPatientSearch('');
       setSelectedPatients([]);
       setDurationPerPatient(20);
@@ -361,6 +381,20 @@ const AppointmentForm = ({
     }
   };
 
+  const handleManualTimeToggle = () => {
+    setUseManualTime(!useManualTime);
+    if (!useManualTime && formData.startTime) {
+      // Switching to manual mode - copy current time
+      setManualTime(formData.startTime);
+    }
+  };
+
+  const handleManualTimeChange = (e) => {
+    const time = e.target.value;
+    setManualTime(time);
+    setFormData((prev) => ({ ...prev, startTime: time }));
+  };
+
   // Filter patients based on search
   const filteredPatients = patients.filter((patient) =>
     patient.name.toLowerCase().includes(patientSearch.toLowerCase())
@@ -450,8 +484,11 @@ const AppointmentForm = ({
       const numberOfPatients = Math.max(1, selectedPatients.length);
       const totalDuration = durationPerPatient * numberOfPatients;
 
+      // Always use manualTime since we removed the toggle
+      const timeToUse = manualTime || formData.startTime;
+
       // Combine date and time into ISO strings
-      const startDateTime = new Date(`${formData.date}T${formData.startTime}`);
+      const startDateTime = new Date(`${formData.date}T${timeToUse}`);
       const endDateTime = addMinutes(startDateTime, totalDuration);
 
       // Separate regular patients from sans fiche patients
@@ -476,6 +513,106 @@ const AppointmentForm = ({
         description: formData.description.trim(),
         notes: formData.notes.trim(),
         status: formData.status,
+        skipConflictCheck: true, // Always skip backend conflict check, we handle it on frontend
+      };
+
+      // Check for conflicts on frontend before saving
+      if (!appointment) {
+        const conflict = await checkForConflicts(appointmentData);
+        if (conflict && conflict.hasConflict) {
+          setConflictDetails(conflict);
+          setShowConflictDialog(true);
+          setLoading(false);
+          return; // Don't save yet, wait for user confirmation
+        }
+      }
+
+      await onSave(appointmentData);
+
+      if (!inline) {
+        onClose();
+      }
+    } catch (error) {
+      console.error('Error saving appointment:', error);
+      setErrors({ submit: 'Failed to save appointment. Please try again.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkForConflicts = async (appointmentData) => {
+    try {
+      // For now, we'll call the getByDate endpoint and check manually
+      const dateStr = format(new Date(appointmentData.startTime), 'yyyy-MM-dd');
+      const appointments = await appointmentAPI.getByDate(dateStr);
+
+      const newStart = new Date(appointmentData.startTime);
+      const newEnd = new Date(appointmentData.endTime);
+
+      // Check for overlapping appointments
+      const conflicting = appointments.find((apt) => {
+        if (appointment && apt.id === appointment.id) return false; // Skip current appointment when editing
+        if (apt.status === 'CANCELLED') return false; // Skip cancelled appointments
+
+        const aptStart = new Date(apt.startTime);
+        const aptEnd = new Date(apt.endTime);
+
+        // Check for overlap
+        return (
+          (newStart >= aptStart && newStart < aptEnd) || // New starts during existing
+          (newEnd > aptStart && newEnd <= aptEnd) || // New ends during existing
+          (newStart <= aptStart && newEnd >= aptEnd) // New completely contains existing
+        );
+      });
+
+      if (conflicting) {
+        return {
+          hasConflict: true,
+          conflictingAppointment: conflicting,
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error('Error checking for conflicts:', error);
+      return null;
+    }
+  };
+
+  const handleForceCreate = async () => {
+    setShowConflictDialog(false);
+    setLoading(true);
+
+    try {
+      // Get consultation type to calculate duration
+      const selectedType = consultationTypes.find(
+        (type) =>
+          type.id === parseInt(formData.consultationTypeId) ||
+          type.id === formData.consultationTypeId
+      );
+
+      const numberOfPatients = Math.max(1, selectedPatients.length);
+      const totalDuration = durationPerPatient * numberOfPatients;
+      const timeToUse = manualTime || formData.startTime;
+      const startDateTime = new Date(`${formData.date}T${timeToUse}`);
+      const endDateTime = addMinutes(startDateTime, totalDuration);
+
+      const regularPatients = selectedPatients.filter((p) => !p.isSansFiche);
+      const patientIds = regularPatients.map((p) => p.id);
+      const allPatientNames = selectedPatients
+        .map((p) => renderPatientLabel(p))
+        .join(', ');
+
+      const appointmentData = {
+        title: allPatientNames,
+        startTime: startDateTime.toISOString(),
+        endTime: endDateTime.toISOString(),
+        patientIds: patientIds.length > 0 ? patientIds : undefined,
+        patientId: patientIds.length === 0 ? null : undefined,
+        consultationTypeId: formData.consultationTypeId,
+        description: formData.description.trim(),
+        notes: formData.notes.trim(),
+        status: formData.status,
+        skipConflictCheck: true, // Skip backend conflict check since user confirmed
       };
 
       await onSave(appointmentData);
@@ -720,24 +857,44 @@ const AppointmentForm = ({
             )}
           </div>
 
-          {/* Date */}
-          <div>
-            <label className='block text-xs font-medium text-cyan-800 mb-2'>
-              <Calendar className='h-4 w-4 inline mr-2' />
-              Date *
-            </label>
-            <input
-              type='date'
-              name='date'
-              value={formData.date}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.date ? 'border-red-300' : 'border-gray-300'
-              }`}
-            />
-            {errors.date && (
-              <p className='mt-1 text-sm text-red-600'>{errors.date}</p>
-            )}
+          {/* Date and Time Selection */}
+          <div className='grid grid-cols-2 gap-3'>
+            <div>
+              <label className='block text-xs font-medium text-cyan-800 mb-2'>
+                <Calendar className='h-4 w-4 inline mr-2' />
+                Date *
+              </label>
+              <input
+                type='date'
+                name='date'
+                value={formData.date}
+                onChange={handleChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.date ? 'border-red-300' : 'border-gray-300'
+                }`}
+              />
+              {errors.date && (
+                <p className='mt-1 text-sm text-red-600'>{errors.date}</p>
+              )}
+            </div>
+
+            <div>
+              <label className='block text-xs font-medium text-cyan-800 mb-2'>
+                <Clock className='h-4 w-4 inline mr-2' />
+                Time *
+              </label>
+              <input
+                type='time'
+                value={manualTime}
+                onChange={handleManualTimeChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.startTime ? 'border-red-300' : 'border-gray-300'
+                }`}
+              />
+              {errors.startTime && (
+                <p className='mt-1 text-sm text-red-600'>{errors.startTime}</p>
+              )}
+            </div>
           </div>
 
           {/* Consultation Type */}
@@ -1177,17 +1334,20 @@ const AppointmentForm = ({
             <div>
               <label className='block text-xs font-medium text-cyan-800 mb-2'>
                 <Clock className='h-4 w-4 inline mr-2' />
-                Select Time *
+                Available Time Slots
               </label>
               <div className='border border-gray-300 rounded-lg p-4'>
                 <TimeSlotSelector
                   selectedDate={formData.date}
                   consultationTypeId={formData.consultationTypeId}
                   consultationTypes={consultationTypes}
-                  value={formData.startTime}
-                  onChange={(time) =>
-                    handleChange({ target: { name: 'startTime', value: time } })
-                  }
+                  value={manualTime}
+                  onChange={(time) => {
+                    setManualTime(time);
+                    handleChange({
+                      target: { name: 'startTime', value: time },
+                    });
+                  }}
                   onDateChange={(newDate) =>
                     handleChange({ target: { name: 'date', value: newDate } })
                   }
@@ -1305,6 +1465,93 @@ const AppointmentForm = ({
             onSave={handlePatientSaved}
           />
         )}
+
+        {/* Conflict Confirmation Dialog */}
+        <Dialog open={showConflictDialog} onOpenChange={setShowConflictDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className='flex items-center space-x-2 text-orange-700'>
+                <AlertTriangle className='h-5 w-5' />
+                <span>Appointment Conflict Detected</span>
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className='p-6 space-y-4'>
+              <DialogDescription>
+                There is already an appointment scheduled at this time:
+              </DialogDescription>
+
+              {conflictDetails?.conflictingAppointment && (
+                <div className='bg-orange-50 border border-orange-200 rounded-lg p-4'>
+                  <div className='space-y-2'>
+                    <div className='flex items-center justify-between'>
+                      <span className='text-sm font-medium text-gray-700'>
+                        Patient:
+                      </span>
+                      <span className='text-sm text-gray-900'>
+                        {conflictDetails.conflictingAppointment.title ||
+                          conflictDetails.conflictingAppointment.patient
+                            ?.name ||
+                          'Unknown'}
+                      </span>
+                    </div>
+                    <div className='flex items-center justify-between'>
+                      <span className='text-sm font-medium text-gray-700'>
+                        Time:
+                      </span>
+                      <span className='text-sm text-gray-900'>
+                        {format(
+                          new Date(
+                            conflictDetails.conflictingAppointment.startTime
+                          ),
+                          'HH:mm'
+                        )}{' '}
+                        -{' '}
+                        {format(
+                          new Date(
+                            conflictDetails.conflictingAppointment.endTime
+                          ),
+                          'HH:mm'
+                        )}
+                      </span>
+                    </div>
+                    <div className='flex items-center justify-between'>
+                      <span className='text-sm font-medium text-gray-700'>
+                        Status:
+                      </span>
+                      <span className='text-sm text-gray-900'>
+                        {conflictDetails.conflictingAppointment.status}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className='bg-yellow-50 border border-yellow-200 rounded-lg p-3'>
+                <p className='text-sm text-yellow-800'>
+                  <strong>Warning:</strong> Creating this appointment will
+                  result in overlapping schedules. Are you sure you want to
+                  continue?
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant='outline'
+                onClick={() => setShowConflictDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleForceCreate}
+                className='bg-orange-600 hover:bg-orange-700'
+              >
+                Force Create Anyway
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </>
     );
   }
@@ -1331,6 +1578,91 @@ const AppointmentForm = ({
           />
         </Sheet>
       )}
+
+      {/* Conflict Confirmation Dialog */}
+      <Dialog open={showConflictDialog} onOpenChange={setShowConflictDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className='flex items-center space-x-2 text-orange-700'>
+              <AlertTriangle className='h-5 w-5' />
+              <span>Appointment Conflict Detected</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className='p-6 space-y-4'>
+            <DialogDescription>
+              There is already an appointment scheduled at this time:
+            </DialogDescription>
+
+            {conflictDetails?.conflictingAppointment && (
+              <div className='bg-orange-50 border border-orange-200 rounded-lg p-4'>
+                <div className='space-y-2'>
+                  <div className='flex items-center justify-between'>
+                    <span className='text-sm font-medium text-gray-700'>
+                      Patient:
+                    </span>
+                    <span className='text-sm text-gray-900'>
+                      {conflictDetails.conflictingAppointment.title ||
+                        conflictDetails.conflictingAppointment.patient?.name ||
+                        'Unknown'}
+                    </span>
+                  </div>
+                  <div className='flex items-center justify-between'>
+                    <span className='text-sm font-medium text-gray-700'>
+                      Time:
+                    </span>
+                    <span className='text-sm text-gray-900'>
+                      {format(
+                        new Date(
+                          conflictDetails.conflictingAppointment.startTime
+                        ),
+                        'HH:mm'
+                      )}{' '}
+                      -{' '}
+                      {format(
+                        new Date(
+                          conflictDetails.conflictingAppointment.endTime
+                        ),
+                        'HH:mm'
+                      )}
+                    </span>
+                  </div>
+                  <div className='flex items-center justify-between'>
+                    <span className='text-sm font-medium text-gray-700'>
+                      Status:
+                    </span>
+                    <span className='text-sm text-gray-900'>
+                      {conflictDetails.conflictingAppointment.status}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className='bg-yellow-50 border border-yellow-200 rounded-lg p-3'>
+              <p className='text-sm text-yellow-800'>
+                <strong>Warning:</strong> Creating this appointment will result
+                in overlapping schedules. Are you sure you want to continue?
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant='outline'
+              onClick={() => setShowConflictDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleForceCreate}
+              className='bg-orange-600 hover:bg-orange-700'
+            >
+              Force Create Anyway
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

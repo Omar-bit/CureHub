@@ -31,6 +31,7 @@ export class AppointmentService {
       consultationTypeId,
       startTime,
       endTime,
+      skipConflictCheck,
       ...appointmentData
     } = createAppointmentDto;
 
@@ -74,12 +75,14 @@ export class AppointmentService {
       }
     }
 
-    // Check for time conflicts
-    await this.checkTimeConflicts(
-      doctorId,
-      new Date(startTime),
-      new Date(endTime),
-    );
+    // Check for time conflicts (unless skipConflictCheck is true)
+    if (!skipConflictCheck) {
+      await this.checkTimeConflicts(
+        doctorId,
+        new Date(startTime),
+        new Date(endTime),
+      );
+    }
 
     // Validate appointment times
     this.validateAppointmentTimes(new Date(startTime), new Date(endTime));
@@ -314,6 +317,7 @@ export class AppointmentService {
       consultationTypeId,
       startTime,
       endTime,
+      skipConflictCheck,
       ...appointmentData
     } = updateAppointmentDto;
 
@@ -369,7 +373,7 @@ export class AppointmentService {
       }
     }
 
-    // Check for time conflicts (if changing time)
+    // Check for time conflicts (if changing time and not skipping conflict check)
     if (startTime || endTime) {
       const newStartTime = startTime
         ? new Date(startTime)
@@ -377,7 +381,10 @@ export class AppointmentService {
       const newEndTime = endTime ? new Date(endTime) : appointment.endTime;
 
       this.validateAppointmentTimes(newStartTime, newEndTime);
-      await this.checkTimeConflicts(doctorId, newStartTime, newEndTime, id);
+
+      if (!skipConflictCheck) {
+        await this.checkTimeConflicts(doctorId, newStartTime, newEndTime, id);
+      }
     }
 
     // Update appointment and patients
