@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { ContentContainer, PageHeader, Section } from '../components/Layout';
 import { Button } from '../components/ui/button';
@@ -20,13 +19,10 @@ import {
   Calendar,
   Clock,
 } from 'lucide-react';
-import ProfileDialog from '../components/ProfileDialog';
 
 const SettingsPage = () => {
   const { user } = useAuth();
-  const { t } = useTranslation();
   const navigate = useNavigate();
-  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
 
   const settingsCategories = [
     {
@@ -34,7 +30,7 @@ const SettingsPage = () => {
       title: 'Profile Settings',
       description: 'Manage your personal information and preferences',
       icon: User,
-      onClick: () => setProfileDialogOpen(true),
+      onClick: () => navigate('/settings/profile'),
       items: [
         'Personal Information',
         'Professional Details',
@@ -181,12 +177,6 @@ const SettingsPage = () => {
           </div>
         </Section>
       </ContentContainer>
-
-      {/* Profile Settings Dialog */}
-      <ProfileDialog 
-        isOpen={profileDialogOpen} 
-        onClose={() => setProfileDialogOpen(false)} 
-      />
     </div>
   );
 };

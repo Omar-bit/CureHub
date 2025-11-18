@@ -9,6 +9,7 @@ import {
   UseGuards,
   Request,
   Query,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -33,6 +34,13 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 export class AppointmentController {
   constructor(private readonly appointmentService: AppointmentService) {}
 
+  private getDoctorProfileId(req: any): string {
+    if (!req.user?.doctorProfile?.id) {
+      throw new BadRequestException('Only doctors can access appointments');
+    }
+    return req.user.doctorProfile.id;
+  }
+
   @Post()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Create a new appointment' })
@@ -47,8 +55,9 @@ export class AppointmentController {
   })
   @UseGuards(JwtAuthGuard)
   create(@Request() req, @Body() createAppointmentDto: CreateAppointmentDto) {
+    const doctorProfileId = this.getDoctorProfileId(req);
     return this.appointmentService.create(
-      req.user.doctorProfile.id,
+      doctorProfileId,
       createAppointmentDto,
     );
   }
@@ -62,7 +71,8 @@ export class AppointmentController {
   })
   @UseGuards(JwtAuthGuard)
   findAll(@Request() req, @Query() query: GetAppointmentsDto) {
-    return this.appointmentService.findAll(req.user.doctorProfile.id, query);
+    const doctorProfileId = this.getDoctorProfileId(req);
+    return this.appointmentService.findAll(doctorProfileId, query);
   }
 
   @Get('upcoming')
@@ -74,8 +84,9 @@ export class AppointmentController {
   })
   @UseGuards(JwtAuthGuard)
   getUpcoming(@Request() req, @Query('limit') limit?: number) {
+    const doctorProfileId = this.getDoctorProfileId(req);
     return this.appointmentService.getUpcomingAppointments(
-      req.user.doctorProfile.id,
+      doctorProfileId,
       limit,
     );
   }
@@ -120,8 +131,9 @@ export class AppointmentController {
     @Request() req,
     @Query() query: GetAvailableSlotsDto,
   ): Promise<AvailableSlotsResponse> {
+    const doctorProfileId = this.getDoctorProfileId(req);
     return this.appointmentService.getAvailableSlots(
-      req.user.doctorProfile.id,
+      doctorProfileId,
       new Date(query.date),
       query.consultationTypeId,
     );
@@ -135,8 +147,9 @@ export class AppointmentController {
   })
   @UseGuards(JwtAuthGuard)
   getByDate(@Request() req, @Param('date') date: string) {
+    const doctorProfileId = this.getDoctorProfileId(req);
     return this.appointmentService.getAppointmentsByDate(
-      req.user.doctorProfile.id,
+      doctorProfileId,
       new Date(date),
     );
   }
@@ -151,7 +164,8 @@ export class AppointmentController {
   @ApiResponse({ status: 403, description: 'Access denied' })
   @UseGuards(JwtAuthGuard)
   findOne(@Request() req, @Param('id') id: string) {
-    return this.appointmentService.findOne(id, req.user.doctorProfile.id);
+    const doctorProfileId = this.getDoctorProfileId(req);
+    return this.appointmentService.findOne(id, doctorProfileId);
   }
 
   @Patch(':id')
@@ -169,9 +183,10 @@ export class AppointmentController {
     @Param('id') id: string,
     @Body() updateAppointmentDto: UpdateAppointmentDto,
   ) {
+    const doctorProfileId = this.getDoctorProfileId(req);
     return this.appointmentService.update(
       id,
-      req.user.doctorProfile.id,
+      doctorProfileId,
       updateAppointmentDto,
     );
   }
@@ -190,9 +205,10 @@ export class AppointmentController {
     @Param('id') id: string,
     @Body() updateStatusDto: UpdateAppointmentStatusDto,
   ) {
+    const doctorProfileId = this.getDoctorProfileId(req);
     return this.appointmentService.updateStatus(
       id,
-      req.user.doctorProfile.id,
+      doctorProfileId,
       updateStatusDto.status,
     );
   }
@@ -204,6 +220,7 @@ export class AppointmentController {
   @ApiResponse({ status: 403, description: 'Access denied' })
   @UseGuards(JwtAuthGuard)
   remove(@Request() req, @Param('id') id: string) {
-    return this.appointmentService.remove(id, req.user.doctorProfile.id);
+    const doctorProfileId = this.getDoctorProfileId(req);
+    return this.appointmentService.remove(id, doctorProfileId);
   }
 }

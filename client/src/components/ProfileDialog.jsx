@@ -272,7 +272,7 @@ const ProfileDialog = ({ isOpen, onClose }) => {
                 : 'opacity-100 max-h-20 mt-4'
             }`}>
               <h2 className='text-lg font-bold text-gray-900 tracking-tight leading-tight'>
-                Dr {user?.doctorProfile?.name || user?.name || 'Doctor'}
+                Dr {user?.doctorProfile?.name || user?.name || 'kitchh esemm wooh'}
               </h2>
             </div>
 

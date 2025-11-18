@@ -51,9 +51,27 @@ model DoctorProfile {
   bio             String? @db.Text
   profileImageUrl String?
 
-  // Practice Information
-  clinicAddress String? @db.Text
-  clinicPhone   String?
+  // Medical License and Registration (Votre activité)
+  rppsNumber          String? @unique // RPPS number
+  sirenNumber         String? @unique // SIREN number
+  languagesSpoken     String? // JSON array of languages
+  diplomas            String? @db.Text // JSON array of diplomas
+  additionalDiplomas  String? @db.Text // JSON array of additional diplomas/formations
+  publications        String? @db.Text // Publications/research
+  signature           String? // Signature (can be text or base64 image)
+  absenceMessage      String? @db.Text // Message d'absence
+  tooManyAbsencesInfo String? @db.Text // Message "Trop d'absences"
+
+  // Practice Information (Votre cabinet)
+  cabinetName       String? // Full name of the cabinet/clinic
+  cabinetGender     String? // Gender type (masculine/feminine for French)
+  clinicAddress     String? @db.Text
+  clinicAddress2    String? @db.Text // Second address line
+  clinicPostalCode  String?
+  clinicCity        String?
+  clinicPhone       String?
+  prmAccess         Boolean @default(false) // PMR (Personnes à mobilité réduite) accessibility
+  videoSurveillance Boolean @default(false) // Video surveillance
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
