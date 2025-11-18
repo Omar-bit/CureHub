@@ -17,6 +17,7 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { AppointmentService } from './appointment.service';
+import { AppointmentHistoryService } from './appointment-history.service';
 import {
   CreateAppointmentDto,
   UpdateAppointmentDto,
@@ -31,7 +32,10 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @ApiBearerAuth()
 @Controller('appointments')
 export class AppointmentController {
-  constructor(private readonly appointmentService: AppointmentService) {}
+  constructor(
+    private readonly appointmentService: AppointmentService,
+    private readonly appointmentHistoryService: AppointmentHistoryService,
+  ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard)
@@ -195,6 +199,20 @@ export class AppointmentController {
       req.user.doctorProfile.id,
       updateStatusDto.status,
     );
+  }
+
+  @Get(':id/history')
+  @ApiOperation({ summary: 'Get appointment history' })
+  @ApiResponse({
+    status: 200,
+    description: 'Appointment history retrieved successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Appointment not found' })
+  @UseGuards(JwtAuthGuard)
+  async getHistory(@Request() req, @Param('id') id: string) {
+    // Verify ownership first
+    await this.appointmentService.findOne(id, req.user.doctorProfile.id);
+    return this.appointmentHistoryService.getAppointmentHistory(id);
   }
 
   @Delete(':id')

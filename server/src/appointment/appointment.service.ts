@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AppointmentHistoryService } from './appointment-history.service';
 import {
   CreateAppointmentDto,
   UpdateAppointmentDto,
@@ -19,7 +20,10 @@ import {
 
 @Injectable()
 export class AppointmentService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private appointmentHistory: AppointmentHistoryService,
+  ) {}
 
   async create(
     doctorId: string,
@@ -88,7 +92,7 @@ export class AppointmentService {
     this.validateAppointmentTimes(new Date(startTime), new Date(endTime));
 
     // Create appointment with patients
-    return this.prisma.appointment.create({
+    const appointment = await this.prisma.appointment.create({
       data: {
         ...appointmentData,
         startTime: new Date(startTime),
@@ -133,6 +137,15 @@ export class AppointmentService {
         documents: true,
       },
     });
+
+    // Log creation in history
+    await this.appointmentHistory.logCreation(
+      appointment.id,
+      doctorId,
+      createAppointmentDto,
+    );
+
+    return appointment;
   }
 
   async findAll(
@@ -321,6 +334,9 @@ export class AppointmentService {
       ...appointmentData
     } = updateAppointmentDto;
 
+    // Track changes for history
+    const changes: Array<{ field: string; oldValue: any; newValue: any }> = [];
+
     // Determine which patients to use
     const patientsToUpdate =
       patientIds && patientIds.length > 0
@@ -336,11 +352,32 @@ export class AppointmentService {
       }
     }
 
-    // Verify consultation type belongs to doctor (if provided)
-    if (consultationTypeId) {
+    // Track consultation type changes
+    if (
+      consultationTypeId &&
+      consultationTypeId !== appointment.consultationTypeId
+    ) {
       await this.verifyConsultationTypeBelongsToDoctor(
         consultationTypeId,
         doctorId,
+      );
+
+      // Get old and new consultation type names
+      const oldType = appointment.consultationTypeId
+        ? await this.prisma.doctorConsultationType.findUnique({
+            where: { id: appointment.consultationTypeId },
+          })
+        : null;
+      const newType = await this.prisma.doctorConsultationType.findUnique({
+        where: { id: consultationTypeId },
+      });
+
+      // Log consultation type change separately
+      await this.appointmentHistory.logConsultationTypeChange(
+        id,
+        doctorId,
+        oldType?.name || null,
+        newType?.name || null,
       );
 
       // Get patients for this appointment
@@ -385,6 +422,58 @@ export class AppointmentService {
       if (!skipConflictCheck) {
         await this.checkTimeConflicts(doctorId, newStartTime, newEndTime, id);
       }
+
+      // Check if time actually changed
+      const oldStart = appointment.startTime.getTime();
+      const oldEnd = appointment.endTime.getTime();
+      const newStart = newStartTime.getTime();
+      const newEnd = newEndTime.getTime();
+
+      if (oldStart !== newStart || oldEnd !== newEnd) {
+        // Log reschedule separately
+        await this.appointmentHistory.logReschedule(
+          id,
+          doctorId,
+          appointment.startTime,
+          appointment.endTime,
+          newStartTime,
+          newEndTime,
+        );
+      }
+    }
+
+    // Track other field changes
+    if (
+      appointmentData.title !== undefined &&
+      appointmentData.title !== appointment.title
+    ) {
+      changes.push({
+        field: 'title',
+        oldValue: appointment.title,
+        newValue: appointmentData.title,
+      });
+    }
+
+    if (
+      appointmentData.description !== undefined &&
+      appointmentData.description !== appointment.description
+    ) {
+      changes.push({
+        field: 'description',
+        oldValue: appointment.description,
+        newValue: appointmentData.description,
+      });
+    }
+
+    if (
+      appointmentData.notes !== undefined &&
+      appointmentData.notes !== appointment.notes
+    ) {
+      changes.push({
+        field: 'notes',
+        oldValue: appointment.notes,
+        newValue: appointmentData.notes,
+      });
     }
 
     // Update appointment and patients
@@ -445,8 +534,15 @@ export class AppointmentService {
           isPrimary: index === 0,
         })),
       });
+    }
 
-      // Fetch updated appointment with new associations
+    // Log general field changes if any
+    if (changes.length > 0) {
+      await this.appointmentHistory.logUpdate(id, doctorId, changes);
+    }
+
+    // Fetch updated appointment with new associations if patients were updated
+    if (patientsToUpdate && patientsToUpdate.length > 0) {
       return this.findOne(id, doctorId);
     }
 
@@ -458,9 +554,10 @@ export class AppointmentService {
     doctorId: string,
     status: AppointmentStatus,
   ): Promise<Appointment> {
-    await this.findOne(id, doctorId);
+    const appointment = await this.findOne(id, doctorId);
+    const oldStatus = appointment.status;
 
-    return this.prisma.appointment.update({
+    const updatedAppointment = await this.prisma.appointment.update({
       where: { id },
       data: { status },
       include: {
@@ -490,6 +587,18 @@ export class AppointmentService {
         documents: true,
       },
     });
+
+    // Log status change in history
+    if (oldStatus !== status) {
+      await this.appointmentHistory.logStatusChange(
+        id,
+        doctorId,
+        oldStatus,
+        status,
+      );
+    }
+
+    return updatedAppointment;
   }
 
   async remove(id: string, doctorId: string): Promise<void> {

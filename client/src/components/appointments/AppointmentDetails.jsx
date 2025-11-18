@@ -22,8 +22,11 @@ import {
   Video as VideoOn,
   AlertCircle,
   Download,
+  Upload,
+  History,
 } from 'lucide-react';
-// date-fns format removed (not used)
+import { formatDistanceToNow } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import { Button } from '../ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { splitPatientName } from '../../lib/patient';
@@ -60,6 +63,8 @@ const AppointmentDetails = ({
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false); // Track if video call panel is visible
+  const [history, setHistory] = useState([]); // Appointment history
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   // When inline mode is true, show content if appointment exists, regardless of isOpen
   // When inline mode is false (modal/overlay), require both isOpen and appointment
@@ -112,8 +117,9 @@ const AppointmentDetails = ({
     // Load documents when appointment changes
     if (appointment?.id) {
       loadDocuments();
+      loadHistory();
     }
-  }, [appointment?.status, appointment?.id]);
+  }, [appointment?.status, appointment?.id, appointment?.updatedAt]);
 
   // Load documents from server
   const loadDocuments = async () => {
@@ -133,6 +139,22 @@ const AppointmentDetails = ({
     }
   };
 
+  // Load appointment history from server
+  const loadHistory = async () => {
+    if (!appointment?.id) return;
+
+    setIsLoadingHistory(true);
+    try {
+      const historyData = await appointmentAPI.getHistory(appointment.id);
+      setHistory(historyData || []);
+    } catch (error) {
+      console.error('Error loading history:', error);
+      // Don't show error toast for history as it's not critical
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
   // Handle status chip clicks - Update backend and visual state
   const handleStatusChipClick = async (chipName) => {
     if (!appointment || isStatusUpdating) return;
@@ -148,6 +170,8 @@ const AppointmentDetails = ({
     try {
       setIsStatusUpdating(true);
       await onStatusChange(appointment.id, mappedStatus);
+      // Reload history after status change
+      loadHistory();
     } catch (error) {
       setSelectedStatusChip(previousChip);
     } finally {
@@ -233,8 +257,9 @@ const AppointmentDetails = ({
       }
 
       showSuccess(`${files.length} document(s) uploaded successfully`);
-      // Reload documents list
+      // Reload documents list and history
       await loadDocuments();
+      await loadHistory();
     } catch (error) {
       console.error('Error uploading documents:', error);
       showError('Failed to upload documents');
@@ -253,6 +278,7 @@ const AppointmentDetails = ({
       await appointmentDocumentsApi.delete(documentId);
       showSuccess('Document deleted successfully');
       await loadDocuments();
+      await loadHistory();
     } catch (error) {
       console.error('Error deleting document:', error);
       showError('Failed to delete document');
@@ -702,8 +728,174 @@ const AppointmentDetails = ({
               </TabsContent>
 
               <TabsContent value='chronologie'>
-                <div className='bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-600'>
-                  Chronologie des actions et des modifications.
+                <div className='space-y-3'>
+                  {isLoadingHistory ? (
+                    <div className='text-center py-8'>
+                      <div className='inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900'></div>
+                      <p className='mt-2 text-sm text-gray-500'>
+                        Chargement de l'historique...
+                      </p>
+                    </div>
+                  ) : history.length > 0 ? (
+                    <div className='space-y-3'>
+                      {history.map((entry) => {
+                        const getActionIcon = (action) => {
+                          switch (action) {
+                            case 'CREATED':
+                              return (
+                                <CheckCircle className='w-4 h-4 text-green-600' />
+                              );
+                            case 'UPDATED':
+                            case 'RESCHEDULED':
+                            case 'CONSULTATION_TYPE_CHANGED':
+                              return <Edit className='w-4 h-4 text-blue-600' />;
+                            case 'STATUS_CHANGED':
+                              return (
+                                <Circle className='w-4 h-4 text-purple-600' />
+                              );
+                            case 'DOCUMENT_UPLOADED':
+                              return (
+                                <Upload className='w-4 h-4 text-green-600' />
+                              );
+                            case 'DOCUMENT_DELETED':
+                              return (
+                                <Trash2 className='w-4 h-4 text-red-600' />
+                              );
+                            default:
+                              return (
+                                <History className='w-4 h-4 text-gray-600' />
+                              );
+                          }
+                        };
+
+                        const getActionBadgeColor = (action) => {
+                          switch (action) {
+                            case 'CREATED':
+                              return 'bg-green-100 text-green-700';
+                            case 'UPDATED':
+                            case 'RESCHEDULED':
+                            case 'CONSULTATION_TYPE_CHANGED':
+                              return 'bg-blue-100 text-blue-700';
+                            case 'STATUS_CHANGED':
+                              return 'bg-purple-100 text-purple-700';
+                            case 'DOCUMENT_UPLOADED':
+                              return 'bg-green-100 text-green-700';
+                            case 'DOCUMENT_DELETED':
+                              return 'bg-red-100 text-red-700';
+                            default:
+                              return 'bg-gray-100 text-gray-700';
+                          }
+                        };
+
+                        const formatTimestamp = (timestamp) => {
+                          try {
+                            const date = new Date(timestamp);
+                            const distance = formatDistanceToNow(date, {
+                              addSuffix: true,
+                              locale: fr,
+                            });
+                            const formattedDate = new Intl.DateTimeFormat(
+                              'fr-FR',
+                              {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              }
+                            ).format(date);
+                            return { distance, formattedDate };
+                          } catch (error) {
+                            return { distance: '', formattedDate: timestamp };
+                          }
+                        };
+
+                        const { distance, formattedDate } = formatTimestamp(
+                          entry.createdAt
+                        );
+                        const doctorName = entry.doctor?.user
+                          ? `${entry.doctor.user.firstName || ''} ${
+                              entry.doctor.user.lastName || ''
+                            }`.trim()
+                          : 'Système';
+
+                        return (
+                          <div
+                            key={entry.id}
+                            className='flex gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors'
+                          >
+                            <div className='flex-shrink-0 mt-0.5'>
+                              <div
+                                className={`p-2 rounded-full ${getActionBadgeColor(
+                                  entry.action
+                                )}`}
+                              >
+                                {getActionIcon(entry.action)}
+                              </div>
+                            </div>
+                            <div className='flex-1 min-w-0'>
+                              <div className='flex items-start justify-between gap-2'>
+                                <div className='flex-1'>
+                                  <p className='text-sm font-medium text-gray-900'>
+                                    {entry.description || entry.action}
+                                  </p>
+                                  <p className='text-xs text-gray-500 mt-1'>
+                                    par {doctorName}
+                                  </p>
+                                </div>
+                                <div className='text-right flex-shrink-0'>
+                                  <p className='text-xs text-gray-600 font-medium'>
+                                    {distance}
+                                  </p>
+                                  <p className='text-xs text-gray-400 mt-0.5'>
+                                    {formattedDate}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Show changed fields if available */}
+                              {entry.changedFields &&
+                                Object.keys(entry.changedFields).length > 0 && (
+                                  <div className='mt-2 p-2 bg-white border border-gray-200 rounded text-xs'>
+                                    <p className='font-medium text-gray-700 mb-1'>
+                                      Modifications :
+                                    </p>
+                                    {Object.entries(entry.changedFields).map(
+                                      ([field, change]) => (
+                                        <div key={field} className='mt-1'>
+                                          <span className='text-gray-600 capitalize'>
+                                            {field}
+                                          </span>
+                                          {change.before !== undefined &&
+                                            change.after !== undefined && (
+                                              <div className='ml-2 text-gray-500'>
+                                                <span className='line-through'>
+                                                  {String(change.before)}
+                                                </span>
+                                                {' → '}
+                                                <span className='text-gray-900 font-medium'>
+                                                  {String(change.after)}
+                                                </span>
+                                              </div>
+                                            )}
+                                        </div>
+                                      )
+                                    )}
+                                  </div>
+                                )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className='text-center py-8'>
+                      <History className='w-12 h-12 text-gray-300 mx-auto mb-2' />
+                      <p className='text-sm text-gray-500'>
+                        Aucun historique disponible
+                      </p>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
             </div>
