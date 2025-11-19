@@ -12,8 +12,11 @@ export class TimeplanService {
   constructor(private prisma: PrismaService) {}
 
   async getTimeplanByDoctor(doctorId: string) {
+    // Return all timeplans (both general weekly and date-specific)
     const timeplans = await this.prisma.doctorTimeplan.findMany({
-      where: { doctorId },
+      where: {
+        doctorId,
+      },
       include: {
         timeSlots: {
           include: {
@@ -25,21 +28,26 @@ export class TimeplanService {
           },
         },
       },
-      orderBy: {
-        dayOfWeek: 'asc',
-      },
+      orderBy: [
+        { specificDate: 'asc' }, // null values first, then dates in ascending order
+        { dayOfWeek: 'asc' },
+      ],
     });
 
     return timeplans;
   }
 
-  async getTimeplanByDoctorAndDay(doctorId: string, dayOfWeek: DayOfWeek) {
-    const timeplan = await this.prisma.doctorTimeplan.findUnique({
+  async getTimeplanByDoctorAndDay(
+    doctorId: string,
+    dayOfWeek: DayOfWeek,
+    specificDate?: string,
+  ) {
+    // Use findFirst instead of findUnique because Prisma doesn't allow null in compound unique constraints
+    const timeplan = await this.prisma.doctorTimeplan.findFirst({
       where: {
-        doctorId_dayOfWeek: {
-          doctorId,
-          dayOfWeek,
-        },
+        doctorId,
+        dayOfWeek,
+        specificDate: specificDate ? new Date(specificDate) : null,
       },
       include: {
         timeSlots: {
@@ -61,15 +69,15 @@ export class TimeplanService {
     doctorId: string,
     createTimeplanDto: CreateTimeplanDto,
   ) {
-    const { dayOfWeek, isActive, timeSlots } = createTimeplanDto;
+    const { dayOfWeek, specificDate, isActive, timeSlots } = createTimeplanDto;
 
-    // Check if timeplan already exists for this day
-    const existingTimeplan = await this.prisma.doctorTimeplan.findUnique({
+    // Check if timeplan already exists for this day (or specific date)
+    // Use findFirst instead of findUnique because Prisma doesn't allow null in compound unique constraints
+    const existingTimeplan = await this.prisma.doctorTimeplan.findFirst({
       where: {
-        doctorId_dayOfWeek: {
-          doctorId,
-          dayOfWeek,
-        },
+        doctorId,
+        dayOfWeek,
+        specificDate: specificDate ? new Date(specificDate) : null,
       },
       include: {
         timeSlots: {
@@ -81,11 +89,51 @@ export class TimeplanService {
     });
 
     if (existingTimeplan) {
-      // Update existing timeplan
-      return this.updateTimeplan(doctorId, dayOfWeek, {
-        isActive,
-        timeSlots,
+      // Update existing timeplan directly by ID
+      // Delete existing time slots
+      await this.prisma.doctorTimeSlot.deleteMany({
+        where: { timeplanId: existingTimeplan.id },
       });
+
+      // Create new time slots
+      for (const slot of timeSlots) {
+        if (slot.startTime && slot.endTime && slot.consultationTypeIds) {
+          await this.prisma.doctorTimeSlot.create({
+            data: {
+              timeplanId: existingTimeplan.id,
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+              isActive: slot.isActive ?? true,
+              consultationTypes: {
+                create: slot.consultationTypeIds.map((consultationTypeId) => ({
+                  consultationTypeId,
+                })),
+              },
+            },
+          });
+        }
+      }
+
+      // Update timeplan basic properties
+      const updatedTimeplan = await this.prisma.doctorTimeplan.update({
+        where: { id: existingTimeplan.id },
+        data: {
+          ...(isActive !== undefined && { isActive }),
+        },
+        include: {
+          timeSlots: {
+            include: {
+              consultationTypes: {
+                include: {
+                  consultationType: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return updatedTimeplan;
     }
 
     // Validate that doctor exists
@@ -105,6 +153,7 @@ export class TimeplanService {
       data: {
         doctorId,
         dayOfWeek,
+        specificDate: specificDate ? new Date(specificDate) : null,
         isActive,
         timeSlots: {
           create: timeSlots.map((slot) => ({
@@ -140,15 +189,14 @@ export class TimeplanService {
     dayOfWeek: DayOfWeek,
     updateTimeplanDto: UpdateTimeplanDto,
   ) {
-    const { isActive, timeSlots } = updateTimeplanDto;
+    const { specificDate, isActive, timeSlots } = updateTimeplanDto;
 
-    // Check if timeplan exists
-    const existingTimeplan = await this.prisma.doctorTimeplan.findUnique({
+    // Check if timeplan exists - use findFirst instead of findUnique
+    const existingTimeplan = await this.prisma.doctorTimeplan.findFirst({
       where: {
-        doctorId_dayOfWeek: {
-          doctorId,
-          dayOfWeek,
-        },
+        doctorId,
+        dayOfWeek,
+        specificDate: specificDate ? new Date(specificDate) : null,
       },
       include: {
         timeSlots: {
@@ -196,12 +244,7 @@ export class TimeplanService {
 
     // Update timeplan basic properties
     const updatedTimeplan = await this.prisma.doctorTimeplan.update({
-      where: {
-        doctorId_dayOfWeek: {
-          doctorId,
-          dayOfWeek,
-        },
-      },
+      where: { id: existingTimeplan.id },
       data: {
         ...(isActive !== undefined && { isActive }),
       },
@@ -221,13 +264,17 @@ export class TimeplanService {
     return updatedTimeplan;
   }
 
-  async deleteTimeplan(doctorId: string, dayOfWeek: DayOfWeek) {
-    const timeplan = await this.prisma.doctorTimeplan.findUnique({
+  async deleteTimeplan(
+    doctorId: string,
+    dayOfWeek: DayOfWeek,
+    specificDate?: string,
+  ) {
+    // Use findFirst instead of findUnique
+    const timeplan = await this.prisma.doctorTimeplan.findFirst({
       where: {
-        doctorId_dayOfWeek: {
-          doctorId,
-          dayOfWeek,
-        },
+        doctorId,
+        dayOfWeek,
+        specificDate: specificDate ? new Date(specificDate) : null,
       },
     });
 
@@ -236,12 +283,7 @@ export class TimeplanService {
     }
 
     await this.prisma.doctorTimeplan.delete({
-      where: {
-        doctorId_dayOfWeek: {
-          doctorId,
-          dayOfWeek,
-        },
-      },
+      where: { id: timeplan.id },
     });
 
     return { message: 'Timeplan deleted successfully' };

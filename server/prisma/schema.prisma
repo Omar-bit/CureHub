@@ -224,18 +224,19 @@ enum DayOfWeek {
 
 // Doctor's weekly timeplan configuration
 model DoctorTimeplan {
-  id        String        @id @default(cuid())
-  doctorId  String
-  doctor    DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  dayOfWeek DayOfWeek
-  isActive  Boolean       @default(true) // Allow doctors to temporarily disable a day
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id           String        @id @default(cuid())
+  doctorId     String
+  doctor       DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  dayOfWeek    DayOfWeek
+  specificDate DateTime?     @db.Date // If set, this timeplan is for a specific date only (Calendrier), otherwise it's for the general weekly schedule (Semaine type)
+  isActive     Boolean       @default(true) // Allow doctors to temporarily disable a day
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   // Relations
   timeSlots DoctorTimeSlot[]
 
-  @@unique([doctorId, dayOfWeek]) // One timeplan per doctor per day
+  @@unique([doctorId, dayOfWeek, specificDate]) // One timeplan per doctor per day (or per specific date)
   @@map("doctor_timeplans")
 }
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Card,
   CardContent,
@@ -8,9 +9,22 @@ import {
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Switch } from '../components/ui/switch';
-import { Clock, Plus, Trash2, Edit2 } from 'lucide-react';
+import {
+  Clock,
+  Plus,
+  Trash2,
+  Edit2,
+  ChevronLeft,
+  ChevronRight,
+  Calendar as CalendarIcon,
+  Video,
+  Home,
+  Building2,
+} from 'lucide-react';
 import { showSuccess, showError } from '../lib/toast';
 import { timeplanAPI, consultationTypesAPI } from '../services/api';
+import { format, addWeeks, subWeeks, startOfWeek, addDays } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 const DAYS_OF_WEEK = [
   'MONDAY',
@@ -23,26 +37,69 @@ const DAYS_OF_WEEK = [
 ];
 
 const DAY_LABELS = {
-  MONDAY: 'Monday',
-  TUESDAY: 'Tuesday',
-  WEDNESDAY: 'Wednesday',
-  THURSDAY: 'Thursday',
-  FRIDAY: 'Friday',
-  SATURDAY: 'Saturday',
-  SUNDAY: 'Sunday',
+  MONDAY: 'Lundi',
+  TUESDAY: 'Mardi',
+  WEDNESDAY: 'Mercredi',
+  THURSDAY: 'Jeudi',
+  FRIDAY: 'Vendredi',
+  SATURDAY: 'Samedi',
+  SUNDAY: 'Dimanche',
+};
+
+const DAY_LABELS_SHORT = {
+  MONDAY: 'Lun',
+  TUESDAY: 'Mar',
+  WEDNESDAY: 'Mer',
+  THURSDAY: 'Jeu',
+  FRIDAY: 'Ven',
+  SATURDAY: 'Sam',
+  SUNDAY: 'Dim',
+};
+
+const LOCATION_ICONS = {
+  ONLINE: Video,
+  ATHOME: Home,
+  ONSITE: Building2,
+};
+
+const LOCATION_LABELS = {
+  ONLINE: 'Visio',
+  ATHOME: 'Domicile',
+  ONSITE: 'Consultations sur RDV',
 };
 
 const TimeplanPage = () => {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [timeplans, setTimeplans] = useState([]);
   const [consultationTypes, setConsultationTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
 
+  // New states for the redesigned page
+  const [activeTab, setActiveTab] = useState('calendrier'); // 'calendrier' or 'semaine-type'
+  const [currentWeekStart, setCurrentWeekStart] = useState(
+    startOfWeek(new Date(), { weekStartsOn: 1 })
+  );
+
   useEffect(() => {
     fetchTimeplans();
     fetchConsultationTypes();
-  }, []);
+
+    // Check if we should open consultation type dialog
+    const openConsultationType = searchParams.get('openConsultationType');
+    const createNew = searchParams.get('createNew');
+
+    if (openConsultationType || createNew === 'true') {
+      // This would open the consultation type dialog
+      // For now, we'll just navigate to settings
+      setTimeout(() => {
+        navigate('/settings/consultation-types');
+      }, 100);
+    }
+  }, [searchParams, navigate]);
 
   const fetchTimeplans = async () => {
     try {
@@ -66,22 +123,48 @@ const TimeplanPage = () => {
     }
   };
 
-  const getTimeplanForDay = (dayOfWeek) => {
-    return timeplans.find((tp) => tp.dayOfWeek === dayOfWeek);
+  const getTimeplanForDay = (dayOfWeek, specificDate = null) => {
+    // If a specific date is provided and we're in calendrier mode, look for date-specific timeplan first
+    if (specificDate && activeTab === 'calendrier') {
+      const dateStr = format(specificDate, 'yyyy-MM-dd');
+      const specificTimeplan = timeplans.find(
+        (tp) =>
+          tp.dayOfWeek === dayOfWeek &&
+          tp.specificDate &&
+          format(new Date(tp.specificDate), 'yyyy-MM-dd') === dateStr
+      );
+      if (specificTimeplan) return specificTimeplan;
+    }
+
+    // Otherwise, return the general weekly timeplan (where specificDate is null)
+    return timeplans.find(
+      (tp) => tp.dayOfWeek === dayOfWeek && !tp.specificDate
+    );
   };
 
   const handleDayToggle = async (dayOfWeek, isActive) => {
     try {
       const existingTimeplan = getTimeplanForDay(dayOfWeek);
 
+      const payload = {
+        dayOfWeek,
+        isActive,
+        timeSlots: existingTimeplan?.timeSlots || [],
+      };
+
+      // Add specificDate only in Calendrier mode
+      if (activeTab === 'calendrier') {
+        const weekDays = getWeekDays();
+        const dayData = weekDays.find((d) => d.dayOfWeek === dayOfWeek);
+        if (dayData?.date) {
+          payload.specificDate = format(dayData.date, 'yyyy-MM-dd');
+        }
+      }
+
       if (existingTimeplan) {
-        await timeplanAPI.update(dayOfWeek, { isActive });
+        await timeplanAPI.update(dayOfWeek, payload);
       } else {
-        await timeplanAPI.createOrUpdate({
-          dayOfWeek,
-          isActive,
-          timeSlots: [],
-        });
+        await timeplanAPI.createOrUpdate(payload);
       }
 
       await fetchTimeplans();
@@ -99,6 +182,15 @@ const TimeplanPage = () => {
     setIsEditing(true);
   };
 
+  const getSelectedDayDate = () => {
+    if (activeTab === 'calendrier' && selectedDay) {
+      const weekDays = getWeekDays();
+      const dayData = weekDays.find((d) => d.dayOfWeek === selectedDay);
+      return dayData?.date;
+    }
+    return null;
+  };
+
   const formatTime = (timeString) => {
     return timeString; // Already in HH:mm format
   };
@@ -113,6 +205,169 @@ const TimeplanPage = () => {
     return type ? type.color : '#gray';
   };
 
+  const goToPreviousWeek = () => {
+    setCurrentWeekStart(subWeeks(currentWeekStart, 1));
+  };
+
+  const goToNextWeek = () => {
+    setCurrentWeekStart(addWeeks(currentWeekStart, 1));
+  };
+
+  const getWeekDays = () => {
+    return DAYS_OF_WEEK.map((day, index) => ({
+      dayOfWeek: day,
+      date: addDays(currentWeekStart, index),
+    }));
+  };
+
+  const handleConsultationTypeClick = (typeId) => {
+    // Navigate to settings with query param to open specific type
+    navigate(`/settings/consultation-types?openType=${typeId}`);
+  };
+
+  const handleCreateConsultationType = () => {
+    // Navigate to settings with query param to create new type
+    navigate('/settings/consultation-types?createNew=true');
+  };
+
+  const renderWeekCalendar = () => {
+    const weekDays =
+      activeTab === 'semaine-type'
+        ? DAYS_OF_WEEK.map((day) => ({ dayOfWeek: day, date: null }))
+        : getWeekDays();
+
+    return (
+      <div className='bg-white rounded-lg border border-gray-200 overflow-hidden'>
+        {/* Week header */}
+        <div className='flex border-b border-gray-200 sticky top-0 bg-white z-10'>
+          <div className='w-16 flex-shrink-0'></div>
+          {weekDays.map((day, index) => {
+            const timeplan = getTimeplanForDay(day.dayOfWeek, day.date);
+            const hasSlots = timeplan?.timeSlots?.length > 0;
+
+            return (
+              <div
+                key={index}
+                className='flex-1 text-center py-3 border-r border-gray-200 last:border-r-0'
+              >
+                <div className='text-sm font-medium text-gray-700'>
+                  {DAY_LABELS_SHORT[day.dayOfWeek]}
+                </div>
+                {activeTab === 'calendrier' && day.date && (
+                  <div className='text-xs text-gray-500 mt-1'>
+                    {format(day.date, 'dd/MM')}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Time grid with scrolling */}
+        <div className='relative overflow-y-auto' style={{ height: '600px' }}>
+          <div className='relative' style={{ height: '1440px' }}>
+            {/* Hour labels */}
+            {Array.from({ length: 24 }, (_, i) => i).map((hour) => (
+              <div
+                key={hour}
+                className='absolute left-0 w-16 text-right pr-2 text-xs text-gray-500 bg-white'
+                style={{
+                  top: `${hour * 60}px`,
+                  height: '60px',
+                  lineHeight: '12px',
+                  paddingTop: '2px',
+                }}
+              >
+                {hour.toString().padStart(2, '0')}h
+              </div>
+            ))}
+
+            {/* Day columns with time slots */}
+            <div
+              className='absolute left-16 right-0 top-0 flex'
+              style={{ height: '1440px' }}
+            >
+              {weekDays.map((day, dayIndex) => {
+                const timeplan = getTimeplanForDay(day.dayOfWeek, day.date);
+                const timeSlots = timeplan?.timeSlots || [];
+                const isActive = timeplan?.isActive ?? false;
+
+                return (
+                  <div
+                    key={dayIndex}
+                    className='flex-1 border-r border-gray-100 last:border-r-0 relative'
+                    style={{
+                      height: '1440px',
+                      opacity: isActive ? 1 : 0.3,
+                    }}
+                  >
+                    {/* Hour grid lines */}
+                    {Array.from({ length: 24 }, (_, i) => i).map((hour) => (
+                      <div
+                        key={hour}
+                        className='absolute left-0 right-0 border-t border-gray-100'
+                        style={{ top: `${hour * 60}px` }}
+                      ></div>
+                    ))}
+
+                    {/* Render time slots as colored blocks */}
+                    {timeSlots.map((slot) => {
+                      const [startHour, startMinute] = slot.startTime
+                        .split(':')
+                        .map(Number);
+                      const [endHour, endMinute] = slot.endTime
+                        .split(':')
+                        .map(Number);
+                      const topPosition = startHour * 60 + startMinute;
+                      const height = endHour * 60 + endMinute - topPosition;
+
+                      // Group consultation types by color
+                      const consultationTypeGroups =
+                        slot.consultationTypes.reduce((acc, ct) => {
+                          const color = getConsultationTypeColor(
+                            ct.consultationTypeId
+                          );
+                          if (!acc[color]) acc[color] = [];
+                          acc[color].push(ct);
+                          return acc;
+                        }, {});
+
+                      const colors = Object.keys(consultationTypeGroups);
+                      const segmentHeight = height / colors.length;
+
+                      return (
+                        <div
+                          key={slot.id}
+                          className='absolute left-0 right-0 overflow-hidden'
+                          style={{
+                            top: `${topPosition}px`,
+                            height: `${height}px`,
+                          }}
+                        >
+                          {colors.map((color, idx) => (
+                            <div
+                              key={idx}
+                              className='absolute left-0 right-0'
+                              style={{
+                                backgroundColor: color,
+                                top: `${idx * segmentHeight}px`,
+                                height: `${segmentHeight}px`,
+                              }}
+                            ></div>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className='flex items-center justify-center h-64'>
@@ -122,113 +377,337 @@ const TimeplanPage = () => {
   }
 
   return (
-    <div className='space-y-6 py-2 px-8'>
-      <div className='flex items-center justify-between'>
-        <div>
-          <h1 className='text-3xl font-bold text-gray-900'>
-            Timeplan Configuration
-          </h1>
-          <p className='mt-2 text-gray-600'>
-            Configure your availability and schedule for each day of the week
-          </p>
+    <div className='space-y-6 py-6 px-8 max-w-7xl mx-auto'>
+      {/* Header */}
+      <div className='bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-8 shadow-sm'>
+        <div className='flex items-start justify-between'>
+          <div>
+            <div className='flex items-center gap-3 mb-2'>
+              <div className='w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center shadow-md'>
+                <Clock className='h-6 w-6 text-white' />
+              </div>
+              <h1 className='text-3xl font-bold text-gray-900'>Horaires</h1>
+            </div>
+            <p className='text-gray-700 mt-2'>
+              Dr Nicole David | Cabinet médical du Dr DAVID
+            </p>
+            <p className='text-sm text-gray-600 mt-4 bg-purple-100 px-4 py-2 rounded-lg inline-block'>
+              ⚠️ Visualisez et modifiez le planning pour une date donnée.
+            </p>
+            <p className='text-sm text-gray-600 mt-2'>
+              ⓘ Les plages horaires modifiées, ajoutées ou supprimées n'auront
+              d'effet que pour la date indiquée.
+            </p>
+          </div>
+
+          {/* Tab buttons */}
+          <div className='flex gap-2 bg-white rounded-lg p-1 shadow-sm'>
+            <button
+              onClick={() => setActiveTab('calendrier')}
+              className={`px-6 py-2 rounded-md font-medium transition-all ${
+                activeTab === 'calendrier'
+                  ? 'bg-orange-500 text-white shadow-md'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              Calendrier
+            </button>
+            <button
+              onClick={() => setActiveTab('semaine-type')}
+              className={`px-6 py-2 rounded-md font-medium transition-all ${
+                activeTab === 'semaine-type'
+                  ? 'bg-orange-500 text-white shadow-md'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              Semaine type
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className='grid gap-4'>
-        {DAYS_OF_WEEK.map((day) => {
-          const timeplan = getTimeplanForDay(day);
-          const isActive = timeplan?.isActive ?? false;
-          const timeSlots = timeplan?.timeSlots ?? [];
+      {/* Week navigation (only for calendrier tab) */}
+      {activeTab === 'calendrier' && (
+        <div className='flex items-center justify-between bg-orange-50 px-6 py-4 rounded-xl'>
+          <button
+            onClick={goToPreviousWeek}
+            className='flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-50 transition-colors shadow-sm'
+          >
+            <ChevronLeft className='h-5 w-5' />
+            <span className='font-medium'>Jours précédents</span>
+          </button>
 
-          return (
-            <Card key={day} className='relative'>
-              <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-4'>
-                <CardTitle className='text-lg font-semibold'>
-                  {DAY_LABELS[day]}
-                </CardTitle>
-                <div className='flex items-center space-x-3'>
-                  <div className='flex items-center space-x-2'>
-                    <span className='text-sm text-gray-600'>
-                      {isActive ? 'Active' : 'Inactive'}
-                    </span>
-                    <Switch
-                      checked={isActive}
-                      onCheckedChange={(checked) =>
-                        handleDayToggle(day, checked)
-                      }
-                    />
-                  </div>
-                  <Button
-                    variant='outline'
-                    size='sm'
-                    onClick={() => handleEditDay(day)}
-                    className='flex items-center space-x-1'
-                  >
-                    <Edit2 className='h-4 w-4' />
-                    <span>Edit</span>
-                  </Button>
+          <div className='flex items-center gap-3'>
+            <CalendarIcon className='h-5 w-5 text-gray-600' />
+            <span className='text-lg font-semibold text-gray-900'>
+              Du {format(currentWeekStart, 'EEEE dd/MM', { locale: fr })} au{' '}
+              {format(addDays(currentWeekStart, 6), 'EEEE dd/MM', {
+                locale: fr,
+              })}
+            </span>
+          </div>
+
+          {/* Date picker */}
+          <div className='flex items-center gap-3'>
+            <button className='flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-50 transition-colors shadow-sm'>
+              <CalendarIcon className='h-4 w-4' />
+              <span className='text-sm'>Choisir une autre date</span>
+            </button>
+
+            <button
+              onClick={goToNextWeek}
+              className='flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-50 transition-colors shadow-sm'
+            >
+              <span className='font-medium'>Jours suivants</span>
+              <ChevronRight className='h-5 w-5' />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Visual Calendar */}
+      <div className='space-y-6'>{renderWeekCalendar()}</div>
+
+      {/* Consultation Types Section */}
+      <div className='bg-white rounded-xl p-6 shadow-sm border border-gray-200'>
+        <div className='flex items-center gap-3 mb-6'>
+          <div className='w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center'>
+            <span className='text-2xl'>🏷️</span>
+          </div>
+          <h2 className='text-xl font-bold text-gray-900'>
+            Vos types de consultations
+          </h2>
+        </div>
+
+        <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4'>
+          {consultationTypes.map((type) => {
+            const Icon = LOCATION_ICONS[type.location] || Building2;
+            return (
+              <button
+                key={type.id}
+                onClick={() => handleConsultationTypeClick(type.id)}
+                className='flex flex-col items-center gap-3 p-4 rounded-xl hover:shadow-md transition-all bg-white border-2 border-gray-200 hover:border-gray-300'
+              >
+                <div
+                  className='w-14 h-14 rounded-full flex items-center justify-center shadow-sm'
+                  style={{ backgroundColor: type.color }}
+                >
+                  <Icon className='h-7 w-7 text-white' />
                 </div>
-              </CardHeader>
+                <span className='text-sm font-medium text-gray-900 text-center'>
+                  {type.name}
+                </span>
+              </button>
+            );
+          })}
 
-              <CardContent>
-                {timeSlots.length === 0 ? (
-                  <div className='text-center py-8 text-gray-500'>
-                    <Clock className='h-12 w-12 mx-auto mb-3 text-gray-300' />
-                    <p>No time slots configured</p>
-                    <p className='text-sm'>Click 'Edit' to add time slots</p>
+          {/* Add new consultation type button */}
+          <button
+            onClick={handleCreateConsultationType}
+            className='flex flex-col items-center gap-3 p-4 rounded-xl hover:shadow-md transition-all bg-gray-50 border-2 border-dashed border-gray-300 hover:border-gray-400'
+          >
+            <div className='w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center'>
+              <Plus className='h-7 w-7 text-gray-600' />
+            </div>
+            <span className='text-sm font-medium text-gray-600 text-center'>
+              Ajouter...
+            </span>
+          </button>
+
+          {/* Exceptions button */}
+          <button className='flex flex-col items-center gap-3 p-4 rounded-xl hover:shadow-md transition-all bg-yellow-50 border-2 border-yellow-200 hover:border-yellow-300'>
+            <div className='w-14 h-14 rounded-full bg-yellow-200 flex items-center justify-center'>
+              <span className='text-2xl'>📋</span>
+            </div>
+            <span className='text-sm font-medium text-gray-900 text-center'>
+              Exceptions
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* Time Slots Detail Section */}
+      <div className='bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden'>
+        {activeTab === 'semaine-type' ? (
+          // Semaine type view - show general week days
+          <div className='p-6'>
+            <h3 className='text-lg font-bold text-gray-900 mb-6'>
+              Planning habituel
+            </h3>
+            {DAYS_OF_WEEK.map((day) => {
+              const timeplan = getTimeplanForDay(day);
+              const isActive = timeplan?.isActive ?? false;
+              const timeSlots = timeplan?.timeSlots ?? [];
+
+              return (
+                <div key={day} className='mb-6 last:mb-0'>
+                  <div className='flex items-center justify-between mb-3'>
+                    <h4 className='text-md font-semibold text-gray-800'>
+                      {DAY_LABELS[day]}
+                    </h4>
+                    <div className='flex items-center gap-3'>
+                      <Switch
+                        checked={isActive}
+                        onCheckedChange={(checked) =>
+                          handleDayToggle(day, checked)
+                        }
+                      />
+                      <Button
+                        variant='outline'
+                        size='sm'
+                        onClick={() => handleEditDay(day)}
+                      >
+                        <Edit2 className='h-4 w-4 mr-1' />
+                        Modifier
+                      </Button>
+                    </div>
                   </div>
-                ) : (
-                  <div className='space-y-3'>
+
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
                     {timeSlots.map((slot) => (
                       <div
                         key={slot.id}
-                        className='flex items-center justify-between p-3 bg-gray-50 rounded-lg'
+                        className='flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200'
                       >
-                        <div className='flex items-center space-x-3'>
-                          <div className='flex items-center space-x-2 text-sm font-medium'>
-                            <Clock className='h-4 w-4 text-gray-500' />
-                            <span>
-                              {formatTime(slot.startTime)} -{' '}
-                              {formatTime(slot.endTime)}
-                            </span>
-                          </div>
-                          <div className='flex flex-wrap gap-1'>
-                            {slot.consultationTypes.map((ct) => (
-                              <Badge
-                                key={ct.id}
-                                style={{
-                                  backgroundColor: getConsultationTypeColor(
+                        <div className='flex items-center gap-3'>
+                          <span className='text-sm font-medium text-gray-900'>
+                            de {formatTime(slot.startTime)} à{' '}
+                            {formatTime(slot.endTime)}
+                          </span>
+                          <div className='flex gap-1'>
+                            {slot.consultationTypes.map((ct) => {
+                              const color = getConsultationTypeColor(
+                                ct.consultationTypeId
+                              );
+                              return (
+                                <div
+                                  key={ct.id}
+                                  className='w-6 h-6 rounded-full border-2 border-white shadow-sm'
+                                  style={{ backgroundColor: color }}
+                                  title={getConsultationTypeName(
                                     ct.consultationTypeId
-                                  ),
-                                  color: 'white',
-                                }}
-                                className='text-xs'
-                              >
-                                {getConsultationTypeName(ct.consultationTypeId)}
-                              </Badge>
-                            ))}
+                                  )}
+                                ></div>
+                              );
+                            })}
                           </div>
                         </div>
-                        <div className='flex items-center space-x-1'>
-                          {!slot.isActive && (
-                            <Badge variant='secondary' className='text-xs'>
-                              Inactive
-                            </Badge>
-                          )}
-                        </div>
+                        {!slot.isActive && (
+                          <Badge variant='secondary' className='text-xs'>
+                            Inactif
+                          </Badge>
+                        )}
                       </div>
                     ))}
+                    {timeSlots.length === 0 && (
+                      <div className='col-span-2 text-center py-4 text-gray-500 text-sm'>
+                        Aucune plage horaire configurée
+                      </div>
+                    )}
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          // Calendrier view - show specific dates
+          <div className='p-6'>
+            <h3 className='text-lg font-bold text-gray-900 mb-6'>
+              Planning de la semaine
+            </h3>
+            {getWeekDays().map(({ dayOfWeek, date }) => {
+              const timeplan = getTimeplanForDay(dayOfWeek, date);
+              const isActive = timeplan?.isActive ?? false;
+              const timeSlots = timeplan?.timeSlots ?? [];
+
+              return (
+                <div key={dayOfWeek} className='mb-6 last:mb-0'>
+                  <div className='flex items-center justify-between mb-3'>
+                    <div className='flex items-center gap-3'>
+                      <div className='flex items-center gap-2'>
+                        {format(date, 'dd/MM') ===
+                          format(new Date(), 'dd/MM') && (
+                          <div className='w-2 h-2 bg-blue-500 rounded-full'></div>
+                        )}
+                        <h4 className='text-md font-semibold text-gray-800'>
+                          {DAY_LABELS[dayOfWeek]}
+                        </h4>
+                      </div>
+                      <span className='text-sm text-gray-500'>
+                        {format(date, 'dd/MM/yyyy')}
+                      </span>
+                    </div>
+                    <div className='flex items-center gap-3'>
+                      <Switch
+                        checked={isActive}
+                        onCheckedChange={(checked) =>
+                          handleDayToggle(dayOfWeek, checked)
+                        }
+                      />
+                      <Button
+                        variant='outline'
+                        size='sm'
+                        onClick={() => handleEditDay(dayOfWeek)}
+                      >
+                        <Edit2 className='h-4 w-4 mr-1' />
+                        Modifier
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
+                    {timeSlots.map((slot) => (
+                      <div
+                        key={slot.id}
+                        className='flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200'
+                      >
+                        <div className='flex items-center gap-3'>
+                          <span className='text-sm font-medium text-gray-900'>
+                            de {formatTime(slot.startTime)} à{' '}
+                            {formatTime(slot.endTime)}
+                          </span>
+                          <div className='flex gap-1'>
+                            {slot.consultationTypes.map((ct) => {
+                              const color = getConsultationTypeColor(
+                                ct.consultationTypeId
+                              );
+                              return (
+                                <div
+                                  key={ct.id}
+                                  className='w-6 h-6 rounded-full border-2 border-white shadow-sm'
+                                  style={{ backgroundColor: color }}
+                                  title={getConsultationTypeName(
+                                    ct.consultationTypeId
+                                  )}
+                                ></div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        {!slot.isActive && (
+                          <Badge variant='secondary' className='text-xs'>
+                            Inactif
+                          </Badge>
+                        )}
+                      </div>
+                    ))}
+                    {timeSlots.length === 0 && (
+                      <div className='col-span-2 text-center py-4 text-gray-500 text-sm'>
+                        Aucune plage horaire configurée
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {isEditing && (
         <TimeplanEditModal
           dayOfWeek={selectedDay}
+          specificDate={getSelectedDayDate()}
           timeplan={getTimeplanForDay(selectedDay)}
           consultationTypes={consultationTypes}
           onClose={() => {
@@ -249,6 +728,7 @@ const TimeplanPage = () => {
 // Separate component for the edit modal
 const TimeplanEditModal = ({
   dayOfWeek,
+  specificDate,
   timeplan,
   consultationTypes,
   onClose,
@@ -294,6 +774,11 @@ const TimeplanEditModal = ({
         })),
       };
 
+      // Add specificDate if it's provided (Calendrier mode)
+      if (specificDate) {
+        payload.specificDate = format(specificDate, 'yyyy-MM-dd');
+      }
+
       await timeplanAPI.createOrUpdate(payload);
       showSuccess(`${DAY_LABELS[dayOfWeek]} schedule updated successfully`);
       onSave();
@@ -309,9 +794,22 @@ const TimeplanEditModal = ({
     <div className='fixed inset-0 bg-gray-500/50 flex items-center justify-center z-50'>
       <div className='bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto'>
         <div className='flex items-center justify-between mb-6'>
-          <h2 className='text-2xl font-bold'>
-            Edit {DAY_LABELS[dayOfWeek]} Schedule
-          </h2>
+          <div>
+            <h2 className='text-2xl font-bold'>
+              Edit {DAY_LABELS[dayOfWeek]} Schedule
+            </h2>
+            {specificDate && (
+              <p className='text-sm text-blue-600 mt-1'>
+                📅 Editing schedule for specific date:{' '}
+                {format(specificDate, 'EEEE dd/MM/yyyy', { locale: fr })}
+              </p>
+            )}
+            {!specificDate && (
+              <p className='text-sm text-gray-600 mt-1'>
+                📋 Editing general weekly schedule
+              </p>
+            )}
+          </div>
           <Button variant='outline' onClick={onClose}>
             Cancel
           </Button>
