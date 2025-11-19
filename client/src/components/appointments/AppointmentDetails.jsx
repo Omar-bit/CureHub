@@ -65,6 +65,7 @@ const AppointmentDetails = ({
   const [showVideoCall, setShowVideoCall] = useState(false); // Track if video call panel is visible
   const [history, setHistory] = useState([]); // Appointment history
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [absenceCount, setAbsenceCount] = useState(0); // Track patient absence count
 
   // When inline mode is true, show content if appointment exists, regardless of isOpen
   // When inline mode is false (modal/overlay), require both isOpen and appointment
@@ -119,6 +120,11 @@ const AppointmentDetails = ({
       loadDocuments();
       loadHistory();
     }
+
+    // Load absence count for patient
+    if (appointment?.patient?.id) {
+      loadAbsenceCount(appointment.patient.id);
+    }
   }, [appointment?.status, appointment?.id, appointment?.updatedAt]);
 
   // Load documents from server
@@ -152,6 +158,22 @@ const AppointmentDetails = ({
       // Don't show error toast for history as it's not critical
     } finally {
       setIsLoadingHistory(false);
+    }
+  };
+
+  // Load absence count for a patient
+  const loadAbsenceCount = async (patientId) => {
+    if (!patientId) return;
+
+    try {
+      // Get all appointments for this patient with ABSENT status
+      const appointments = await appointmentAPI.getByPatient(patientId, {
+        status: 'ABSENT',
+      });
+      setAbsenceCount(appointments?.length || 0);
+    } catch (error) {
+      console.error('Error loading absence count:', error);
+      setAbsenceCount(0);
     }
   };
 
@@ -305,31 +327,47 @@ const AppointmentDetails = ({
 
   const content = (
     <>
-      {/* Header - only show when not in inline mode */}
-      {!inline && (
-        <div className='flex items-center justify-between p-4 border-b border-gray-200'>
-          <div className='text-sm text-gray-600'>
-            {new Date(appointment.startTime).toLocaleDateString('fr-FR', {
-              weekday: 'short',
-              day: '2-digit',
-              month: 'short',
-            })}{' '}
-            <span className='ml-2 font-semibold'>
-              {new Date(appointment.startTime).toLocaleTimeString('fr-FR', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </span>
+      {/* Header - always show appointment date/time */}
+      <div className='flex items-center justify-between px-6 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200'>
+        <div className='flex items-center gap-3'>
+          <div className='flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg'>
+            <Calendar className='w-6 h-6 text-blue-600' />
           </div>
+          <div>
+            <div className='text-xs font-medium text-gray-500 uppercase tracking-wide'>
+              {new Date(appointment.startTime).toLocaleDateString('fr-FR', {
+                weekday: 'long',
+              })}
+            </div>
+            <div className='flex items-baseline gap-2 mt-0.5'>
+              <span className='text-lg font-bold text-gray-900'>
+                {new Date(appointment.startTime).toLocaleDateString('fr-FR', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                })}
+              </span>
+              <span className='text-sm text-gray-400'>•</span>
+              <span className='text-base font-semibold text-blue-600 flex items-center gap-1'>
+                <Clock className='w-4 h-4' />
+                {new Date(appointment.startTime).toLocaleTimeString('fr-FR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </span>
+            </div>
+          </div>
+        </div>
+        {!inline && (
           <button
             onClick={onClose}
             className='p-2 hover:bg-gray-100 rounded-full transition-colors'
             aria-label='Fermer'
           >
-            <X className='h-5 w-5' />
+            <X className='h-5 w-5 text-gray-500' />
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Main content */}
       <div className={`${inline ? 'space-y-4' : 'p-4 space-y-4'}`}>
@@ -356,8 +394,10 @@ const AppointmentDetails = ({
             {appointment.patient?.phoneNumber && <span>■ Téléphone</span>}
             {appointment.patient?.email && <span>■ Email</span>}
             {appointment.patient?.address && <span>■ Adresse</span>}
-            {appointment.patient && (
-              <span className='text-orange-600 font-medium'>1 absence</span>
+            {absenceCount > 0 && (
+              <span className='text-orange-600 font-medium'>
+                {absenceCount} absence{absenceCount > 1 ? 's' : ''}
+              </span>
             )}
           </div>
         </div>

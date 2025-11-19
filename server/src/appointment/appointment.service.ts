@@ -18,6 +18,18 @@ import {
   DayOfWeek,
 } from '@prisma/client';
 
+// Patient select fields to include in appointment responses
+const PATIENT_SELECT_FIELDS = {
+  id: true,
+  name: true,
+  dateOfBirth: true,
+  profileImage: true,
+  email: true,
+  phoneNumber: true,
+  address: true,
+  gender: true,
+};
+
 @Injectable()
 export class AppointmentService {
   constructor(
@@ -112,24 +124,12 @@ export class AppointmentService {
       },
       include: {
         patient: {
-          select: {
-            id: true,
-            name: true,
-            profileImage: true,
-            email: true,
-            phoneNumber: true,
-          },
+          select: PATIENT_SELECT_FIELDS,
         },
         appointmentPatients: {
           include: {
             patient: {
-              select: {
-                id: true,
-                name: true,
-                profileImage: true,
-                email: true,
-                phoneNumber: true,
-              },
+              select: PATIENT_SELECT_FIELDS,
             },
           },
         },
@@ -225,24 +225,12 @@ export class AppointmentService {
         },
         include: {
           patient: {
-            select: {
-              id: true,
-              name: true,
-              profileImage: true,
-              email: true,
-              phoneNumber: true,
-            },
+            select: PATIENT_SELECT_FIELDS,
           },
           appointmentPatients: {
             include: {
               patient: {
-                select: {
-                  id: true,
-                  name: true,
-                  profileImage: true,
-                  email: true,
-                  phoneNumber: true,
-                },
+                select: PATIENT_SELECT_FIELDS,
               },
             },
           },
@@ -266,30 +254,12 @@ export class AppointmentService {
       where: { id },
       include: {
         patient: {
-          select: {
-            id: true,
-            name: true,
-            profileImage: true,
-            email: true,
-            phoneNumber: true,
-            dateOfBirth: true,
-            gender: true,
-            address: true,
-          },
+          select: PATIENT_SELECT_FIELDS,
         },
         appointmentPatients: {
           include: {
             patient: {
-              select: {
-                id: true,
-                name: true,
-                profileImage: true,
-                email: true,
-                phoneNumber: true,
-                dateOfBirth: true,
-                gender: true,
-                address: true,
-              },
+              select: PATIENT_SELECT_FIELDS,
             },
           },
         },
@@ -499,24 +469,12 @@ export class AppointmentService {
       data: updateData,
       include: {
         patient: {
-          select: {
-            id: true,
-            name: true,
-            profileImage: true,
-            email: true,
-            phoneNumber: true,
-          },
+          select: PATIENT_SELECT_FIELDS,
         },
         appointmentPatients: {
           include: {
             patient: {
-              select: {
-                id: true,
-                name: true,
-                profileImage: true,
-                email: true,
-                phoneNumber: true,
-              },
+              select: PATIENT_SELECT_FIELDS,
             },
           },
         },
@@ -562,24 +520,12 @@ export class AppointmentService {
       data: { status },
       include: {
         patient: {
-          select: {
-            id: true,
-            name: true,
-            profileImage: true,
-            email: true,
-            phoneNumber: true,
-          },
+          select: PATIENT_SELECT_FIELDS,
         },
         appointmentPatients: {
           include: {
             patient: {
-              select: {
-                id: true,
-                name: true,
-                profileImage: true,
-                email: true,
-                phoneNumber: true,
-              },
+              select: PATIENT_SELECT_FIELDS,
             },
           },
         },
