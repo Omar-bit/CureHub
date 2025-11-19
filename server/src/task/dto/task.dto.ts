@@ -7,6 +7,8 @@ import {
   IsUUID,
   MinLength,
   MaxLength,
+  IsArray,
+  ArrayUnique,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { TaskPriority, TaskCategory } from '@prisma/client';
@@ -35,8 +37,14 @@ export class CreateTaskDto {
   category?: TaskCategory;
 
   @IsOptional()
-  @IsUUID()
-  patientId?: string;
+  @IsBoolean()
+  completed?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  patientIds?: string[];
+  // @IsUUID(undefined, { each: true })
 }
 
 export class UpdateTaskDto {
@@ -68,8 +76,10 @@ export class UpdateTaskDto {
   completed?: boolean;
 
   @IsOptional()
-  @IsUUID()
-  patientId?: string;
+  @IsArray()
+  @ArrayUnique()
+  patientIds?: string[];
+  // @IsUUID(undefined, { each: true })
 }
 
 export class TaskQueryDto {

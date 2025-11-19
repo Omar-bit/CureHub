@@ -8,6 +8,34 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateTaskDto, UpdateTaskDto, TaskQueryDto } from './dto/task.dto';
 import { Task, TaskPriority, TaskCategory } from '@prisma/client';
 
+const PATIENT_SUMMARY_SELECT = {
+  id: true,
+  name: true,
+  profileImage: true,
+  email: true,
+  phoneNumber: true,
+};
+
+const TASK_PATIENT_INCLUDE: any = {
+  taskPatients: {
+    include: {
+      patient: {
+        select: PATIENT_SUMMARY_SELECT,
+      },
+    },
+  },
+};
+
+const mapTaskPatients = (task: any) => {
+  if (!task) return task;
+  const { taskPatients, ...rest } = task;
+  const patients =
+    taskPatients
+      ?.map((assignment: any) => assignment.patient)
+      .filter(Boolean) || [];
+  return { ...rest, patients };
+};
+
 @Injectable()
 export class TaskService {
   constructor(private prisma: PrismaService) {}
@@ -28,12 +56,20 @@ export class TaskService {
     };
 
     if (search) {
+      const searchFilter = {
+        contains: search,
+        mode: 'insensitive',
+      };
       where.OR = [
-        { title: { contains: search } },
-        { description: { contains: search } },
+        { title: searchFilter },
+        { description: searchFilter },
         {
-          patient: {
-            name: { contains: search },
+          taskPatients: {
+            some: {
+              patient: {
+                name: searchFilter,
+              },
+            },
           },
         },
       ];
@@ -52,7 +88,11 @@ export class TaskService {
     }
 
     if (patientId) {
-      where.patientId = patientId;
+      where.taskPatients = {
+        some: {
+          patientId,
+        },
+      };
     }
 
     if (deadlineBefore) {
@@ -69,17 +109,9 @@ export class TaskService {
       };
     }
 
-    return this.prisma.task.findMany({
+    const tasks = await this.prisma.task.findMany({
       where,
-      include: {
-        patient: {
-          select: {
-            id: true,
-            name: true,
-            profileImage: true,
-          },
-        },
-      },
+      include: TASK_PATIENT_INCLUDE,
       orderBy: [
         { completed: 'asc' },
         { priority: 'desc' },
@@ -87,68 +119,53 @@ export class TaskService {
         { createdAt: 'desc' },
       ],
     });
+
+    return tasks.map(mapTaskPatients);
   }
 
   async findOne(id: string, doctorId: string) {
     const task = await this.prisma.task.findFirst({
       where: { id, doctorId },
-      include: {
-        patient: {
-          select: {
-            id: true,
-            name: true,
-            profileImage: true,
-            email: true,
-            phoneNumber: true,
-          },
-        },
-      },
+      include: TASK_PATIENT_INCLUDE,
     });
 
     if (!task) {
       throw new NotFoundException('Task not found');
     }
 
-    return task;
+    return mapTaskPatients(task);
   }
 
   async create(doctorId: string, createTaskDto: CreateTaskDto) {
-    const { patientId, deadline, ...taskData } = createTaskDto;
+    const { patientIds, deadline, completed, ...taskData } = createTaskDto;
+    const normalizedPatientIds = await this.normalizeAndValidatePatientIds(
+      doctorId,
+      patientIds,
+    );
 
-    // Verify patient belongs to doctor if patientId is provided
-    if (patientId) {
-      const patient = await this.prisma.patient.findFirst({
-        where: { id: patientId, doctorId },
-      });
-
-      if (!patient) {
-        throw new BadRequestException(
-          'Patient not found or does not belong to this doctor',
-        );
-      }
-    }
-
-    return this.prisma.task.create({
+    const task = await this.prisma.task.create({
       data: {
         ...taskData,
         doctorId,
-        patientId,
         deadline: deadline ? new Date(deadline) : null,
+        completed: completed || false,
+        completedAt: completed ? new Date() : null,
+        ...(normalizedPatientIds.length
+          ? {
+              taskPatients: {
+                create: normalizedPatientIds.map((id) => ({ patientId: id })),
+              },
+            }
+          : {}),
       },
-      include: {
-        patient: {
-          select: {
-            id: true,
-            name: true,
-            profileImage: true,
-          },
-        },
-      },
+      include: TASK_PATIENT_INCLUDE,
     });
+
+    return mapTaskPatients(task);
   }
 
   async update(id: string, doctorId: string, updateTaskDto: UpdateTaskDto) {
-    const { patientId, deadline, completed, ...taskData } = updateTaskDto;
+    const { patientIds, deadline, completed, ...taskData } = updateTaskDto;
 
     // Check if task exists and belongs to doctor
     const existingTask = await this.prisma.task.findFirst({
@@ -159,18 +176,9 @@ export class TaskService {
       throw new NotFoundException('Task not found');
     }
 
-    // Verify patient belongs to doctor if patientId is provided
-    if (patientId) {
-      const patient = await this.prisma.patient.findFirst({
-        where: { id: patientId, doctorId },
-      });
-
-      if (!patient) {
-        throw new BadRequestException(
-          'Patient not found or does not belong to this doctor',
-        );
-      }
-    }
+    const normalizedPatientIds = patientIds
+      ? await this.normalizeAndValidatePatientIds(doctorId, patientIds)
+      : null;
 
     // Handle completion status change
     let completedAt = existingTask.completedAt;
@@ -184,25 +192,29 @@ export class TaskService {
       }
     }
 
-    return this.prisma.task.update({
+    const updatedTask = await this.prisma.task.update({
       where: { id },
       data: {
         ...taskData,
-        patientId,
-        deadline: deadline ? new Date(deadline) : undefined,
-        completed,
-        completedAt,
+        ...(deadline !== undefined
+          ? { deadline: deadline ? new Date(deadline) : null }
+          : {}),
+        ...(typeof completed === 'boolean' ? { completed, completedAt } : {}),
+        ...(normalizedPatientIds !== null
+          ? {
+              taskPatients: {
+                deleteMany: {},
+                create: normalizedPatientIds.map((patientId) => ({
+                  patientId,
+                })),
+              },
+            }
+          : {}),
       },
-      include: {
-        patient: {
-          select: {
-            id: true,
-            name: true,
-            profileImage: true,
-          },
-        },
-      },
+      include: TASK_PATIENT_INCLUDE,
     });
+
+    return mapTaskPatients(updatedTask);
   }
 
   async remove(id: string, doctorId: string) {
@@ -274,5 +286,40 @@ export class TaskService {
     return this.update(id, doctorId, {
       completed: !task.completed,
     });
+  }
+
+  private async normalizeAndValidatePatientIds(
+    doctorId: string,
+    patientIds?: string[],
+  ): Promise<string[]> {
+    if (!patientIds || patientIds.length === 0) {
+      return [];
+    }
+
+    const normalized = Array.from(
+      new Set(
+        patientIds.filter((id) => typeof id === 'string' && id.trim() !== ''),
+      ),
+    );
+
+    if (!normalized.length) {
+      return [];
+    }
+
+    const patients = await this.prisma.patient.findMany({
+      where: {
+        doctorId,
+        id: { in: normalized },
+      },
+      select: { id: true },
+    });
+
+    if (patients.length !== normalized.length) {
+      throw new BadRequestException(
+        'One or more patients were not found or do not belong to this doctor',
+      );
+    }
+
+    return normalized;
   }
 }

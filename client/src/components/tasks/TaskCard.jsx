@@ -1,22 +1,18 @@
 import React from 'react';
 import { Card } from '../ui/card';
-import { Badge } from '../ui/badge';
-import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
 import {
   Calendar,
-  User,
-  Clock,
   AlertCircle,
-  Trash2,
-  Edit3,
   MoreVertical,
   FileText,
   Phone,
   CreditCard,
+  Edit2,
 } from 'lucide-react';
 import { format, isAfter } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { splitPatientName } from '../../lib/patient';
 
 const priorityColors = {
   LOW: 'bg-green-100 text-green-800 border-green-200',
@@ -48,6 +44,27 @@ const TaskCard = ({
   onDelete,
   onPatientClick,
 }) => {
+  const renderPatientLabel = (patient) => {
+    if (!patient) return '';
+    if (patient.name) {
+      const { firstName, lastName } = splitPatientName(patient.name);
+      const full = `${firstName} ${lastName}`.trim();
+      if (full) return full;
+    }
+    return (
+      `${patient.firstName || ''} ${patient.lastName || ''}`.trim() ||
+      patient.name ||
+      ''
+    );
+  };
+
+  const patientList =
+    (task.patients && task.patients.length > 0
+      ? task.patients
+      : task.patient
+      ? [task.patient]
+      : []) || [];
+
   const CategoryIcon = categoryIcons[task.category] || MoreVertical;
   const isOverdue =
     task.deadline &&
@@ -69,10 +86,10 @@ const TaskCard = ({
     onDelete(task.id);
   };
 
-  const handlePatientClick = (e) => {
+  const handlePatientClick = (e, patient) => {
     e.stopPropagation();
-    if (task.patient && onPatientClick) {
-      onPatientClick(task.patient);
+    if (patient && onPatientClick) {
+      onPatientClick(patient);
     }
   };
 
@@ -122,18 +139,24 @@ const TaskCard = ({
             )}
 
             {/* Patient and Deadline Info */}
-            <div className='flex items-center space-x-4 text-sm text-gray-600'>
-              {/* Patient */}
-              {task.patient && (
-                <button
-                  onClick={handlePatientClick}
-                  className='flex items-center space-x-1 text-blue-600 hover:text-blue-800 transition-colors'
-                >
-                  <div className='w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-semibold text-blue-600'>
-                    {task.patient.name.charAt(0).toUpperCase()}
-                  </div>
-                  <span>{task.patient.name}</span>
-                </button>
+            <div className='flex flex-wrap items-center gap-3 text-sm text-gray-600'>
+              {/* Patients */}
+              {patientList.length > 0 && (
+                <div className='flex flex-wrap gap-2'>
+                  {patientList.map((patient) => (
+                    <button
+                      key={patient.id}
+                      onClick={(e) => handlePatientClick(e, patient)}
+                      className='flex items-center space-x-2 px-3 py-1 rounded-full border border-blue-100 bg-blue-50 text-blue-700 text-xs font-medium hover:border-blue-200 hover:bg-blue-100 transition-colors'
+                    >
+                      <div className='w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-semibold text-blue-700'>
+                        {renderPatientLabel(patient).charAt(0).toUpperCase() ||
+                          '?'}
+                      </div>
+                      <span>{renderPatientLabel(patient)}</span>
+                    </button>
+                  ))}
+                </div>
               )}
 
               {/* Deadline */}
@@ -158,8 +181,15 @@ const TaskCard = ({
           </div>
         </div>
 
-        {/* Completion Checkbox - Moved to the right */}
+        {/* Completion Checkbox and Edit Button */}
         <div className='flex items-center space-x-2 ml-2'>
+          <button
+            onClick={handleEdit}
+            className='p-2 rounded-full hover:bg-orange-100 transition-colors text-orange-600'
+            title='Modifier'
+          >
+            <Edit2 className='h-4 w-4' />
+          </button>
           <Checkbox
             checked={task.completed}
             onCheckedChange={handleToggleCompletion}

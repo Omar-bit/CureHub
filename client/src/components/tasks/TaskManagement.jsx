@@ -9,6 +9,7 @@ import TaskCard from './TaskCard';
 import TaskForm from './TaskForm';
 import { taskAPI, patientAPI } from '../../services/api';
 import { showSuccess, showError } from '../../lib/toast';
+import { splitPatientName } from '../../lib/patient';
 import {
   Plus,
   Filter,
@@ -39,6 +40,38 @@ const TaskManagement = () => {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [completionFilter, setCompletionFilter] = useState('');
 
+  const renderPatientLabel = (patient) => {
+    if (!patient) return '';
+    if (patient.name) {
+      const { firstName, lastName } = splitPatientName(patient.name);
+      const full = `${firstName} ${lastName}`.trim();
+      if (full) return full;
+    }
+    return (
+      `${patient.firstName || ''} ${patient.lastName || ''}`.trim() ||
+      patient.name ||
+      ''
+    );
+  };
+
+  const matchesSearchTerm = (task, term) => {
+    const lowered = term.toLowerCase();
+    if (task.title && task.title.toLowerCase().includes(lowered)) return true;
+    if (task.description && task.description.toLowerCase().includes(lowered))
+      return true;
+
+    const patientList =
+      (task.patients && task.patients.length > 0
+        ? task.patients
+        : task.patient
+        ? [task.patient]
+        : []) || [];
+
+    return patientList.some((patient) =>
+      renderPatientLabel(patient).toLowerCase().includes(lowered)
+    );
+  };
+
   const priorityLabels = {
     LOW: 'Faible',
     MEDIUM: 'Moyenne',
@@ -66,12 +99,7 @@ const TaskManagement = () => {
     let filtered = [...tasks];
 
     if (searchTerm) {
-      filtered = filtered.filter(
-        (task) =>
-          task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          task.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          task.patient?.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      filtered = filtered.filter((task) => matchesSearchTerm(task, searchTerm));
     }
 
     if (priorityFilter) {
@@ -103,7 +131,7 @@ const TaskManagement = () => {
   const loadPatients = async () => {
     try {
       const data = await patientAPI.getAll();
-      setPatients(data);
+      setPatients(data?.patients || data || []);
     } catch (error) {
       showError('Erreur lors du chargement des patients');
       console.error('Failed to load patients:', error);
@@ -177,6 +205,13 @@ const TaskManagement = () => {
   const handleDeleteTask = (taskId) => {
     setTaskToDelete(taskId);
     setShowDeleteDialog(true);
+    setShowForm(false);
+    setEditingTask(null);
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteDialog(false);
+    setTaskToDelete(null);
   };
 
   const confirmDelete = async () => {
@@ -219,6 +254,7 @@ const TaskManagement = () => {
         patients={patients}
         onSubmit={handleFormSubmit}
         onCancel={handleFormCancel}
+        onDelete={handleDeleteTask}
         isLoading={formLoading}
       />
     );
@@ -346,7 +382,7 @@ const TaskManagement = () => {
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         isOpen={showDeleteDialog}
-        onClose={() => setShowDeleteDialog(false)}
+        onClose={handleCancelDelete}
         onConfirm={confirmDelete}
         title='Supprimer la tâche'
         message='Êtes-vous sûr de vouloir supprimer cette tâche ? Cette action est irréversible.'
