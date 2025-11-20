@@ -1,6 +1,6 @@
 import React from 'react';
 import { CalendarUtils } from './CalendarUtils';
-import { splitPatientName } from '../../lib/patient';
+import { getAppointmentPatientsDisplay } from '../../lib/patient';
 import { getAppointmentColorClasses } from '../../lib/consultationStyles';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 
@@ -232,19 +232,7 @@ const DayView = ({
                 {/* Appointment Info */}
                 <div className='flex-1 min-w-0 px-2 py-1'>
                   <div className='text-xs font-medium text-gray-900 truncate'>
-                    {appointment.patient
-                      ? (() => {
-                          if (appointment.patient.name) {
-                            const { firstName, lastName } = splitPatientName(
-                              appointment.patient.name
-                            );
-                            return `${firstName} ${lastName}`.trim();
-                          }
-                          return `${appointment.patient.firstName || ''} ${
-                            appointment.patient.lastName || ''
-                          }`.trim();
-                        })()
-                      : ''}
+                    {getAppointmentPatientsDisplay(appointment)}
                   </div>
                   {appointment.absenceCount > 0 && (
                     <div className='text-xs text-gray-600'>

@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   ValidateNested,
+  IsDateString,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { DayOfWeek } from '@prisma/client';
@@ -28,6 +29,10 @@ export class CreateTimeSlotDto {
 export class CreateTimeplanDto {
   @IsEnum(DayOfWeek)
   dayOfWeek: DayOfWeek;
+
+  @IsOptional()
+  @IsDateString()
+  specificDate?: string; // ISO date string (YYYY-MM-DD) for date-specific timeplans (Calendrier mode)
 
   @IsOptional()
   @IsBoolean()

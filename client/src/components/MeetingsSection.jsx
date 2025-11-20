@@ -75,9 +75,18 @@ const MeetingsSection = () => {
     setIsAppointmentFormOpen(true);
   };
 
-  const handleViewAppointment = (appointment) => {
-    setSelectedAppointment(appointment);
-    setIsAppointmentDetailsOpen(true);
+  const handleViewAppointment = async (appointment) => {
+    try {
+      // Fetch full appointment details to ensure we have all patient data
+      const fullAppointment = await appointmentAPI.getById(appointment.id);
+      setSelectedAppointment(fullAppointment);
+      setIsAppointmentDetailsOpen(true);
+    } catch (error) {
+      console.error('Error fetching appointment details:', error);
+      // Fallback to the appointment data we have
+      setSelectedAppointment(appointment);
+      setIsAppointmentDetailsOpen(true);
+    }
   };
 
   const handleSaveAppointment = async (appointmentData) => {

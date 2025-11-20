@@ -75,6 +75,7 @@ model DoctorProfile {
   events               Event[]
   documents            PatientDocument[]
   appointmentDocuments AppointmentDocument[]
+  appointmentHistory   AppointmentHistory[]
 
   @@map("doctor_profiles")
 }
@@ -173,7 +174,7 @@ model Patient {
   doctor              DoctorProfile        @relation(fields: [doctorId], references: [id], onDelete: Cascade)
   appointments        Appointment[] // Keep for backward compatibility (primary patient)
   appointmentPatients AppointmentPatient[] // New many-to-many relation
-  tasks               Task[]
+  taskPatients        TaskPatient[]
   documents           PatientDocument[]
 
   // Patient relationships (as the main patient)
@@ -254,18 +255,19 @@ enum DayOfWeek {
 
 // Doctor's weekly timeplan configuration
 model DoctorTimeplan {
-  id        String        @id @default(cuid())
-  doctorId  String
-  doctor    DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  dayOfWeek DayOfWeek
-  isActive  Boolean       @default(true) // Allow doctors to temporarily disable a day
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id           String        @id @default(cuid())
+  doctorId     String
+  doctor       DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  dayOfWeek    DayOfWeek
+  specificDate DateTime?     @db.Date // If set, this timeplan is for a specific date only (Calendrier), otherwise it's for the general weekly schedule (Semaine type)
+  isActive     Boolean       @default(true) // Allow doctors to temporarily disable a day
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   // Relations
   timeSlots DoctorTimeSlot[]
 
-  @@unique([doctorId, dayOfWeek]) // One timeplan per doctor per day
+  @@unique([doctorId, dayOfWeek, specificDate]) // One timeplan per doctor per day (or per specific date)
   @@map("doctor_timeplans")
 }
 
@@ -356,6 +358,7 @@ model Appointment {
   consultationType   DoctorConsultationType? @relation(fields: [consultationTypeId], references: [id], onDelete: SetNull)
 
   documents AppointmentDocument[] // Appointment documents
+  history   AppointmentHistory[] // Appointment history
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -389,16 +392,26 @@ model Task {
   completedAt DateTime? // When the task was completed
 
   // Relations
-  doctorId String
-  doctor   DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-
-  patientId String?
-  patient   Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  doctorId     String
+  doctor       DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  taskPatients TaskPatient[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("tasks")
+}
+
+model TaskPatient {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([taskId, patientId])
+  @@map("task_patients")
 }
 
 // Event model for doctor events management
@@ -516,4 +529,39 @@ model AppointmentDocument {
   doctor   DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
 
   @@map("appointment_documents")
+}
+
+// Appointment history action types
+enum AppointmentHistoryAction {
+  CREATED // Appointment created
+  UPDATED // Appointment details updated
+  STATUS_CHANGED // Status changed
+  DOCUMENT_UPLOADED // Document uploaded
+  DOCUMENT_DELETED // Document deleted
+  RESCHEDULED // Appointment time changed
+  PATIENT_ADDED // Patient added to appointment
+  PATIENT_REMOVED // Patient removed from appointment
+  CONSULTATION_TYPE_CHANGED // Consultation type changed
+}
+
+// Appointment history model for tracking all changes
+model AppointmentHistory {
+  id            String                   @id @default(cuid())
+  action        AppointmentHistoryAction
+  description   String? // Human-readable description of the change
+  changedFields Json? // JSON object with field changes (before/after)
+  metadata      Json? // Additional metadata (e.g., document name, old/new values)
+  createdAt     DateTime                 @default(now())
+
+  // Relations
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  doctorId String
+  doctor   DoctorProfile @relation(fields: [doctorId], references: [id])
+
+  // If the action was performed by a patient (future feature)
+  performedBy String? // User/Patient identifier
+
+  @@map("appointment_history")
 }

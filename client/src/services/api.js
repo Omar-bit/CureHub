@@ -270,6 +270,10 @@ export const appointmentAPI = {
       .get(`/appointments/available-slots?${params.toString()}`)
       .then((res) => res.data);
   },
+
+  // Get appointment history
+  getHistory: (id) =>
+    api.get(`/appointments/${id}/history`).then((res) => res.data),
 };
 
 export const taskAPI = {

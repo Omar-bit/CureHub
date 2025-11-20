@@ -22,13 +22,21 @@ import {
   Video as VideoOn,
   AlertCircle,
   Download,
+  Upload,
+  History,
 } from 'lucide-react';
-// date-fns format removed (not used)
+import { formatDistanceToNow } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import { Button } from '../ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
-import { splitPatientName } from '../../lib/patient';
+import {
+  getPatientDisplayName,
+  getAppointmentPatientsDisplay,
+} from '../../lib/patient';
 import { appointmentAPI, appointmentDocumentsApi } from '../../services/api';
 import { showSuccess, showError } from '../../lib/toast';
+import PatientCard from '../PatientCard';
+import PatientDetailsSheet from '../PatientDetailsSheet';
 
 const STATUS_CHIP_TO_APPOINTMENT_STATUS = {
   waiting: 'SCHEDULED',
@@ -60,6 +68,11 @@ const AppointmentDetails = ({
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false); // Track if video call panel is visible
+  const [history, setHistory] = useState([]); // Appointment history
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [absenceCount, setAbsenceCount] = useState(0); // Track patient absence count
+  const [selectedPatientForView, setSelectedPatientForView] = useState(null); // Track which patient's details to show
+  const [selectedPatientTab, setSelectedPatientTab] = useState('profil'); // Track which tab to show for patient details
 
   // When inline mode is true, show content if appointment exists, regardless of isOpen
   // When inline mode is false (modal/overlay), require both isOpen and appointment
@@ -80,24 +93,43 @@ const AppointmentDetails = ({
     }
   };
 
-  const renderPatientName = (patient) => {
-    if (!patient) return '—';
-
-    // If stored as single `name` field, split it using helper to avoid showing the separator
-    if (patient.name) {
-      const { firstName, lastName } = splitPatientName(patient.name);
-      const full = `${firstName} ${lastName}`.trim();
-      if (full) return full;
-    }
-
-    // Fallback to separate fields if available
-    if (patient.firstName || patient.lastName) {
-      return `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
-    }
-
-    // Last resort: raw name or appointment title
-    return patient.name || appointment.title || '—';
+  const renderPatientNames = () => {
+    return getAppointmentPatientsDisplay(appointment);
   };
+
+  // Get all patients from appointment (for displaying additional info)
+  const getAllPatients = () => {
+    const patients = [];
+
+    if (
+      appointment.appointmentPatients &&
+      appointment.appointmentPatients.length > 0
+    ) {
+      const sortedPatients = [...appointment.appointmentPatients].sort(
+        (a, b) => {
+          if (a.isPrimary && !b.isPrimary) return -1;
+          if (!a.isPrimary && b.isPrimary) return 1;
+          return 0;
+        }
+      );
+
+      sortedPatients.forEach((ap) => {
+        if (ap.patient) {
+          patients.push(ap.patient);
+        }
+      });
+    }
+
+    // Fallback to old single patient field
+    if (patients.length === 0 && appointment.patient) {
+      patients.push(appointment.patient);
+    }
+
+    return patients;
+  };
+
+  const patients = getAllPatients();
+  const primaryPatient = patients[0]; // For displaying age, contact info, etc.
 
   useEffect(() => {
     if (!appointment?.status) {
@@ -112,8 +144,16 @@ const AppointmentDetails = ({
     // Load documents when appointment changes
     if (appointment?.id) {
       loadDocuments();
+      loadHistory();
     }
-  }, [appointment?.status, appointment?.id]);
+
+    // Load absence count for primary patient
+    const allPatients = getAllPatients();
+    const primaryPatient = allPatients[0];
+    if (primaryPatient?.id) {
+      loadAbsenceCount(primaryPatient.id);
+    }
+  }, [appointment?.status, appointment?.id, appointment?.updatedAt]);
 
   // Load documents from server
   const loadDocuments = async () => {
@@ -133,6 +173,38 @@ const AppointmentDetails = ({
     }
   };
 
+  // Load appointment history from server
+  const loadHistory = async () => {
+    if (!appointment?.id) return;
+
+    setIsLoadingHistory(true);
+    try {
+      const historyData = await appointmentAPI.getHistory(appointment.id);
+      setHistory(historyData || []);
+    } catch (error) {
+      console.error('Error loading history:', error);
+      // Don't show error toast for history as it's not critical
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  // Load absence count for a patient
+  const loadAbsenceCount = async (patientId) => {
+    if (!patientId) return;
+
+    try {
+      // Get all appointments for this patient with ABSENT status
+      const appointments = await appointmentAPI.getByPatient(patientId, {
+        status: 'ABSENT',
+      });
+      setAbsenceCount(appointments?.length || 0);
+    } catch (error) {
+      console.error('Error loading absence count:', error);
+      setAbsenceCount(0);
+    }
+  };
+
   // Handle status chip clicks - Update backend and visual state
   const handleStatusChipClick = async (chipName) => {
     if (!appointment || isStatusUpdating) return;
@@ -148,6 +220,8 @@ const AppointmentDetails = ({
     try {
       setIsStatusUpdating(true);
       await onStatusChange(appointment.id, mappedStatus);
+      // Reload history after status change
+      loadHistory();
     } catch (error) {
       setSelectedStatusChip(previousChip);
     } finally {
@@ -233,8 +307,9 @@ const AppointmentDetails = ({
       }
 
       showSuccess(`${files.length} document(s) uploaded successfully`);
-      // Reload documents list
+      // Reload documents list and history
       await loadDocuments();
+      await loadHistory();
     } catch (error) {
       console.error('Error uploading documents:', error);
       showError('Failed to upload documents');
@@ -253,6 +328,7 @@ const AppointmentDetails = ({
       await appointmentDocumentsApi.delete(documentId);
       showSuccess('Document deleted successfully');
       await loadDocuments();
+      await loadHistory();
     } catch (error) {
       console.error('Error deleting document:', error);
       showError('Failed to delete document');
@@ -277,62 +353,98 @@ const AppointmentDetails = ({
     }
   };
 
+  // Handle patient card view actions
+  const handlePatientView = (patient, tab) => {
+    console.log(`Viewing patient ${patient.name} - ${tab} tab`);
+    setSelectedPatientForView(patient);
+    setSelectedPatientTab(tab);
+  };
+
+  const handlePatientEdit = (patient) => {
+    console.log('Edit patient:', patient);
+    setSelectedPatientForView(patient);
+    setSelectedPatientTab('profil');
+  };
+
+  const handlePatientDelete = (patient) => {
+    console.log('Delete patient:', patient);
+    // In appointment context, we probably don't want to allow patient deletion
+    showError('Cannot delete patient from appointment view');
+  };
+
   const content = (
     <>
-      {/* Header - only show when not in inline mode */}
-      {!inline && (
-        <div className='flex items-center justify-between p-4 border-b border-gray-200'>
-          <div className='text-sm text-gray-600'>
-            {new Date(appointment.startTime).toLocaleDateString('fr-FR', {
-              weekday: 'short',
-              day: '2-digit',
-              month: 'short',
-            })}{' '}
-            <span className='ml-2 font-semibold'>
-              {new Date(appointment.startTime).toLocaleTimeString('fr-FR', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </span>
+      {/* Header - always show appointment date/time */}
+      <div className='flex items-center justify-between px-6 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200'>
+        <div className='flex items-center gap-3'>
+          <div className='flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg'>
+            <Calendar className='w-6 h-6 text-blue-600' />
           </div>
+          <div>
+            <div className='text-xs font-medium text-gray-500 uppercase tracking-wide'>
+              {new Date(appointment.startTime).toLocaleDateString('fr-FR', {
+                weekday: 'long',
+              })}
+            </div>
+            <div className='flex items-baseline gap-2 mt-0.5'>
+              <span className='text-lg font-bold text-gray-900'>
+                {new Date(appointment.startTime).toLocaleDateString('fr-FR', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                })}
+              </span>
+              <span className='text-sm text-gray-400'>•</span>
+              <span className='text-base font-semibold text-blue-600 flex items-center gap-1'>
+                <Clock className='w-4 h-4' />
+                {new Date(appointment.startTime).toLocaleTimeString('fr-FR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </span>
+            </div>
+          </div>
+        </div>
+        {!inline && (
           <button
             onClick={onClose}
             className='p-2 hover:bg-gray-100 rounded-full transition-colors'
             aria-label='Fermer'
           >
-            <X className='h-5 w-5' />
+            <X className='h-5 w-5 text-gray-500' />
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Main content */}
       <div className={`${inline ? 'space-y-4' : 'p-4 space-y-4'}`}>
-        {/* Patient name and info header */}
+        {/* Patient Cards */}
         <div className='px-4'>
-          <h3 className='text-lg font-semibold text-gray-900'>
-            {renderPatientName(appointment.patient)}
-          </h3>
-          <div className='text-sm text-gray-600'>
-            Née le{' '}
-            {appointment.patient?.dateOfBirth
-              ? new Date(appointment.patient.dateOfBirth).toLocaleDateString(
-                  'fr-FR'
-                )
-              : '-'}{' '}
-            •{' '}
-            {appointment.patient?.dateOfBirth
-              ? new Date().getFullYear() -
-                new Date(appointment.patient.dateOfBirth).getFullYear()
-              : '-'}{' '}
-            ans
-          </div>
-          <div className='mt-2 flex items-center gap-3 text-xs text-gray-500'>
-            {appointment.patient?.phoneNumber && <span>■ Téléphone</span>}
-            {appointment.patient?.email && <span>■ Email</span>}
-            {appointment.patient?.address && <span>■ Adresse</span>}
-            {appointment.patient && (
-              <span className='text-orange-600 font-medium'>1 absence</span>
-            )}
+          {patients.length > 1 && (
+            <div className='mb-3 flex items-center gap-2'>
+              <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800'>
+                {patients.length} patients
+              </span>
+            </div>
+          )}
+          <div className='space-y-3'>
+            {patients.map((patient, index) => (
+              <div key={patient.id || index} className='relative'>
+                {index === 0 && patients.length > 1 && (
+                  <div className='absolute -top-2 left-2 z-10'>
+                    <span className='inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-600 text-white'>
+                      Principal
+                    </span>
+                  </div>
+                )}
+                <PatientCard
+                  patient={patient}
+                  onEdit={handlePatientEdit}
+                  onDelete={handlePatientDelete}
+                  onView={handlePatientView}
+                />
+              </div>
+            ))}
           </div>
         </div>
 
@@ -702,8 +814,174 @@ const AppointmentDetails = ({
               </TabsContent>
 
               <TabsContent value='chronologie'>
-                <div className='bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-600'>
-                  Chronologie des actions et des modifications.
+                <div className='space-y-3'>
+                  {isLoadingHistory ? (
+                    <div className='text-center py-8'>
+                      <div className='inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900'></div>
+                      <p className='mt-2 text-sm text-gray-500'>
+                        Chargement de l'historique...
+                      </p>
+                    </div>
+                  ) : history.length > 0 ? (
+                    <div className='space-y-3'>
+                      {history.map((entry) => {
+                        const getActionIcon = (action) => {
+                          switch (action) {
+                            case 'CREATED':
+                              return (
+                                <CheckCircle className='w-4 h-4 text-green-600' />
+                              );
+                            case 'UPDATED':
+                            case 'RESCHEDULED':
+                            case 'CONSULTATION_TYPE_CHANGED':
+                              return <Edit className='w-4 h-4 text-blue-600' />;
+                            case 'STATUS_CHANGED':
+                              return (
+                                <Circle className='w-4 h-4 text-purple-600' />
+                              );
+                            case 'DOCUMENT_UPLOADED':
+                              return (
+                                <Upload className='w-4 h-4 text-green-600' />
+                              );
+                            case 'DOCUMENT_DELETED':
+                              return (
+                                <Trash2 className='w-4 h-4 text-red-600' />
+                              );
+                            default:
+                              return (
+                                <History className='w-4 h-4 text-gray-600' />
+                              );
+                          }
+                        };
+
+                        const getActionBadgeColor = (action) => {
+                          switch (action) {
+                            case 'CREATED':
+                              return 'bg-green-100 text-green-700';
+                            case 'UPDATED':
+                            case 'RESCHEDULED':
+                            case 'CONSULTATION_TYPE_CHANGED':
+                              return 'bg-blue-100 text-blue-700';
+                            case 'STATUS_CHANGED':
+                              return 'bg-purple-100 text-purple-700';
+                            case 'DOCUMENT_UPLOADED':
+                              return 'bg-green-100 text-green-700';
+                            case 'DOCUMENT_DELETED':
+                              return 'bg-red-100 text-red-700';
+                            default:
+                              return 'bg-gray-100 text-gray-700';
+                          }
+                        };
+
+                        const formatTimestamp = (timestamp) => {
+                          try {
+                            const date = new Date(timestamp);
+                            const distance = formatDistanceToNow(date, {
+                              addSuffix: true,
+                              locale: fr,
+                            });
+                            const formattedDate = new Intl.DateTimeFormat(
+                              'fr-FR',
+                              {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              }
+                            ).format(date);
+                            return { distance, formattedDate };
+                          } catch (error) {
+                            return { distance: '', formattedDate: timestamp };
+                          }
+                        };
+
+                        const { distance, formattedDate } = formatTimestamp(
+                          entry.createdAt
+                        );
+                        const doctorName = entry.doctor?.user
+                          ? `${entry.doctor.user.firstName || ''} ${
+                              entry.doctor.user.lastName || ''
+                            }`.trim()
+                          : 'Système';
+
+                        return (
+                          <div
+                            key={entry.id}
+                            className='flex gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors'
+                          >
+                            <div className='flex-shrink-0 mt-0.5'>
+                              <div
+                                className={`p-2 rounded-full ${getActionBadgeColor(
+                                  entry.action
+                                )}`}
+                              >
+                                {getActionIcon(entry.action)}
+                              </div>
+                            </div>
+                            <div className='flex-1 min-w-0'>
+                              <div className='flex items-start justify-between gap-2'>
+                                <div className='flex-1'>
+                                  <p className='text-sm font-medium text-gray-900'>
+                                    {entry.description || entry.action}
+                                  </p>
+                                  <p className='text-xs text-gray-500 mt-1'>
+                                    par {doctorName}
+                                  </p>
+                                </div>
+                                <div className='text-right flex-shrink-0'>
+                                  <p className='text-xs text-gray-600 font-medium'>
+                                    {distance}
+                                  </p>
+                                  <p className='text-xs text-gray-400 mt-0.5'>
+                                    {formattedDate}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Show changed fields if available */}
+                              {entry.changedFields &&
+                                Object.keys(entry.changedFields).length > 0 && (
+                                  <div className='mt-2 p-2 bg-white border border-gray-200 rounded text-xs'>
+                                    <p className='font-medium text-gray-700 mb-1'>
+                                      Modifications :
+                                    </p>
+                                    {Object.entries(entry.changedFields).map(
+                                      ([field, change]) => (
+                                        <div key={field} className='mt-1'>
+                                          <span className='text-gray-600 capitalize'>
+                                            {field}
+                                          </span>
+                                          {change.before !== undefined &&
+                                            change.after !== undefined && (
+                                              <div className='ml-2 text-gray-500'>
+                                                <span className='line-through'>
+                                                  {String(change.before)}
+                                                </span>
+                                                {' → '}
+                                                <span className='text-gray-900 font-medium'>
+                                                  {String(change.after)}
+                                                </span>
+                                              </div>
+                                            )}
+                                        </div>
+                                      )
+                                    )}
+                                  </div>
+                                )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className='text-center py-8'>
+                      <History className='w-12 h-12 text-gray-300 mx-auto mb-2' />
+                      <p className='text-sm text-gray-500'>
+                        Aucun historique disponible
+                      </p>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
             </div>
@@ -726,15 +1004,43 @@ const AppointmentDetails = ({
   );
 
   if (inline) {
-    return content;
+    return (
+      <>
+        {content}
+        {/* Patient Details Sheet */}
+        {selectedPatientForView && (
+          <PatientDetailsSheet
+            patient={selectedPatientForView}
+            isOpen={!!selectedPatientForView}
+            onClose={() => setSelectedPatientForView(null)}
+            onEdit={() => {}}
+            onDelete={() => {}}
+            initialTab={selectedPatientTab}
+          />
+        )}
+      </>
+    );
   }
 
   return (
-    <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
-      <div className='bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto'>
-        {content}
+    <>
+      <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
+        <div className='bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto'>
+          {content}
+        </div>
       </div>
-    </div>
+      {/* Patient Details Sheet */}
+      {selectedPatientForView && (
+        <PatientDetailsSheet
+          patient={selectedPatientForView}
+          isOpen={!!selectedPatientForView}
+          onClose={() => setSelectedPatientForView(null)}
+          onEdit={() => {}}
+          onDelete={() => {}}
+          initialTab={selectedPatientTab}
+        />
+      )}
+    </>
   );
 };
 

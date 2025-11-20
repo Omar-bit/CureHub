@@ -261,10 +261,20 @@ const AgendaPage = () => {
   };
 
   // Handle calendar appointment click
-  const handleAppointmentClick = (appointment) => {
-    setSelectedAppointment(appointment);
-    setAppointmentPanelMode('view');
-    setActiveTab('meetings'); // Show the appointment panel
+  const handleAppointmentClick = async (appointment) => {
+    try {
+      // Fetch full appointment details to ensure we have all patient data
+      const fullAppointment = await appointmentAPI.getById(appointment.id);
+      setSelectedAppointment(fullAppointment);
+      setAppointmentPanelMode('view');
+      setActiveTab('meetings'); // Show the appointment panel
+    } catch (error) {
+      console.error('Error fetching appointment details:', error);
+      // Fallback to the appointment data we have
+      setSelectedAppointment(appointment);
+      setAppointmentPanelMode('view');
+      setActiveTab('meetings');
+    }
   };
 
   // Handle calendar time slot click

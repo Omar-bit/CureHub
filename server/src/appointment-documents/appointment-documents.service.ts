@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AppointmentHistoryService } from '../appointment/appointment-history.service';
 import { CreateAppointmentDocumentDto } from './dto/create-appointment-document.dto';
 import { UpdateAppointmentDocumentDto } from './dto/update-appointment-document.dto';
 import { FilterAppointmentDocumentsDto } from './dto/filter-appointment-documents.dto';
@@ -15,7 +16,10 @@ import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class AppointmentDocumentsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private appointmentHistory: AppointmentHistoryService,
+  ) {}
 
   async uploadDocument(
     file: any,
@@ -91,6 +95,14 @@ export class AppointmentDocumentsService {
         },
       },
     });
+
+    // Log document upload in history
+    await this.appointmentHistory.logDocumentUpload(
+      createDocumentDto.appointmentId,
+      doctorId,
+      file.originalname,
+      createDocumentDto.category,
+    );
 
     return document;
   }
@@ -212,6 +224,9 @@ export class AppointmentDocumentsService {
         id: documentId,
         doctorId: doctorId,
       },
+      include: {
+        appointment: true,
+      },
     });
 
     if (!document) {
@@ -231,6 +246,13 @@ export class AppointmentDocumentsService {
     await this.prisma.appointmentDocument.delete({
       where: { id: documentId },
     });
+
+    // Log document deletion in history
+    await this.appointmentHistory.logDocumentDeletion(
+      document.appointmentId,
+      doctorId,
+      document.originalName,
+    );
 
     return { message: 'Document deleted successfully' };
   }
