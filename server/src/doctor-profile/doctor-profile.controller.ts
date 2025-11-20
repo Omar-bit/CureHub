@@ -64,16 +64,22 @@ export class DoctorProfileController {
     return this.doctorProfileService.findByUserId(user.id);
   }
 
-  @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.doctorProfileService.findById(id);
-  }
-
   @Patch('my-profile')
   async updateMyProfile(
     @CurrentUser() user: User,
     @Body() updateDoctorProfileDto: UpdateDoctorProfileDto,
   ) {
+    console.log('[DoctorProfileController.updateMyProfile] Called');
+    console.log(
+      '[DoctorProfileController.updateMyProfile] User:',
+      user?.id,
+      user?.email,
+    );
+    console.log(
+      '[DoctorProfileController.updateMyProfile] Body:',
+      updateDoctorProfileDto,
+    );
+
     if (user.role !== UserRole.DOCTOR) {
       throw new BadRequestException('Only doctors can update doctor profiles');
     }
@@ -88,5 +94,10 @@ export class DoctorProfileController {
     }
 
     return this.doctorProfileService.delete(user.id);
+  }
+
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    return this.doctorProfileService.findById(id);
   }
 }

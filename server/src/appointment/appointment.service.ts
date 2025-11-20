@@ -268,8 +268,7 @@ export class AppointmentService {
           select: {
             id: true,
             specialization: true,
-            clinicAddress: true,
-            clinicPhone: true,
+            clinic: true,
           },
         },
         documents: true,

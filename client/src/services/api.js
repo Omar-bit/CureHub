@@ -464,3 +464,43 @@ export const appointmentDocumentsApi = {
   getDownloadUrl: (documentId) =>
     `${API_BASE_URL}/appointment-documents/${documentId}/download`,
 };
+
+// Doctor Profile Settings API
+export const doctorProfileAPI = {
+  // Get doctor's own profile
+  getMyProfile: () =>
+    api.get('/doctor-profile/my-profile').then((res) => res.data),
+
+  // Update doctor's own profile
+  updateMyProfile: (data) =>
+    api.patch('/doctor-profile/my-profile', data).then((res) => res.data),
+
+  // Get a specific doctor profile by ID
+  getById: (id) => api.get(`/doctor-profile/${id}`).then((res) => res.data),
+
+  // Create a doctor profile
+  create: (data) => api.post('/doctor-profile', data).then((res) => res.data),
+
+  // Delete doctor's profile
+  deleteMyProfile: () =>
+    api.delete('/doctor-profile/my-profile').then((res) => res.data),
+};
+
+// Clinic API
+export const clinicAPI = {
+  // Get doctor's own clinic
+  getMyClinic: () => api.get('/clinic/my-clinic').then((res) => res.data),
+
+  // Update doctor's own clinic
+  updateMyClinic: (data) =>
+    api.patch('/clinic/my-clinic', data).then((res) => res.data),
+
+  // Get a specific clinic by ID
+  getById: (id) => api.get(`/clinic/${id}`).then((res) => res.data),
+
+  // Create a clinic
+  create: (data) => api.post('/clinic', data).then((res) => res.data),
+
+  // Delete doctor's clinic
+  deleteMyClinic: () => api.delete('/clinic/my-clinic').then((res) => res.data),
+};

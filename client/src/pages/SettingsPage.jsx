@@ -1,6 +1,5 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { ContentContainer, PageHeader, Section } from '../components/Layout';
 import { Button } from '../components/ui/button';
@@ -23,7 +22,6 @@ import {
 
 const SettingsPage = () => {
   const { user } = useAuth();
-  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const settingsCategories = [

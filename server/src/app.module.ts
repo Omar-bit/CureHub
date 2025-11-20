@@ -10,6 +10,7 @@ import { UserModule } from './user/user.module';
 import { EmailModule } from './email/email.module';
 import { OtpModule } from './otp/otp.module';
 import { DoctorProfileModule } from './doctor-profile/doctor-profile.module';
+import { ClinicModule } from './clinic/clinic.module';
 import { PatientModule } from './patient/patient.module';
 import { ConsultationTypesModule } from './consultation-types/consultation-types.module';
 import { TimeplanModule } from './timeplan/timeplan.module';
@@ -27,7 +28,7 @@ import { AppointmentDocumentsModule } from './appointment-documents/appointment-
     I18nModule.forRoot({
       fallbackLanguage: 'en',
       loaderOptions: {
-        path: path.join(__dirname, '/i18n/'),
+        path: path.join(__dirname, '..', '/i18n/'),
         watch: true,
       },
       resolvers: [
@@ -41,6 +42,7 @@ import { AppointmentDocumentsModule } from './appointment-documents/appointment-
     EmailModule,
     OtpModule,
     DoctorProfileModule,
+    ClinicModule,
     PatientModule,
     ConsultationTypesModule,
     TimeplanModule,

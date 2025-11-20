@@ -19,6 +19,7 @@ import SettingsPage from './pages/SettingsPage';
 import ConsultationTypesPage from './pages/ConsultationTypesPage';
 import TimeplanPage from './pages/TimeplanPage';
 import MessagingPage from './pages/MessagingPage';
+import ProfileSettingsPage from './pages/ProfileSettingsPage';
 import HeroSection from './components/HeroSection';
 import FeaturesSection from './components/FeaturesSection';
 import PricingSection from './components/PricingSection';
@@ -68,6 +69,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <SettingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/settings/profile'
+              element={
+                <ProtectedRoute>
+                  <ProfileSettingsPage />
                 </ProtectedRoute>
               }
             />

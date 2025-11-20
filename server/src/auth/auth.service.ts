@@ -93,6 +93,30 @@ export class AuthService {
 
     const access_token = this.jwtService.sign(payload);
 
+    // For doctors, ensure a doctor profile exists
+    if (user.role === UserRole.DOCTOR) {
+      try {
+        const existingProfile = await this.doctorProfileService.findByUserId(
+          user.id,
+        );
+        if (!existingProfile) {
+          // Create a new doctor profile for this doctor
+          await this.doctorProfileService.create({
+            userId: user.id,
+          });
+          console.log(
+            `[AuthService.login] Created new doctor profile for user: ${user.id}`,
+          );
+        }
+      } catch (error) {
+        console.error(
+          `[AuthService.login] Error ensuring doctor profile exists:`,
+          error,
+        );
+        // Don't fail the login if profile creation fails
+      }
+    }
+
     // Remove password from user object
     const { password: _, ...userWithoutPassword } = user;
 
