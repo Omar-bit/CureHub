@@ -1,6 +1,6 @@
 import React from 'react';
 import { CalendarUtils } from './CalendarUtils';
-import { splitPatientName } from '../../lib/patient';
+import { getAppointmentPatientsDisplay } from '../../lib/patient';
 import { getAppointmentColorClasses } from '../../lib/consultationStyles';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 
@@ -57,7 +57,9 @@ const MonthView = ({
         <div className='space-y-0.5'>
           {dayAppointments.slice(0, 3).map((appointment) => {
             const colorClasses = getAppointmentColorClasses(appointment);
-            const startTime = CalendarUtils.formatTime(new Date(appointment.startTime));
+            const startTime = CalendarUtils.formatTime(
+              new Date(appointment.startTime)
+            );
             return (
               <div
                 key={appointment.id}
@@ -71,25 +73,16 @@ const MonthView = ({
                 }}
               >
                 {/* Time Badge */}
-                <div className={`${colorClasses.bgColor} text-white px-2 py-1 font-bold whitespace-nowrap flex-shrink-0 rounded-sm text-xs`}>
+                <div
+                  className={`${colorClasses.bgColor} text-white px-2 py-1 font-bold whitespace-nowrap flex-shrink-0 rounded-sm text-xs`}
+                >
                   {startTime}
                 </div>
-                
+
                 {/* Appointment Info */}
                 <div className='flex-1 min-w-0'>
                   <div className='text-xs font-medium text-gray-900 truncate'>
-                    {appointment.patient
-                      ? (() => {
-                          if (appointment.patient.name) {
-                            const { firstName, lastName } =
-                              splitPatientName(appointment.patient.name);
-                            return `${firstName} ${lastName}`.trim();
-                          }
-                          return `${appointment.patient.firstName || ''} ${
-                            appointment.patient.lastName || ''
-                          }`.trim();
-                        })()
-                      : ''}
+                    {getAppointmentPatientsDisplay(appointment)}
                   </div>
                 </div>
               </div>

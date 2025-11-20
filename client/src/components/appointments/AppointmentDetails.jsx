@@ -29,9 +29,14 @@ import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Button } from '../ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
-import { splitPatientName } from '../../lib/patient';
+import {
+  getPatientDisplayName,
+  getAppointmentPatientsDisplay,
+} from '../../lib/patient';
 import { appointmentAPI, appointmentDocumentsApi } from '../../services/api';
 import { showSuccess, showError } from '../../lib/toast';
+import PatientCard from '../PatientCard';
+import PatientDetailsSheet from '../PatientDetailsSheet';
 
 const STATUS_CHIP_TO_APPOINTMENT_STATUS = {
   waiting: 'SCHEDULED',
@@ -66,6 +71,8 @@ const AppointmentDetails = ({
   const [history, setHistory] = useState([]); // Appointment history
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [absenceCount, setAbsenceCount] = useState(0); // Track patient absence count
+  const [selectedPatientForView, setSelectedPatientForView] = useState(null); // Track which patient's details to show
+  const [selectedPatientTab, setSelectedPatientTab] = useState('profil'); // Track which tab to show for patient details
 
   // When inline mode is true, show content if appointment exists, regardless of isOpen
   // When inline mode is false (modal/overlay), require both isOpen and appointment
@@ -86,24 +93,43 @@ const AppointmentDetails = ({
     }
   };
 
-  const renderPatientName = (patient) => {
-    if (!patient) return '—';
-
-    // If stored as single `name` field, split it using helper to avoid showing the separator
-    if (patient.name) {
-      const { firstName, lastName } = splitPatientName(patient.name);
-      const full = `${firstName} ${lastName}`.trim();
-      if (full) return full;
-    }
-
-    // Fallback to separate fields if available
-    if (patient.firstName || patient.lastName) {
-      return `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
-    }
-
-    // Last resort: raw name or appointment title
-    return patient.name || appointment.title || '—';
+  const renderPatientNames = () => {
+    return getAppointmentPatientsDisplay(appointment);
   };
+
+  // Get all patients from appointment (for displaying additional info)
+  const getAllPatients = () => {
+    const patients = [];
+
+    if (
+      appointment.appointmentPatients &&
+      appointment.appointmentPatients.length > 0
+    ) {
+      const sortedPatients = [...appointment.appointmentPatients].sort(
+        (a, b) => {
+          if (a.isPrimary && !b.isPrimary) return -1;
+          if (!a.isPrimary && b.isPrimary) return 1;
+          return 0;
+        }
+      );
+
+      sortedPatients.forEach((ap) => {
+        if (ap.patient) {
+          patients.push(ap.patient);
+        }
+      });
+    }
+
+    // Fallback to old single patient field
+    if (patients.length === 0 && appointment.patient) {
+      patients.push(appointment.patient);
+    }
+
+    return patients;
+  };
+
+  const patients = getAllPatients();
+  const primaryPatient = patients[0]; // For displaying age, contact info, etc.
 
   useEffect(() => {
     if (!appointment?.status) {
@@ -121,9 +147,11 @@ const AppointmentDetails = ({
       loadHistory();
     }
 
-    // Load absence count for patient
-    if (appointment?.patient?.id) {
-      loadAbsenceCount(appointment.patient.id);
+    // Load absence count for primary patient
+    const allPatients = getAllPatients();
+    const primaryPatient = allPatients[0];
+    if (primaryPatient?.id) {
+      loadAbsenceCount(primaryPatient.id);
     }
   }, [appointment?.status, appointment?.id, appointment?.updatedAt]);
 
@@ -325,6 +353,25 @@ const AppointmentDetails = ({
     }
   };
 
+  // Handle patient card view actions
+  const handlePatientView = (patient, tab) => {
+    console.log(`Viewing patient ${patient.name} - ${tab} tab`);
+    setSelectedPatientForView(patient);
+    setSelectedPatientTab(tab);
+  };
+
+  const handlePatientEdit = (patient) => {
+    console.log('Edit patient:', patient);
+    setSelectedPatientForView(patient);
+    setSelectedPatientTab('profil');
+  };
+
+  const handlePatientDelete = (patient) => {
+    console.log('Delete patient:', patient);
+    // In appointment context, we probably don't want to allow patient deletion
+    showError('Cannot delete patient from appointment view');
+  };
+
   const content = (
     <>
       {/* Header - always show appointment date/time */}
@@ -371,34 +418,33 @@ const AppointmentDetails = ({
 
       {/* Main content */}
       <div className={`${inline ? 'space-y-4' : 'p-4 space-y-4'}`}>
-        {/* Patient name and info header */}
+        {/* Patient Cards */}
         <div className='px-4'>
-          <h3 className='text-lg font-semibold text-gray-900'>
-            {renderPatientName(appointment.patient)}
-          </h3>
-          <div className='text-sm text-gray-600'>
-            Née le{' '}
-            {appointment.patient?.dateOfBirth
-              ? new Date(appointment.patient.dateOfBirth).toLocaleDateString(
-                  'fr-FR'
-                )
-              : '-'}{' '}
-            •{' '}
-            {appointment.patient?.dateOfBirth
-              ? new Date().getFullYear() -
-                new Date(appointment.patient.dateOfBirth).getFullYear()
-              : '-'}{' '}
-            ans
-          </div>
-          <div className='mt-2 flex items-center gap-3 text-xs text-gray-500'>
-            {appointment.patient?.phoneNumber && <span>■ Téléphone</span>}
-            {appointment.patient?.email && <span>■ Email</span>}
-            {appointment.patient?.address && <span>■ Adresse</span>}
-            {absenceCount > 0 && (
-              <span className='text-orange-600 font-medium'>
-                {absenceCount} absence{absenceCount > 1 ? 's' : ''}
+          {patients.length > 1 && (
+            <div className='mb-3 flex items-center gap-2'>
+              <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800'>
+                {patients.length} patients
               </span>
-            )}
+            </div>
+          )}
+          <div className='space-y-3'>
+            {patients.map((patient, index) => (
+              <div key={patient.id || index} className='relative'>
+                {index === 0 && patients.length > 1 && (
+                  <div className='absolute -top-2 left-2 z-10'>
+                    <span className='inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-600 text-white'>
+                      Principal
+                    </span>
+                  </div>
+                )}
+                <PatientCard
+                  patient={patient}
+                  onEdit={handlePatientEdit}
+                  onDelete={handlePatientDelete}
+                  onView={handlePatientView}
+                />
+              </div>
+            ))}
           </div>
         </div>
 
@@ -958,15 +1004,43 @@ const AppointmentDetails = ({
   );
 
   if (inline) {
-    return content;
+    return (
+      <>
+        {content}
+        {/* Patient Details Sheet */}
+        {selectedPatientForView && (
+          <PatientDetailsSheet
+            patient={selectedPatientForView}
+            isOpen={!!selectedPatientForView}
+            onClose={() => setSelectedPatientForView(null)}
+            onEdit={() => {}}
+            onDelete={() => {}}
+            initialTab={selectedPatientTab}
+          />
+        )}
+      </>
+    );
   }
 
   return (
-    <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
-      <div className='bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto'>
-        {content}
+    <>
+      <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
+        <div className='bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto'>
+          {content}
+        </div>
       </div>
-    </div>
+      {/* Patient Details Sheet */}
+      {selectedPatientForView && (
+        <PatientDetailsSheet
+          patient={selectedPatientForView}
+          isOpen={!!selectedPatientForView}
+          onClose={() => setSelectedPatientForView(null)}
+          onEdit={() => {}}
+          onDelete={() => {}}
+          initialTab={selectedPatientTab}
+        />
+      )}
+    </>
   );
 };
 
