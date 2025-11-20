@@ -7,8 +7,6 @@ export interface CreateDoctorProfileDto {
   specialization?: string;
   bio?: string;
   profileImageUrl?: string;
-  clinicAddress?: string;
-  clinicPhone?: string;
   // Professional info fields
   rppsNumber?: string;
   sirenNumber?: string;
@@ -19,14 +17,6 @@ export interface CreateDoctorProfileDto {
   signature?: string;
   absenceMessage?: string;
   tooManyAbsencesInfo?: string;
-  // Cabinet info fields
-  cabinetName?: string;
-  cabinetGender?: string;
-  clinicAddress2?: string;
-  clinicPostalCode?: string;
-  clinicCity?: string;
-  prmAccess?: boolean;
-  videoSurveillance?: boolean;
 }
 
 export interface UpdateDoctorProfileDto
@@ -46,8 +36,6 @@ export class DoctorProfileService {
       specialization: createDoctorProfileDto.specialization,
       bio: createDoctorProfileDto.bio,
       profileImageUrl: createDoctorProfileDto.profileImageUrl,
-      clinicAddress: createDoctorProfileDto.clinicAddress,
-      clinicPhone: createDoctorProfileDto.clinicPhone,
       rppsNumber: createDoctorProfileDto.rppsNumber,
       sirenNumber: createDoctorProfileDto.sirenNumber,
       languagesSpoken: createDoctorProfileDto.languagesSpoken,
@@ -57,13 +45,6 @@ export class DoctorProfileService {
       signature: createDoctorProfileDto.signature,
       absenceMessage: createDoctorProfileDto.absenceMessage,
       tooManyAbsencesInfo: createDoctorProfileDto.tooManyAbsencesInfo,
-      cabinetName: createDoctorProfileDto.cabinetName,
-      cabinetGender: createDoctorProfileDto.cabinetGender,
-      clinicAddress2: createDoctorProfileDto.clinicAddress2,
-      clinicPostalCode: createDoctorProfileDto.clinicPostalCode,
-      clinicCity: createDoctorProfileDto.clinicCity,
-      prmAccess: createDoctorProfileDto.prmAccess ?? false,
-      videoSurveillance: createDoctorProfileDto.videoSurveillance ?? false,
     };
 
     return this.prisma.doctorProfile.create({
@@ -79,6 +60,7 @@ export class DoctorProfileService {
             role: true,
           },
         },
+        clinic: true,
       },
     });
   }
@@ -97,6 +79,7 @@ export class DoctorProfileService {
             role: true,
           },
         },
+        clinic: true,
       },
     });
   }
@@ -115,6 +98,7 @@ export class DoctorProfileService {
             role: true,
           },
         },
+        clinic: true,
       },
     });
   }
@@ -145,10 +129,6 @@ export class DoctorProfileService {
       data.bio = updateDoctorProfileDto.bio;
     if (updateDoctorProfileDto.profileImageUrl !== undefined)
       data.profileImageUrl = updateDoctorProfileDto.profileImageUrl;
-    if (updateDoctorProfileDto.clinicAddress !== undefined)
-      data.clinicAddress = updateDoctorProfileDto.clinicAddress;
-    if (updateDoctorProfileDto.clinicPhone !== undefined)
-      data.clinicPhone = updateDoctorProfileDto.clinicPhone;
 
     // Professional info fields
     if (updateDoctorProfileDto.rppsNumber !== undefined)
@@ -170,22 +150,6 @@ export class DoctorProfileService {
     if (updateDoctorProfileDto.tooManyAbsencesInfo !== undefined)
       data.tooManyAbsencesInfo = updateDoctorProfileDto.tooManyAbsencesInfo;
 
-    // Cabinet info fields
-    if (updateDoctorProfileDto.cabinetName !== undefined)
-      data.cabinetName = updateDoctorProfileDto.cabinetName;
-    if (updateDoctorProfileDto.cabinetGender !== undefined)
-      data.cabinetGender = updateDoctorProfileDto.cabinetGender;
-    if (updateDoctorProfileDto.clinicAddress2 !== undefined)
-      data.clinicAddress2 = updateDoctorProfileDto.clinicAddress2;
-    if (updateDoctorProfileDto.clinicPostalCode !== undefined)
-      data.clinicPostalCode = updateDoctorProfileDto.clinicPostalCode;
-    if (updateDoctorProfileDto.clinicCity !== undefined)
-      data.clinicCity = updateDoctorProfileDto.clinicCity;
-    if (updateDoctorProfileDto.prmAccess !== undefined)
-      data.prmAccess = updateDoctorProfileDto.prmAccess;
-    if (updateDoctorProfileDto.videoSurveillance !== undefined)
-      data.videoSurveillance = updateDoctorProfileDto.videoSurveillance;
-
     console.log('[DoctorProfile.update] Update data prepared:', data);
 
     const result = await this.prisma.doctorProfile.update({
@@ -202,6 +166,7 @@ export class DoctorProfileService {
             role: true,
           },
         },
+        clinic: true,
       },
     });
 
@@ -234,6 +199,7 @@ export class DoctorProfileService {
             role: true,
           },
         },
+        clinic: true,
       },
       orderBy: {
         createdAt: 'desc',

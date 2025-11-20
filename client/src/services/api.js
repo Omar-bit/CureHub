@@ -1,8 +1,8 @@
-import axios from "axios";
-import { showError, TOAST_MESSAGES } from "../lib/toast";
+import axios from 'axios';
+import { showError, TOAST_MESSAGES } from '../lib/toast';
 
 const API_BASE_URL =
-  import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+  import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -22,13 +22,13 @@ api.interceptors.response.use(
       switch (error.response.status) {
         case 401:
           // Clear any stored user data
-          localStorage.removeItem("user");
+          localStorage.removeItem('user');
           showError(TOAST_MESSAGES.SESSION_EXPIRED);
 
           // Only redirect if not already on login or register page
           const currentPath = window.location.pathname;
-          if (currentPath !== "/login" && currentPath !== "/register") {
-            window.location.href = "/login";
+          if (currentPath !== '/login' && currentPath !== '/register') {
+            window.location.href = '/login';
           }
           break;
         case 403:
@@ -38,7 +38,7 @@ api.interceptors.response.use(
         case 502:
         case 503:
         case 504:
-          showError("Server error. Please try again later.");
+          showError('Server error. Please try again later.');
           break;
         // Don't show toast for other errors as they should be handled specifically
         default:
@@ -50,28 +50,28 @@ api.interceptors.response.use(
 );
 
 export const authAPI = {
-  login: (data) => api.post("/auth/login", data).then((res) => res.data),
+  login: (data) => api.post('/auth/login', data).then((res) => res.data),
 
-  register: (data) => api.post("/auth/register", data).then((res) => res.data),
+  register: (data) => api.post('/auth/register', data).then((res) => res.data),
 
   verifyEmail: (data) =>
-    api.post("/auth/verify-email", data).then((res) => res.data),
+    api.post('/auth/verify-email', data).then((res) => res.data),
 
   resendVerification: (data) =>
-    api.post("/auth/resend-verification", data).then((res) => res.data),
+    api.post('/auth/resend-verification', data).then((res) => res.data),
 
-  logout: () => api.post("/auth/logout").then((res) => res.data),
+  logout: () => api.post('/auth/logout').then((res) => res.data),
 
-  getProfile: () => api.get("/auth/profile").then((res) => res.data),
+  getProfile: () => api.get('/auth/profile').then((res) => res.data),
 
-  getCurrentUser: () => api.get("/auth/me").then((res) => res.data),
+  getCurrentUser: () => api.get('/auth/me').then((res) => res.data),
 };
 
 export const patientAPI = {
   // Get all patients with optional query parameters
   getAll: (query = {}) => {
     const params = new URLSearchParams(query).toString();
-    const url = params ? `/patients?${params}` : "/patients";
+    const url = params ? `/patients?${params}` : '/patients';
     return api.get(url).then((res) => res.data);
   },
 
@@ -80,7 +80,7 @@ export const patientAPI = {
 
   // Create a new patient
   create: (patientData) =>
-    api.post("/patients", patientData).then((res) => res.data),
+    api.post('/patients', patientData).then((res) => res.data),
 
   // Update an existing patient
   update: (id, patientData) =>
@@ -146,7 +146,7 @@ export const consultationTypesAPI = {
     const params = new URLSearchParams(query).toString();
     const url = params
       ? `/consultation-types?${params}`
-      : "/consultation-types";
+      : '/consultation-types';
     return api.get(url).then((res) => res.data);
   },
 
@@ -155,7 +155,7 @@ export const consultationTypesAPI = {
 
   // Create a new consultation type
   create: (data) =>
-    api.post("/consultation-types", data).then((res) => res.data),
+    api.post('/consultation-types', data).then((res) => res.data),
 
   // Update an existing consultation type
   update: (id, data) =>
@@ -168,14 +168,14 @@ export const consultationTypesAPI = {
 
 export const timeplanAPI = {
   // Get all timeplans for the authenticated doctor
-  getAll: () => api.get("/timeplan").then((res) => res.data),
+  getAll: () => api.get('/timeplan').then((res) => res.data),
 
   // Get timeplan for a specific day
   getByDay: (dayOfWeek) =>
     api.get(`/timeplan/${dayOfWeek}`).then((res) => res.data),
 
   // Create or update timeplan for a specific day
-  createOrUpdate: (data) => api.post("/timeplan", data).then((res) => res.data),
+  createOrUpdate: (data) => api.post('/timeplan', data).then((res) => res.data),
 
   // Update timeplan for a specific day
   update: (dayOfWeek, data) =>
@@ -193,7 +193,7 @@ export const timeplanAPI = {
 export const appointmentAPI = {
   // Get all appointments for the authenticated doctor
   getAll: (params = {}) => {
-    const query = params ? `?${new URLSearchParams(params).toString()}` : "";
+    const query = params ? `?${new URLSearchParams(params).toString()}` : '';
     return api.get(`/appointments${query}`).then((res) => res.data);
   },
 
@@ -204,7 +204,7 @@ export const appointmentAPI = {
   // Get appointments for a specific date
   getByDate: (date) => {
     const dateStr =
-      date instanceof Date ? date.toISOString().split("T")[0] : date;
+      date instanceof Date ? date.toISOString().split('T')[0] : date;
     return api.get(`/appointments/by-date/${dateStr}`).then((res) => res.data);
   },
 
@@ -212,7 +212,7 @@ export const appointmentAPI = {
   getById: (id) => api.get(`/appointments/${id}`).then((res) => res.data),
 
   // Create a new appointment
-  create: (data) => api.post("/appointments", data).then((res) => res.data),
+  create: (data) => api.post('/appointments', data).then((res) => res.data),
 
   // Update an existing appointment
   update: (id, data) =>
@@ -263,7 +263,7 @@ export const appointmentAPI = {
   // Get available time slots for a specific date and consultation type
   getAvailableSlots: (date, consultationTypeId) => {
     const params = new URLSearchParams({
-      date: date instanceof Date ? date.toISOString().split("T")[0] : date,
+      date: date instanceof Date ? date.toISOString().split('T')[0] : date,
       ...(consultationTypeId && { consultationTypeId }),
     });
     return api
@@ -278,18 +278,18 @@ export const taskAPI = {
     const query =
       params && Object.keys(params).length > 0
         ? `?${new URLSearchParams(params).toString()}`
-        : "";
+        : '';
     return api.get(`/tasks${query}`).then((res) => res.data);
   },
 
   // Get task statistics
-  getStats: () => api.get("/tasks/stats").then((res) => res.data),
+  getStats: () => api.get('/tasks/stats').then((res) => res.data),
 
   // Get a specific task by ID
   getById: (id) => api.get(`/tasks/${id}`).then((res) => res.data),
 
   // Create a new task
-  create: (data) => api.post("/tasks", data).then((res) => res.data),
+  create: (data) => api.post('/tasks', data).then((res) => res.data),
 
   // Update an existing task
   update: (id, data) => api.patch(`/tasks/${id}`, data).then((res) => res.data),
@@ -352,15 +352,15 @@ export const documentsApi = {
   // Upload a document for a patient
   upload: (file, patientId, category, description) => {
     const formData = new FormData();
-    formData.append("file", file);
-    formData.append("patientId", patientId);
-    if (category) formData.append("category", category);
-    if (description) formData.append("description", description);
+    formData.append('file', file);
+    formData.append('patientId', patientId);
+    if (category) formData.append('category', category);
+    if (description) formData.append('description', description);
 
     return api
-      .post("/patient-documents/upload", formData, {
+      .post('/patient-documents/upload', formData, {
         headers: {
-          "Content-Type": "multipart/form-data",
+          'Content-Type': 'multipart/form-data',
         },
       })
       .then((res) => res.data);
@@ -376,7 +376,7 @@ export const documentsApi = {
 
   // Get document categories
   getCategories: () =>
-    api.get("/patient-documents/categories").then((res) => res.data),
+    api.get('/patient-documents/categories').then((res) => res.data),
 
   // Get a specific document
   get: (documentId) =>
@@ -393,7 +393,7 @@ export const documentsApi = {
   // Download a document
   download: (documentId) => {
     return api.get(`/patient-documents/${documentId}/download`, {
-      responseType: "blob",
+      responseType: 'blob',
     });
   },
 
@@ -407,15 +407,15 @@ export const appointmentDocumentsApi = {
   // Upload a document for an appointment
   upload: (file, appointmentId, category, description) => {
     const formData = new FormData();
-    formData.append("file", file);
-    formData.append("appointmentId", appointmentId);
-    if (category) formData.append("category", category);
-    if (description) formData.append("description", description);
+    formData.append('file', file);
+    formData.append('appointmentId', appointmentId);
+    if (category) formData.append('category', category);
+    if (description) formData.append('description', description);
 
     return api
-      .post("/appointment-documents/upload", formData, {
+      .post('/appointment-documents/upload', formData, {
         headers: {
-          "Content-Type": "multipart/form-data",
+          'Content-Type': 'multipart/form-data',
         },
       })
       .then((res) => res.data);
@@ -433,7 +433,7 @@ export const appointmentDocumentsApi = {
 
   // Get document categories
   getCategories: () =>
-    api.get("/appointment-documents/categories").then((res) => res.data),
+    api.get('/appointment-documents/categories').then((res) => res.data),
 
   // Get a specific document
   get: (documentId) =>
@@ -452,7 +452,7 @@ export const appointmentDocumentsApi = {
   // Download a document
   download: (documentId) => {
     return api.get(`/appointment-documents/${documentId}/download`, {
-      responseType: "blob",
+      responseType: 'blob',
     });
   },
 
@@ -465,19 +465,38 @@ export const appointmentDocumentsApi = {
 export const doctorProfileAPI = {
   // Get doctor's own profile
   getMyProfile: () =>
-    api.get("/doctor-profile/my-profile").then((res) => res.data),
+    api.get('/doctor-profile/my-profile').then((res) => res.data),
 
   // Update doctor's own profile
   updateMyProfile: (data) =>
-    api.patch("/doctor-profile/my-profile", data).then((res) => res.data),
+    api.patch('/doctor-profile/my-profile', data).then((res) => res.data),
 
   // Get a specific doctor profile by ID
   getById: (id) => api.get(`/doctor-profile/${id}`).then((res) => res.data),
 
   // Create a doctor profile
-  create: (data) => api.post("/doctor-profile", data).then((res) => res.data),
+  create: (data) => api.post('/doctor-profile', data).then((res) => res.data),
 
   // Delete doctor's profile
   deleteMyProfile: () =>
-    api.delete("/doctor-profile/my-profile").then((res) => res.data),
+    api.delete('/doctor-profile/my-profile').then((res) => res.data),
+};
+
+// Clinic API
+export const clinicAPI = {
+  // Get doctor's own clinic
+  getMyClinic: () => api.get('/clinic/my-clinic').then((res) => res.data),
+
+  // Update doctor's own clinic
+  updateMyClinic: (data) =>
+    api.patch('/clinic/my-clinic', data).then((res) => res.data),
+
+  // Get a specific clinic by ID
+  getById: (id) => api.get(`/clinic/${id}`).then((res) => res.data),
+
+  // Create a clinic
+  create: (data) => api.post('/clinic', data).then((res) => res.data),
+
+  // Delete doctor's clinic
+  deleteMyClinic: () => api.delete('/clinic/my-clinic').then((res) => res.data),
 };

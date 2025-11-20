@@ -62,21 +62,11 @@ model DoctorProfile {
   absenceMessage      String? @db.Text // Message d'absence
   tooManyAbsencesInfo String? @db.Text // Message "Trop d'absences"
 
-  // Practice Information (Votre cabinet)
-  cabinetName       String? // Full name of the cabinet/clinic
-  cabinetGender     String? // Gender type (masculine/feminine for French)
-  clinicAddress     String? @db.Text
-  clinicAddress2    String? @db.Text // Second address line
-  clinicPostalCode  String?
-  clinicCity        String?
-  clinicPhone       String?
-  prmAccess         Boolean @default(false) // PMR (Personnes à mobilité réduite) accessibility
-  videoSurveillance Boolean @default(false) // Video surveillance
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
+  clinic               Clinic? // One-to-one relationship with clinic
   patients             Patient[]
   consultationTypes    DoctorConsultationType[]
   timeplans            DoctorTimeplan[]
@@ -87,6 +77,29 @@ model DoctorProfile {
   appointmentDocuments AppointmentDocument[]
 
   @@map("doctor_profiles")
+}
+
+// Clinic model for doctor's practice information
+model Clinic {
+  id              String        @id @default(cuid())
+  doctorProfileId String        @unique
+  doctorProfile   DoctorProfile @relation(fields: [doctorProfileId], references: [id], onDelete: Cascade)
+
+  // Clinic Information
+  name              String? // Full name of the cabinet/clinic
+  gender            String? // Gender type (masculine/feminine for French)
+  address           String? @db.Text
+  address2          String? @db.Text // Second address line
+  postalCode        String?
+  city              String?
+  phone             String?
+  prmAccess         Boolean @default(false) // PMR (Personnes à mobilité réduite) accessibility
+  videoSurveillance Boolean @default(false) // Video surveillance
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("clinics")
 }
 
 // Gender enum for patients
