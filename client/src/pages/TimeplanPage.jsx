@@ -322,6 +322,87 @@ const TimeplanPage = () => {
                 const timeSlots = timeplan?.timeSlots || [];
                 const isActive = timeplan?.isActive ?? false;
 
+                // Helper function to check if two time slots overlap
+                const doSlotsOverlap = (slot1, slot2) => {
+                  const [s1StartHour, s1StartMin] = slot1.startTime
+                    .split(':')
+                    .map(Number);
+                  const [s1EndHour, s1EndMin] = slot1.endTime
+                    .split(':')
+                    .map(Number);
+                  const [s2StartHour, s2StartMin] = slot2.startTime
+                    .split(':')
+                    .map(Number);
+                  const [s2EndHour, s2EndMin] = slot2.endTime
+                    .split(':')
+                    .map(Number);
+
+                  const s1Start = s1StartHour * 60 + s1StartMin;
+                  const s1End = s1EndHour * 60 + s1EndMin;
+                  const s2Start = s2StartHour * 60 + s2StartMin;
+                  const s2End = s2EndHour * 60 + s2EndMin;
+
+                  return s1Start < s2End && s2Start < s1End;
+                };
+
+                // Calculate columns for overlapping slots
+                const calculateSlotColumns = () => {
+                  const columns = [];
+
+                  timeSlots.forEach((slot, index) => {
+                    let columnIndex = 0;
+                    let maxOverlaps = 0;
+
+                    // Find which column this slot should go in
+                    while (true) {
+                      const slotInColumn = columns.find(
+                        (col) =>
+                          col.columnIndex === columnIndex &&
+                          doSlotsOverlap(col.slot, slot)
+                      );
+
+                      if (!slotInColumn) {
+                        break;
+                      }
+                      columnIndex++;
+                    }
+
+                    // Count how many slots overlap with this one
+                    const overlappingSlots = timeSlots.filter(
+                      (otherSlot, otherIndex) =>
+                        otherIndex !== index && doSlotsOverlap(slot, otherSlot)
+                    );
+
+                    maxOverlaps = overlappingSlots.length;
+
+                    columns.push({
+                      slot,
+                      columnIndex,
+                      totalColumns: maxOverlaps + 1,
+                    });
+                  });
+
+                  // Update totalColumns for each group of overlapping slots
+                  columns.forEach((col, idx) => {
+                    const overlappingCols = columns.filter(
+                      (otherCol, otherIdx) =>
+                        otherIdx !== idx &&
+                        doSlotsOverlap(col.slot, otherCol.slot)
+                    );
+
+                    const maxColumn = Math.max(
+                      col.columnIndex,
+                      ...overlappingCols.map((c) => c.columnIndex)
+                    );
+
+                    col.totalColumns = maxColumn + 1;
+                  });
+
+                  return columns;
+                };
+
+                const slotColumns = calculateSlotColumns();
+
                 return (
                   <div
                     key={dayIndex}
@@ -341,7 +422,8 @@ const TimeplanPage = () => {
                     ))}
 
                     {/* Render time slots as colored blocks */}
-                    {timeSlots.map((slot) => {
+                    {slotColumns.map((colInfo, slotIdx) => {
+                      const slot = colInfo.slot;
                       const [startHour, startMinute] = slot.startTime
                         .split(':')
                         .map(Number);
@@ -363,14 +445,31 @@ const TimeplanPage = () => {
                       const numColors = consultationTypeColors.length;
                       const colorWidth = numColors > 0 ? 100 / numColors : 100;
 
+                      // Calculate width and position based on overlaps
+                      const slotWidth = 100 / colInfo.totalColumns;
+                      const leftPosition = slotWidth * colInfo.columnIndex;
+
+                      // Create tooltip text with consultation type names and timing
+                      const consultationTypeNames = slot.consultationTypes
+                        .map((ct) =>
+                          getConsultationTypeName(ct.consultationTypeId)
+                        )
+                        .join(', ');
+                      const tooltipText = `${consultationTypeNames}\n${formatTime(
+                        slot.startTime
+                      )} - ${formatTime(slot.endTime)}`;
+
                       return (
                         <div
                           key={slot.id}
-                          className='absolute left-0 right-0 overflow-hidden flex'
+                          className='absolute overflow-hidden flex border-2 border-dashed border-slate-400 box-border cursor-pointer hover:shadow-lg transition-shadow'
                           style={{
                             top: `${topPosition}px`,
                             height: `${height}px`,
+                            left: `${leftPosition}%`,
+                            width: `${slotWidth}%`,
                           }}
+                          title={tooltipText}
                         >
                           {consultationTypeColors.map((color, idx) => (
                             <div
