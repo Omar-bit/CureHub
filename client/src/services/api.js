@@ -504,3 +504,42 @@ export const clinicAPI = {
   // Delete doctor's clinic
   deleteMyClinic: () => api.delete('/clinic/my-clinic').then((res) => res.data),
 };
+
+// Imprevu API
+export const imprevuAPI = {
+  // Get all imprevus with optional query parameters
+  getAll: (query = {}) => {
+    const params = new URLSearchParams(query).toString();
+    const url = params ? `/imprevus?${params}` : '/imprevus';
+    return api.get(url).then((res) => res.data);
+  },
+
+  // Get a specific imprevu by ID
+  getById: (id) => api.get(`/imprevus/${id}`).then((res) => res.data),
+
+  // Get affected appointments for a date range
+  getAffectedAppointments: (startDate, endDate) => {
+    const params = new URLSearchParams({
+      startDate,
+      endDate,
+    }).toString();
+    return api
+      .get(`/imprevus/affected-appointments?${params}`)
+      .then((res) => res.data);
+  },
+
+  // Create a new imprevu
+  create: (imprevuData) =>
+    api.post('/imprevus', imprevuData).then((res) => res.data),
+
+  // Cancel appointments affected by an imprevu
+  cancelAppointments: (id) =>
+    api.post(`/imprevus/${id}/cancel-appointments`).then((res) => res.data),
+
+  // Update an existing imprevu
+  update: (id, imprevuData) =>
+    api.patch(`/imprevus/${id}`, imprevuData).then((res) => res.data),
+
+  // Delete an imprevu
+  delete: (id) => api.delete(`/imprevus/${id}`).then((res) => res.data),
+};

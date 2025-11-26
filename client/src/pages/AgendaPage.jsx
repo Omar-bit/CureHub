@@ -6,6 +6,7 @@ import CalendarSection from '../components/CalendarSection';
 import AppointmentPanel from '../components/AppointmentPanel';
 import TaskManagement from '../components/tasks/TaskManagement';
 import EventManagement from '../components/EventManagement';
+import ImprevusManagement from '../components/ImprevusManagement';
 import {
   Users,
   Calendar,
@@ -16,6 +17,7 @@ import {
   Menu,
   X,
   CalendarDays,
+  AlertTriangle,
 } from 'lucide-react';
 
 // Agenda sidebar navigation items
@@ -44,7 +46,12 @@ const agendaSidebarItems = [
     icon: ClipboardList,
     color: 'bg-orange-500',
   },
-
+  {
+    id: 'imprevus',
+    label: 'Imprevus',
+    icon: AlertTriangle,
+    color: 'bg-purple-500',
+  },
   {
     id: 'payments',
     label: 'Payments',
@@ -81,6 +88,8 @@ const TabContent = ({
         return <EventManagement />;
       case 'tasks':
         return <TaskManagement />;
+      case 'imprevus':
+        return <ImprevusManagement />;
 
       case 'payments':
         return (

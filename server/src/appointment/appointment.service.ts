@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AppointmentHistoryService } from './appointment-history.service';
+import { ImprevuService } from '../imprevu/imprevu.service';
 import {
   CreateAppointmentDto,
   UpdateAppointmentDto,
@@ -35,6 +36,7 @@ export class AppointmentService {
   constructor(
     private prisma: PrismaService,
     private appointmentHistory: AppointmentHistoryService,
+    private imprevuService: ImprevuService,
   ) {}
 
   async create(
@@ -98,6 +100,18 @@ export class AppointmentService {
         new Date(startTime),
         new Date(endTime),
       );
+
+      // Check if time slot is blocked by an imprevu
+      const isBlocked = await this.imprevuService.checkTimeSlotBlocked(
+        doctorId,
+        new Date(startTime),
+        new Date(endTime),
+      );
+      if (isBlocked) {
+        throw new BadRequestException(
+          'Time slot is blocked due to an unforeseen event (imprevu)',
+        );
+      }
     }
 
     // Validate appointment times
@@ -390,6 +404,18 @@ export class AppointmentService {
 
       if (!skipConflictCheck) {
         await this.checkTimeConflicts(doctorId, newStartTime, newEndTime, id);
+
+        // Check if time slot is blocked by an imprevu
+        const isBlocked = await this.imprevuService.checkTimeSlotBlocked(
+          doctorId,
+          newStartTime,
+          newEndTime,
+        );
+        if (isBlocked) {
+          throw new BadRequestException(
+            'Time slot is blocked due to an unforeseen event (imprevu)',
+          );
+        }
       }
 
       // Check if time actually changed
@@ -816,18 +842,46 @@ export class AppointmentService {
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
-    const existingAppointments = await this.prisma.appointment.findMany({
-      where: {
-        doctorId,
-        startTime: {
-          gte: startOfDay,
-          lte: endOfDay,
+    const [existingAppointments, blockingImprevus] = await Promise.all([
+      this.prisma.appointment.findMany({
+        where: {
+          doctorId,
+          startTime: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+          status: {
+            not: 'CANCELLED',
+          },
         },
-        status: {
-          not: 'CANCELLED',
+      }),
+      this.prisma.imprevu.findMany({
+        where: {
+          doctorId,
+          blockTimeSlots: true,
+          OR: [
+            {
+              AND: [
+                { startDate: { lte: startOfDay } },
+                { endDate: { gt: startOfDay } },
+              ],
+            },
+            {
+              AND: [
+                { startDate: { lt: endOfDay } },
+                { endDate: { gte: endOfDay } },
+              ],
+            },
+            {
+              AND: [
+                { startDate: { gte: startOfDay } },
+                { endDate: { lte: endOfDay } },
+              ],
+            },
+          ],
         },
-      },
-    });
+      }),
+    ]);
 
     // Generate all possible 15-minute slots for each time slot
     const allSlots: { time: string; available: boolean }[] = [];
@@ -839,6 +893,7 @@ export class AppointmentService {
         timeSlot.endTime,
         date,
         existingAppointments,
+        blockingImprevus,
         consultationType,
       );
       allSlots.push(...slots);
@@ -877,6 +932,7 @@ export class AppointmentService {
     endTime: string,
     date: Date,
     existingAppointments: any[],
+    blockingImprevus: any[],
     consultationType?: any,
   ): { time: string; available: boolean }[] {
     const slots: { time: string; available: boolean }[] = [];
@@ -921,13 +977,25 @@ export class AppointmentService {
           );
         });
 
+        // Check if this time is blocked by an imprevu
+        const isBlockedByImprevu = blockingImprevus.some((imprevu) => {
+          const imprevuStart = new Date(imprevu.startDate);
+          const imprevuEnd = new Date(imprevu.endDate);
+
+          return (
+            (current >= imprevuStart && current < imprevuEnd) ||
+            (slotEndTime > imprevuStart && slotEndTime <= imprevuEnd) ||
+            (current <= imprevuStart && slotEndTime >= imprevuEnd)
+          );
+        });
+
         // Check if the slot is in the past
         const now = new Date();
         const isPast = current <= now;
 
         slots.push({
           time: timeString,
-          available: !hasConflict && !isPast,
+          available: !hasConflict && !isPast && !isBlockedByImprevu,
         });
       }
 

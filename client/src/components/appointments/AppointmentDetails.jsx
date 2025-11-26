@@ -42,12 +42,14 @@ const STATUS_CHIP_TO_APPOINTMENT_STATUS = {
   waiting: 'SCHEDULED',
   seen: 'COMPLETED',
   absent: 'ABSENT',
+  cancelled: 'CANCELLED',
 };
 
 const APPOINTMENT_STATUS_TO_CHIP = {
   SCHEDULED: 'waiting',
   COMPLETED: 'seen',
   ABSENT: 'absent',
+  CANCELLED: 'cancelled',
 };
 
 const AppointmentDetails = ({
@@ -499,6 +501,24 @@ const AppointmentDetails = ({
               }`}
             />
             Patient absent
+          </button>
+          <button
+            onClick={() => handleStatusChipClick('cancelled')}
+            disabled={isStatusUpdating}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
+              selectedStatusChip === 'cancelled'
+                ? 'bg-gray-500 text-white'
+                : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <Circle
+              className={`w-3 h-3 ${
+                selectedStatusChip === 'cancelled'
+                  ? 'fill-white'
+                  : 'fill-gray-500'
+              }`}
+            />
+            Annulé
           </button>
         </div>
 

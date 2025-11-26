@@ -76,6 +76,7 @@ model DoctorProfile {
   documents            PatientDocument[]
   appointmentDocuments AppointmentDocument[]
   appointmentHistory   AppointmentHistory[]
+  imprevus             Imprevu[]
 
   @@map("doctor_profiles")
 }
@@ -564,4 +565,32 @@ model AppointmentHistory {
   performedBy String? // User/Patient identifier
 
   @@map("appointment_history")
+}
+
+// Imprevu model for unforeseen events (blocking time periods)
+model Imprevu {
+  id       String        @id @default(cuid())
+  doctorId String
+  doctor   DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  // Time range
+  startDate DateTime
+  endDate   DateTime
+
+  // Settings
+  notifyPatients Boolean @default(true) // Send notifications to patients about cancelled appointments
+  blockTimeSlots Boolean @default(true) // Block time slots during this period
+
+  // Message/reason
+  reason  String? @db.Text // Reason for the imprevu
+  message String? @db.Text // Custom message to send to patients
+
+  // Metadata
+  cancelledAppointmentsCount Int      @default(0) // Number of appointments cancelled
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  @@index([doctorId])
+  @@index([startDate, endDate])
+  @@map("imprevus")
 }

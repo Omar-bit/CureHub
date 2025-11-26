@@ -246,6 +246,8 @@ const WeekView = ({
                           const startTime = CalendarUtils.formatTime(
                             new Date(appointment.startTime)
                           );
+                          const isCancelled =
+                            appointment.status === 'CANCELLED';
                           return (
                             <div
                               key={appointment.id}
@@ -256,7 +258,10 @@ const WeekView = ({
                               )}
                               className={`
                               flex items-center gap-1.5 cursor-pointer
-                              ${colorClasses.hoverBg} transition-all rounded-lg overflow-hidden text-xs
+                              ${
+                                colorClasses.hoverBg
+                              } transition-all rounded-lg overflow-hidden text-xs
+                              ${isCancelled ? 'opacity-60' : ''}
                             `}
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -272,9 +277,18 @@ const WeekView = ({
 
                               {/* Appointment Info */}
                               <div className='flex-1 min-w-0 px-1 py-0.5'>
-                                <div className='text-xs font-medium text-gray-900 truncate'>
+                                <div
+                                  className={`text-xs font-medium text-gray-900 truncate ${
+                                    isCancelled ? 'line-through' : ''
+                                  }`}
+                                >
                                   {getAppointmentPatientsDisplay(appointment)}
                                 </div>
+                                {isCancelled && (
+                                  <div className='text-xs text-red-600 font-semibold'>
+                                    Annulé
+                                  </div>
+                                )}
                               </div>
                             </div>
                           );

@@ -212,13 +212,17 @@ const DayView = ({
             const startTime = CalendarUtils.formatTime(
               new Date(appointment.startTime)
             );
+            const isCancelled = appointment.status === 'CANCELLED';
             return (
               <div
                 key={appointment.id}
                 style={getAppointmentStyle(appointment, column, totalColumns)}
                 className={`
                   flex items-center gap-2 cursor-pointer
-                  ${colorClasses.hoverBg} transition-all rounded-lg overflow-hidden
+                  ${
+                    colorClasses.hoverBg
+                  } transition-all rounded-lg overflow-hidden
+                  ${isCancelled ? 'opacity-60' : ''}
                 `}
                 onClick={() => onAppointmentClick?.(appointment)}
               >
@@ -231,10 +235,19 @@ const DayView = ({
 
                 {/* Appointment Info */}
                 <div className='flex-1 min-w-0 px-2 py-1'>
-                  <div className='text-xs font-medium text-gray-900 truncate'>
+                  <div
+                    className={`text-xs font-medium text-gray-900 truncate ${
+                      isCancelled ? 'line-through' : ''
+                    }`}
+                  >
                     {getAppointmentPatientsDisplay(appointment)}
                   </div>
-                  {appointment.absenceCount > 0 && (
+                  {isCancelled && (
+                    <div className='text-xs text-red-600 font-semibold'>
+                      Cancelled
+                    </div>
+                  )}
+                  {!isCancelled && appointment.absenceCount > 0 && (
                     <div className='text-xs text-gray-600'>
                       {appointment.absenceCount} abs
                     </div>

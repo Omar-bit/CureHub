@@ -19,6 +19,7 @@ import { TaskModule } from './task/task.module';
 import { EventModule } from './event/event.module';
 import { PatientDocumentsModule } from './patient-documents/patient-documents.module';
 import { AppointmentDocumentsModule } from './appointment-documents/appointment-documents.module';
+import { ImprevuModule } from './imprevu/imprevu.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { AppointmentDocumentsModule } from './appointment-documents/appointment-
     EventModule,
     PatientDocumentsModule,
     AppointmentDocumentsModule,
+    ImprevuModule,
   ],
   controllers: [AppController],
   providers: [AppService],
