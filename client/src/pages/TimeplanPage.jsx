@@ -351,37 +351,34 @@ const TimeplanPage = () => {
                       const topPosition = startHour * 60 + startMinute;
                       const height = endHour * 60 + endMinute - topPosition;
 
-                      // Group consultation types by color
-                      const consultationTypeGroups =
-                        slot.consultationTypes.reduce((acc, ct) => {
-                          const color = getConsultationTypeColor(
-                            ct.consultationTypeId
-                          );
-                          if (!acc[color]) acc[color] = [];
-                          acc[color].push(ct);
-                          return acc;
-                        }, {});
+                      // Get all unique consultation type colors for this slot
+                      const consultationTypeColors = [
+                        ...new Set(
+                          slot.consultationTypes.map((ct) =>
+                            getConsultationTypeColor(ct.consultationTypeId)
+                          )
+                        ),
+                      ];
 
-                      const colors = Object.keys(consultationTypeGroups);
-                      const segmentHeight = height / colors.length;
+                      const numColors = consultationTypeColors.length;
+                      const colorWidth = numColors > 0 ? 100 / numColors : 100;
 
                       return (
                         <div
                           key={slot.id}
-                          className='absolute left-0 right-0 overflow-hidden'
+                          className='absolute left-0 right-0 overflow-hidden flex'
                           style={{
                             top: `${topPosition}px`,
                             height: `${height}px`,
                           }}
                         >
-                          {colors.map((color, idx) => (
+                          {consultationTypeColors.map((color, idx) => (
                             <div
                               key={idx}
-                              className='absolute left-0 right-0'
                               style={{
                                 backgroundColor: color,
-                                top: `${idx * segmentHeight}px`,
-                                height: `${segmentHeight}px`,
+                                width: `${colorWidth}%`,
+                                height: '100%',
                               }}
                             ></div>
                           ))}
@@ -765,7 +762,7 @@ const TimeplanPage = () => {
         <TimeplanEditModal
           dayOfWeek={selectedDay}
           specificDate={getSelectedDayDate()}
-          timeplan={getTimeplanForDay(selectedDay)}
+          timeplan={getTimeplanForDay(selectedDay, getSelectedDayDate())}
           consultationTypes={consultationTypes}
           onClose={() => {
             setIsEditing(false);
