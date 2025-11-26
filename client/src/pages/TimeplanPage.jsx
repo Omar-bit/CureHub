@@ -16,6 +16,8 @@ import {
   Edit2,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Calendar as CalendarIcon,
   Video,
   Home,
@@ -23,7 +25,16 @@ import {
 } from 'lucide-react';
 import { showSuccess, showError } from '../lib/toast';
 import { timeplanAPI, consultationTypesAPI } from '../services/api';
-import { format, addWeeks, subWeeks, startOfWeek, addDays } from 'date-fns';
+import {
+  format,
+  addWeeks,
+  subWeeks,
+  startOfWeek,
+  addDays,
+  startOfMonth,
+  addMonths,
+  subMonths,
+} from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 const DAYS_OF_WEEK = [
@@ -205,12 +216,31 @@ const TimeplanPage = () => {
     return type ? type.color : '#gray';
   };
 
+  // Single arrow navigation - advance by 1 week
   const goToPreviousWeek = () => {
     setCurrentWeekStart(subWeeks(currentWeekStart, 1));
   };
 
   const goToNextWeek = () => {
     setCurrentWeekStart(addWeeks(currentWeekStart, 1));
+  };
+
+  // Double arrow navigation - jump to first day of next/previous month
+  const goToPreviousMonth = () => {
+    const previousMonth = subMonths(currentWeekStart, 1);
+    const firstDayOfMonth = startOfMonth(previousMonth);
+    setCurrentWeekStart(startOfWeek(firstDayOfMonth, { weekStartsOn: 1 }));
+  };
+
+  const goToNextMonth = () => {
+    const nextMonth = addMonths(currentWeekStart, 1);
+    const firstDayOfMonth = startOfMonth(nextMonth);
+    setCurrentWeekStart(startOfWeek(firstDayOfMonth, { weekStartsOn: 1 }));
+  };
+
+  // Navigate to today
+  const goToToday = () => {
+    setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
   };
 
   const getWeekDays = () => {
@@ -429,16 +459,38 @@ const TimeplanPage = () => {
       {/* Week navigation (only for calendrier tab) */}
       {activeTab === 'calendrier' && (
         <div className='flex items-center justify-between bg-orange-50 px-6 py-4 rounded-xl'>
-          <button
-            onClick={goToPreviousWeek}
-            className='flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-50 transition-colors shadow-sm'
-          >
-            <ChevronLeft className='h-5 w-5' />
-            <span className='font-medium'>Jours précédents</span>
-          </button>
+          {/* Left side - Today button and navigation arrows */}
+          <div className='flex items-center gap-2'>
+            <button
+              onClick={goToToday}
+              className='flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-orange-50 transition-colors shadow-sm border border-orange-200'
+            >
+              <CalendarIcon className='h-4 w-4 text-orange-500' />
+              <span className='font-medium text-gray-900'>Aujourd'hui</span>
+            </button>
 
-          <div className='flex items-center gap-3'>
-            <CalendarIcon className='h-5 w-5 text-gray-600' />
+            {/* Double arrow left - Previous month */}
+            <button
+              onClick={goToPreviousMonth}
+              className='p-2 bg-white rounded-lg hover:bg-gray-50 transition-colors shadow-sm'
+              title='Mois précédent'
+            >
+              <ChevronsLeft className='h-5 w-5 text-gray-600' />
+            </button>
+
+            {/* Single arrow left - Previous week */}
+            <button
+              onClick={goToPreviousWeek}
+              className='p-2 bg-white rounded-lg hover:bg-gray-50 transition-colors shadow-sm'
+              title='Semaine précédente'
+            >
+              <ChevronLeft className='h-5 w-5 text-gray-600' />
+            </button>
+          </div>
+
+          {/* Center - Date range display */}
+          <div className='flex items-center gap-3 bg-white px-6 py-2 rounded-lg shadow-sm'>
+            <CalendarIcon className='h-5 w-5 text-orange-500' />
             <span className='text-lg font-semibold text-gray-900'>
               Du {format(currentWeekStart, 'EEEE dd/MM', { locale: fr })} au{' '}
               {format(addDays(currentWeekStart, 6), 'EEEE dd/MM', {
@@ -447,19 +499,24 @@ const TimeplanPage = () => {
             </span>
           </div>
 
-          {/* Date picker */}
-          <div className='flex items-center gap-3'>
-            <button className='flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-50 transition-colors shadow-sm'>
-              <CalendarIcon className='h-4 w-4' />
-              <span className='text-sm'>Choisir une autre date</span>
-            </button>
-
+          {/* Right side - Navigation arrows */}
+          <div className='flex items-center gap-2'>
+            {/* Single arrow right - Next week */}
             <button
               onClick={goToNextWeek}
-              className='flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-50 transition-colors shadow-sm'
+              className='p-2 bg-white rounded-lg hover:bg-gray-50 transition-colors shadow-sm'
+              title='Semaine suivante'
             >
-              <span className='font-medium'>Jours suivants</span>
-              <ChevronRight className='h-5 w-5' />
+              <ChevronRight className='h-5 w-5 text-gray-600' />
+            </button>
+
+            {/* Double arrow right - Next month */}
+            <button
+              onClick={goToNextMonth}
+              className='p-2 bg-white rounded-lg hover:bg-gray-50 transition-colors shadow-sm'
+              title='Mois suivant'
+            >
+              <ChevronsRight className='h-5 w-5 text-gray-600' />
             </button>
           </div>
         </div>
