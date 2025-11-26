@@ -791,7 +791,15 @@ const TimeplanEditModal = ({
   onClose,
   onSave,
 }) => {
-  const [timeSlots, setTimeSlots] = useState(timeplan?.timeSlots || []);
+  // Transform timeSlots to ensure consultationTypeIds is an array of IDs
+  const transformedTimeSlots = (timeplan?.timeSlots || []).map((slot) => ({
+    ...slot,
+    consultationTypeIds: slot.consultationTypes
+      ? slot.consultationTypes.map((ct) => ct.consultationTypeId)
+      : slot.consultationTypeIds || [],
+  }));
+
+  const [timeSlots, setTimeSlots] = useState(transformedTimeSlots);
   const [isActive, setIsActive] = useState(timeplan?.isActive ?? true);
   const [saving, setSaving] = useState(false);
 
@@ -938,7 +946,7 @@ const TimeplanEditModal = ({
                   </div>
 
                   <div className='mt-4'>
-                    <label className='text-sm font-medium mb-2 block'>
+                    <label className='text-sm font-medium mb-3 block'>
                       Consultation Types
                     </label>
                     {!consultationTypes || consultationTypes.length === 0 ? (
@@ -948,39 +956,70 @@ const TimeplanEditModal = ({
                         Types.
                       </div>
                     ) : (
-                      <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2'>
-                        {consultationTypes.map((type) => (
-                          <label
-                            key={type.id}
-                            className='flex items-center space-x-2'
-                          >
-                            <input
-                              type='checkbox'
-                              checked={(
-                                slot.consultationTypeIds || []
-                              ).includes(type.id)}
-                              onChange={(e) => {
+                      <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3'>
+                        {consultationTypes.map((type) => {
+                          const isSelected = (
+                            slot.consultationTypeIds || []
+                          ).includes(type.id);
+                          const Icon =
+                            LOCATION_ICONS[type.location] || Building2;
+
+                          return (
+                            <button
+                              key={type.id}
+                              type='button'
+                              onClick={() => {
                                 const currentIds =
                                   slot.consultationTypeIds || [];
-                                const newIds = e.target.checked
-                                  ? [...currentIds, type.id]
-                                  : currentIds.filter((id) => id !== type.id);
+                                const newIds = isSelected
+                                  ? currentIds.filter((id) => id !== type.id)
+                                  : [...currentIds, type.id];
                                 updateTimeSlot(
                                   index,
                                   'consultationTypeIds',
                                   newIds
                                 );
                               }}
-                              className='rounded'
-                            />
-                            <span
-                              className='text-sm px-2 py-1 rounded text-white'
-                              style={{ backgroundColor: type.color }}
+                              className={`relative flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${
+                                isSelected
+                                  ? 'ring-2 ring-offset-2 shadow-md scale-105'
+                                  : 'ring-1 ring-gray-200 hover:ring-gray-300 hover:shadow-sm'
+                              }`}
+                              style={{
+                                backgroundColor: isSelected
+                                  ? type.color
+                                  : '#ffffff',
+                                color: isSelected ? '#ffffff' : '#374151',
+                                ringColor: isSelected ? type.color : undefined,
+                              }}
                             >
-                              {type.name}
-                            </span>
-                          </label>
-                        ))}
+                              <Icon
+                                className={`h-4 w-4 flex-shrink-0 ${
+                                  isSelected ? 'text-white' : 'text-gray-600'
+                                }`}
+                              />
+                              <span className='text-sm font-medium truncate'>
+                                {type.name}
+                              </span>
+                              {isSelected && (
+                                <div className='absolute -top-1 -right-1 w-5 h-5 bg-white rounded-full flex items-center justify-center shadow-sm'>
+                                  <svg
+                                    className='w-3 h-3'
+                                    fill='currentColor'
+                                    viewBox='0 0 20 20'
+                                    style={{ color: type.color }}
+                                  >
+                                    <path
+                                      fillRule='evenodd'
+                                      d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z'
+                                      clipRule='evenodd'
+                                    />
+                                  </svg>
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
