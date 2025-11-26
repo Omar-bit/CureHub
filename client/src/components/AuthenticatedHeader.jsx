@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
+import { agendaPreferencesAPI } from '../services/api';
 import { Button } from './ui/button';
 import LanguageSwitcher from './LanguageSwitcher';
 import {
@@ -30,6 +31,39 @@ const AuthenticatedHeader = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const [mainColor, setMainColor] = useState('#FFA500');
+
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        const data = await agendaPreferencesAPI.get();
+        if (data?.mainColor) {
+          setMainColor(data.mainColor);
+        }
+      } catch (error) {
+        console.error('Error loading preferences:', error);
+      }
+    };
+
+    loadPreferences();
+
+    const handlePreferencesUpdate = (event) => {
+      if (event.detail?.mainColor) {
+        setMainColor(event.detail.mainColor);
+      }
+    };
+
+    window.addEventListener(
+      'agendaPreferencesUpdated',
+      handlePreferencesUpdate
+    );
+    return () => {
+      window.removeEventListener(
+        'agendaPreferencesUpdated',
+        handlePreferencesUpdate
+      );
+    };
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -61,7 +95,10 @@ const AuthenticatedHeader = () => {
   ];
 
   return (
-    <header className='bg-white shadow-sm border-gray-200 sticky top-0 z-50'>
+    <header
+      className='shadow-sm border-gray-200 sticky top-0 z-50'
+      style={{ backgroundColor: mainColor }}
+    >
       <div className='max-w-full mx-auto px-4 sm:px-6 lg:px-8'>
         <div className='flex justify-between items-center h-16'>
           <div className='flex items-center space-x-4'>

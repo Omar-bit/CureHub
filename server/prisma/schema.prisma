@@ -77,6 +77,7 @@ model DoctorProfile {
   appointmentDocuments AppointmentDocument[]
   appointmentHistory   AppointmentHistory[]
   imprevus             Imprevu[]
+  agendaPreferences    AgendaPreferences?
 
   @@map("doctor_profiles")
 }
@@ -593,4 +594,27 @@ model Imprevu {
   @@index([doctorId])
   @@index([startDate, endDate])
   @@map("imprevus")
+}
+
+// School vacation zone enum
+enum SchoolVacationZone {
+  A
+  B
+  C
+}
+
+// Agenda preferences model for doctor's agenda customization
+model AgendaPreferences {
+  id                 String             @id @default(cuid())
+  doctorProfileId    String             @unique
+  doctorProfile      DoctorProfile      @relation(fields: [doctorProfileId], references: [id], onDelete: Cascade)
+  mainColor          String             @default("#FFA500") // Hex color code
+  startHour          Int                @default(8) // Starting hour (0-23)
+  endHour            Int                @default(20) // Ending hour (1-24)
+  verticalZoom       Float              @default(1.0) // Zoom level (0.5-3.0)
+  schoolVacationZone SchoolVacationZone @default(C)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@map("agenda_preferences")
 }

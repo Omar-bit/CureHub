@@ -7,6 +7,7 @@ import AppointmentPanel from '../components/AppointmentPanel';
 import TaskManagement from '../components/tasks/TaskManagement';
 import EventManagement from '../components/EventManagement';
 import ImprevusManagement from '../components/ImprevusManagement';
+import AgendaPreferences from '../components/AgendaPreferences';
 import {
   Users,
   Calendar,
@@ -18,6 +19,7 @@ import {
   X,
   CalendarDays,
   AlertTriangle,
+  Settings,
 } from 'lucide-react';
 
 // Agenda sidebar navigation items
@@ -51,6 +53,12 @@ const agendaSidebarItems = [
     label: 'Imprevus',
     icon: AlertTriangle,
     color: 'bg-purple-500',
+  },
+  {
+    id: 'vue',
+    label: 'Vue',
+    icon: Settings,
+    color: 'bg-yellow-500',
   },
   {
     id: 'payments',
@@ -91,7 +99,8 @@ const TabContent = ({
         return <TaskManagement />;
       case 'imprevus':
         return <ImprevusManagement onImprevuChanged={onImprevuChanged} />;
-
+      case 'vue':
+        return <AgendaPreferences />;
       case 'payments':
         return (
           <div className='p-4 sm:p-6'>

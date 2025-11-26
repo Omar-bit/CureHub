@@ -6,7 +6,7 @@ import React, {
   forwardRef,
 } from 'react';
 import { CalendarView } from './calendar';
-import { appointmentAPI } from '../services/api';
+import { appointmentAPI, agendaPreferencesAPI } from '../services/api';
 import { showError } from '../lib/toast';
 import { Loader2 } from 'lucide-react';
 
@@ -14,6 +14,13 @@ const CalendarSection = forwardRef(
   ({ onAppointmentClick, onTimeSlotClick }, ref) => {
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [preferences, setPreferences] = useState({
+      mainColor: '#FFA500',
+      startHour: 8,
+      endHour: 20,
+      verticalZoom: 1,
+      schoolVacationZone: 'C',
+    });
     const calendarRef = useRef();
 
     // Load appointments
@@ -34,6 +41,24 @@ const CalendarSection = forwardRef(
       }
     };
 
+    // Load preferences
+    const loadPreferences = async () => {
+      try {
+        const data = await agendaPreferencesAPI.get();
+        if (data) {
+          setPreferences({
+            mainColor: data.mainColor || '#FFA500',
+            startHour: data.startHour || 8,
+            endHour: data.endHour || 20,
+            verticalZoom: data.verticalZoom || 1,
+            schoolVacationZone: data.schoolVacationZone || 'C',
+          });
+        }
+      } catch (error) {
+        console.error('Error loading preferences:', error);
+      }
+    };
+
     // Expose methods to parent components
     useImperativeHandle(ref, () => ({
       navigateToDate: (date) => {
@@ -47,6 +72,25 @@ const CalendarSection = forwardRef(
     // Load appointments
     useEffect(() => {
       loadAppointments();
+      loadPreferences();
+    }, []);
+
+    // Listen for preference updates
+    useEffect(() => {
+      const handlePreferencesUpdate = (event) => {
+        setPreferences(event.detail);
+      };
+
+      window.addEventListener(
+        'agendaPreferencesUpdated',
+        handlePreferencesUpdate
+      );
+      return () => {
+        window.removeEventListener(
+          'agendaPreferencesUpdated',
+          handlePreferencesUpdate
+        );
+      };
     }, []);
 
     if (loading) {
@@ -67,7 +111,12 @@ const CalendarSection = forwardRef(
           appointments={appointments}
           onAppointmentClick={onAppointmentClick}
           onTimeSlotClick={onTimeSlotClick}
-          workingHours={{ start: 8, end: 20 }}
+          workingHours={{
+            start: preferences.startHour,
+            end: preferences.endHour,
+          }}
+          verticalZoom={preferences.verticalZoom}
+          mainColor={preferences.mainColor}
           defaultView='day'
         />
       </div>

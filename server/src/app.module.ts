@@ -20,6 +20,7 @@ import { EventModule } from './event/event.module';
 import { PatientDocumentsModule } from './patient-documents/patient-documents.module';
 import { AppointmentDocumentsModule } from './appointment-documents/appointment-documents.module';
 import { ImprevuModule } from './imprevu/imprevu.module';
+import { AgendaPreferencesModule } from './agenda-preferences/agenda-preferences.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { ImprevuModule } from './imprevu/imprevu.module';
     PatientDocumentsModule,
     AppointmentDocumentsModule,
     ImprevuModule,
+    AgendaPreferencesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

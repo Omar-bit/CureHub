@@ -11,6 +11,8 @@ const DayView = ({
   onAppointmentClick,
   onTimeSlotClick,
   workingHours = { start: 8, end: 20 },
+  verticalZoom = 1,
+  mainColor = '#FFA500',
 }) => {
   const timeSlots = CalendarUtils.generateTimeSlots(
     workingHours.start,
@@ -183,7 +185,9 @@ const DayView = ({
         <div
           className='relative'
           style={{
-            height: `${(workingHours.end - workingHours.start) * 60}px`,
+            height: `${
+              (workingHours.end - workingHours.start) * 60 * verticalZoom
+            }px`,
           }}
         >
           {/* Time labels and slots */}
@@ -197,7 +201,7 @@ const DayView = ({
                 {/* Time slot area */}
                 <div
                   className='flex-1 border-t border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors'
-                  style={{ height: '60px' }}
+                  style={{ height: `${60 * verticalZoom}px` }}
                   onClick={() => handleTimeSlotClick(timeSlot)}
                 >
                   <div className='h-full w-full'></div>

@@ -11,6 +11,8 @@ const CalendarView = forwardRef(
       onAppointmentClick,
       onTimeSlotClick,
       workingHours = { start: 8, end: 20 },
+      verticalZoom = 1,
+      mainColor = '#FFA500',
       defaultView = 'day',
     },
     ref
@@ -47,6 +49,8 @@ const CalendarView = forwardRef(
         onAppointmentClick,
         onTimeSlotClick,
         workingHours,
+        verticalZoom,
+        mainColor,
       };
 
       switch (view) {

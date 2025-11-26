@@ -543,3 +543,13 @@ export const imprevuAPI = {
   // Delete an imprevu
   delete: (id) => api.delete(`/imprevus/${id}`).then((res) => res.data),
 };
+
+// Agenda Preferences API
+export const agendaPreferencesAPI = {
+  // Get agenda preferences
+  get: () => api.get('/agenda-preferences').then((res) => res.data),
+
+  // Update agenda preferences
+  update: (preferences) =>
+    api.put('/agenda-preferences', preferences).then((res) => res.data),
+};
