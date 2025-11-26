@@ -471,7 +471,7 @@ const ImprevuFormSheet = ({ imprevu, isOpen, onClose, onSave }) => {
   );
 };
 
-const ImprevusManagement = () => {
+const ImprevusManagement = ({ onImprevuChanged }) => {
   const { t } = useTranslation();
   const [imprevus, setImprevus] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -516,6 +516,10 @@ const ImprevusManagement = () => {
       await imprevuAPI.delete(deleteConfirm.id);
       showSuccess('Imprevu deleted successfully');
       fetchImprevus();
+      // Notify parent to refresh appointments
+      if (onImprevuChanged) {
+        onImprevuChanged();
+      }
     } catch (error) {
       console.error('Error deleting imprevu:', error);
       showError('Failed to delete imprevu');
@@ -531,6 +535,10 @@ const ImprevusManagement = () => {
 
   const handleFormSave = () => {
     fetchImprevus();
+    // Notify parent to refresh appointments
+    if (onImprevuChanged) {
+      onImprevuChanged();
+    }
   };
 
   if (isLoading) {

@@ -68,6 +68,7 @@ const TabContent = ({
   onAppointmentCreated,
   onAppointmentDeleted,
   onAppointmentUpdated,
+  onImprevuChanged,
 }) => {
   const renderTabContent = () => {
     switch (activeTab) {
@@ -89,7 +90,7 @@ const TabContent = ({
       case 'tasks':
         return <TaskManagement />;
       case 'imprevus':
-        return <ImprevusManagement />;
+        return <ImprevusManagement onImprevuChanged={onImprevuChanged} />;
 
       case 'payments':
         return (
@@ -301,6 +302,13 @@ const AgendaPage = () => {
     setSelectedDateTime(null);
   };
 
+  // Handle imprevu changes (create/update/delete)
+  const handleImprevuChanged = async () => {
+    if (calendarRef.current) {
+      await calendarRef.current.refreshAppointments();
+    }
+  };
+
   // When meetings tab is clicked, show create form
   const handleTabClick = (tabId) => {
     if (tabId === 'meetings') {
@@ -376,6 +384,7 @@ const AgendaPage = () => {
               onAppointmentCreated={handleAppointmentCreated}
               onAppointmentDeleted={handleAppointmentDeleted}
               onAppointmentUpdated={handleAppointmentUpdated}
+              onImprevuChanged={handleImprevuChanged}
             />
           </div>
         )}
