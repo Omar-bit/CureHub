@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { showSuccess, showError } from '../lib/toast';
-import { imprevuAPI } from '../services/api';
+import { imprevuAPI, consultationTypesAPI } from '../services/api';
 import { Button } from './ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { ConfirmDialog } from './ui/confirm-dialog';
 import { Switch } from './ui/switch';
 import { SheetContent, SheetFooter } from './ui/sheet';
+import { Checkbox } from './ui/checkbox';
 import {
   Plus,
   Edit,
@@ -33,8 +34,11 @@ const ImprevuFormSheet = ({ imprevu, isOpen, onClose, onSave }) => {
     blockTimeSlots: true,
     reason: '',
     message: '',
+    consultationTypeIds: [],
+    appointmentIds: [],
   });
   const [affectedAppointments, setAffectedAppointments] = useState([]);
+  const [consultationTypes, setConsultationTypes] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingAppointments, setIsFetchingAppointments] = useState(false);
 
@@ -51,6 +55,8 @@ const ImprevuFormSheet = ({ imprevu, isOpen, onClose, onSave }) => {
         blockTimeSlots: imprevu.blockTimeSlots ?? true,
         reason: imprevu.reason || '',
         message: imprevu.message || '',
+        consultationTypeIds: [],
+        appointmentIds: [],
       });
     } else {
       setFormData({
@@ -60,11 +66,29 @@ const ImprevuFormSheet = ({ imprevu, isOpen, onClose, onSave }) => {
         blockTimeSlots: true,
         reason: '',
         message: '',
+        consultationTypeIds: [],
+        appointmentIds: [],
       });
     }
     setCurrentStep(1);
     setAffectedAppointments([]);
+
+    // Fetch consultation types
+    if (isOpen) {
+      fetchConsultationTypes();
+    }
   }, [imprevu, isOpen]);
+
+  const fetchConsultationTypes = async () => {
+    try {
+      const data = await consultationTypesAPI.getAll();
+      console.log('Consultation types response:', data);
+      setConsultationTypes(data.consultationTypes || data || []);
+    } catch (error) {
+      console.error('Error fetching consultation types:', error);
+      showError('Failed to fetch consultation types');
+    }
+  };
 
   const fetchAffectedAppointments = async () => {
     if (!formData.startDate || !formData.endDate) {
@@ -84,6 +108,11 @@ const ImprevuFormSheet = ({ imprevu, isOpen, onClose, onSave }) => {
         formData.endDate
       );
       setAffectedAppointments(appointments);
+      // Auto-select all appointments by default
+      setFormData((prev) => ({
+        ...prev,
+        appointmentIds: appointments.map((apt) => apt.id),
+      }));
       setCurrentStep(2);
     } catch (error) {
       console.error('Error fetching affected appointments:', error);
@@ -97,16 +126,30 @@ const ImprevuFormSheet = ({ imprevu, isOpen, onClose, onSave }) => {
     setIsLoading(true);
 
     try {
+      const selectedAppointments = affectedAppointments.filter((apt) =>
+        formData.appointmentIds.includes(apt.id)
+      );
+
+      // Always send appointmentIds array (empty array = cancel none, filled = cancel selected)
+      const dataToSend = {
+        ...formData,
+        appointmentIds: formData.appointmentIds, // Send the array as-is
+      };
+
+      console.log('Sending data:', dataToSend);
+
       let savedImprevu;
       if (imprevu) {
-        savedImprevu = await imprevuAPI.update(imprevu.id, formData);
+        savedImprevu = await imprevuAPI.update(imprevu.id, dataToSend);
         showSuccess('Imprevu updated successfully');
       } else {
-        savedImprevu = await imprevuAPI.create(formData);
+        savedImprevu = await imprevuAPI.create(dataToSend);
         showSuccess(
           `Imprevu created successfully. ${
-            formData.blockTimeSlots && affectedAppointments.length > 0
-              ? `${affectedAppointments.length} appointment(s) cancelled.`
+            formData.blockTimeSlots && selectedAppointments.length > 0
+              ? `${selectedAppointments.length} appointment(s) will be cancelled.`
+              : formData.blockTimeSlots && formData.appointmentIds.length === 0
+              ? 'No appointments will be cancelled.'
               : ''
           }`
         );
@@ -124,6 +167,45 @@ const ImprevuFormSheet = ({ imprevu, isOpen, onClose, onSave }) => {
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const toggleConsultationType = (typeId) => {
+    setFormData((prev) => {
+      const newIds = prev.consultationTypeIds.includes(typeId)
+        ? prev.consultationTypeIds.filter((id) => id !== typeId)
+        : [...prev.consultationTypeIds, typeId];
+      return { ...prev, consultationTypeIds: newIds };
+    });
+  };
+
+  const toggleAppointment = (appointmentId) => {
+    setFormData((prev) => {
+      const newIds = prev.appointmentIds.includes(appointmentId)
+        ? prev.appointmentIds.filter((id) => id !== appointmentId)
+        : [...prev.appointmentIds, appointmentId];
+      return { ...prev, appointmentIds: newIds };
+    });
+  };
+
+  const toggleAllAppointments = (checked) => {
+    if (checked) {
+      const filteredAppointments = getFilteredAppointments();
+      setFormData((prev) => ({
+        ...prev,
+        appointmentIds: filteredAppointments.map((apt) => apt.id),
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, appointmentIds: [] }));
+    }
+  };
+
+  const getFilteredAppointments = () => {
+    if (formData.consultationTypeIds.length === 0) {
+      return affectedAppointments;
+    }
+    return affectedAppointments.filter((apt) =>
+      formData.consultationTypeIds.includes(apt.consultationType?.id)
+    );
   };
 
   const goBack = () => {
@@ -254,87 +336,226 @@ const ImprevuFormSheet = ({ imprevu, isOpen, onClose, onSave }) => {
         )}
 
         {/* Step 2: Review Affected Appointments */}
-        {currentStep === 2 && (
-          <div className='space-y-4'>
-            <div className='bg-yellow-50 border border-yellow-200 rounded-lg p-4'>
-              <h3 className='text-lg font-semibold text-yellow-900 mb-2 flex items-center gap-2'>
-                <AlertTriangle className='h-5 w-5' />
-                {affectedAppointments.length} Appointment(s) Will Be Cancelled
-              </h3>
-              <p className='text-sm text-yellow-700'>
-                The following appointments will be automatically cancelled when
-                you create this imprevu
-              </p>
-            </div>
+        {currentStep === 2 &&
+          (() => {
+            const filteredAppointments = getFilteredAppointments();
+            const allSelected =
+              filteredAppointments.length > 0 &&
+              filteredAppointments.every((apt) =>
+                formData.appointmentIds.includes(apt.id)
+              );
+            const someSelected = filteredAppointments.some((apt) =>
+              formData.appointmentIds.includes(apt.id)
+            );
 
-            {affectedAppointments.length === 0 ? (
-              <div className='text-center py-8 text-gray-500'>
-                <Calendar className='h-12 w-12 mx-auto mb-2 text-gray-400' />
-                <p>No appointments found in this time period</p>
-              </div>
-            ) : (
-              <div className='max-h-96 overflow-y-auto space-y-2'>
-                {affectedAppointments.map((appointment) => {
-                  const patients =
-                    appointment.appointmentPatients?.length > 0
-                      ? appointment.appointmentPatients.map((ap) => ap.patient)
-                      : appointment.patient
-                      ? [appointment.patient]
-                      : [];
+            return (
+              <div className='space-y-4'>
+                <div className='bg-yellow-50 border border-yellow-200 rounded-lg p-4'>
+                  <h3 className='text-lg font-semibold text-yellow-900 mb-2 flex items-center gap-2'>
+                    <AlertTriangle className='h-5 w-5' />
+                    {filteredAppointments.length} Appointment(s) Found
+                  </h3>
+                  <p className='text-sm text-yellow-700'>
+                    Filter by consultation type and select which appointments to
+                    cancel
+                  </p>
+                </div>
 
-                  return (
-                    <Card key={appointment.id}>
-                      <CardContent className='p-4'>
-                        <div className='flex items-start justify-between'>
-                          <div className='flex-1'>
-                            <div className='flex items-center gap-2 mb-2'>
-                              <Clock className='h-4 w-4 text-gray-400' />
-                              <span className='font-medium'>
-                                {format(
-                                  new Date(appointment.startTime),
-                                  'dd/MM/yyyy HH:mm'
-                                )}{' '}
-                                -{' '}
-                                {format(new Date(appointment.endTime), 'HH:mm')}
-                              </span>
-                            </div>
-                            <div className='space-y-1'>
-                              {patients.map((patient, idx) => (
-                                <div
-                                  key={patient.id}
-                                  className='text-sm text-gray-600'
-                                >
-                                  {getPatientDisplayName(patient)}
+                {/* Consultation Type Filters */}
+                <div className='bg-white border border-gray-200 rounded-lg p-4'>
+                  <h4 className='font-semibold text-gray-900 mb-3'>
+                    Filter by Consultation Type
+                  </h4>
+                  {console.log('Consultation Types:', consultationTypes)}
+                  {console.log('Affected Appointments:', affectedAppointments)}
+                  <div className='flex flex-wrap gap-2'>
+                    {consultationTypes.length === 0 && (
+                      <p className='text-sm text-gray-500'>
+                        No consultation types available
+                      </p>
+                    )}
+                    {consultationTypes.map((type) => {
+                      const isSelected = formData.consultationTypeIds.includes(
+                        type.id
+                      );
+                      const appointmentCount = affectedAppointments.filter(
+                        (apt) => apt.consultationType?.id === type.id
+                      ).length;
+
+                      console.log(
+                        `Type: ${type.name}, Count: ${appointmentCount}`
+                      );
+
+                      if (appointmentCount === 0) return null;
+
+                      return (
+                        <button
+                          key={type.id}
+                          type='button'
+                          onClick={() => toggleConsultationType(type.id)}
+                          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                            isSelected
+                              ? 'ring-2 ring-offset-2'
+                              : 'opacity-60 hover:opacity-100'
+                          }`}
+                          style={{
+                            backgroundColor: isSelected
+                              ? type.color
+                              : `${type.color}20`,
+                            color: isSelected ? 'white' : type.color,
+                            ringColor: type.color,
+                          }}
+                        >
+                          {type.name} ({appointmentCount})
+                        </button>
+                      );
+                    })}
+                    {formData.consultationTypeIds.length > 0 && (
+                      <button
+                        type='button'
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            consultationTypeIds: [],
+                          }))
+                        }
+                        className='px-3 py-1.5 rounded-full text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      >
+                        Clear filters
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {affectedAppointments.length === 0 ? (
+                  <div className='text-center py-8 text-gray-500'>
+                    <Calendar className='h-12 w-12 mx-auto mb-2 text-gray-400' />
+                    <p>No appointments found in this time period</p>
+                  </div>
+                ) : filteredAppointments.length === 0 ? (
+                  <div className='text-center py-8 text-gray-500'>
+                    <Calendar className='h-12 w-12 mx-auto mb-2 text-gray-400' />
+                    <p>No appointments match the selected filters</p>
+                  </div>
+                ) : (
+                  <div className='space-y-3'>
+                    {/* Select All */}
+                    <div className='flex items-center gap-2 p-3 bg-gray-50 rounded-lg'>
+                      <Checkbox
+                        id='select-all'
+                        checked={allSelected}
+                        onCheckedChange={toggleAllAppointments}
+                        className={
+                          someSelected && !allSelected
+                            ? 'data-[state=checked]:bg-gray-400'
+                            : ''
+                        }
+                      />
+                      <label
+                        htmlFor='select-all'
+                        className='text-sm font-medium cursor-pointer'
+                      >
+                        {allSelected
+                          ? `Deselect all (${filteredAppointments.length})`
+                          : someSelected
+                          ? `Select all (${formData.appointmentIds.length}/${filteredAppointments.length} selected)`
+                          : `Select all (${filteredAppointments.length})`}
+                      </label>
+                    </div>
+
+                    {/* Appointments List */}
+                    <div className='max-h-96 overflow-y-auto space-y-2'>
+                      {filteredAppointments.map((appointment) => {
+                        const patients =
+                          appointment.appointmentPatients?.length > 0
+                            ? appointment.appointmentPatients.map(
+                                (ap) => ap.patient
+                              )
+                            : appointment.patient
+                            ? [appointment.patient]
+                            : [];
+
+                        const isSelected = formData.appointmentIds.includes(
+                          appointment.id
+                        );
+
+                        return (
+                          <Card
+                            key={appointment.id}
+                            className={`cursor-pointer transition-all ${
+                              isSelected
+                                ? 'ring-2 ring-purple-500 bg-purple-50'
+                                : 'hover:shadow-md'
+                            }`}
+                            onClick={() => toggleAppointment(appointment.id)}
+                          >
+                            <CardContent className='p-4'>
+                              <div className='flex items-start gap-3'>
+                                <Checkbox
+                                  checked={isSelected}
+                                  onCheckedChange={() =>
+                                    toggleAppointment(appointment.id)
+                                  }
+                                  onClick={(e) => e.stopPropagation()}
+                                  className='mt-1'
+                                />
+                                <div className='flex-1'>
+                                  <div className='flex items-center gap-2 mb-2'>
+                                    <Clock className='h-4 w-4 text-gray-400' />
+                                    <span className='font-medium'>
+                                      {format(
+                                        new Date(appointment.startTime),
+                                        'dd/MM/yyyy HH:mm'
+                                      )}{' '}
+                                      -{' '}
+                                      {format(
+                                        new Date(appointment.endTime),
+                                        'HH:mm'
+                                      )}
+                                    </span>
+                                  </div>
+                                  <div className='space-y-1'>
+                                    {patients.map((patient, idx) => (
+                                      <div
+                                        key={patient.id}
+                                        className='text-sm text-gray-600'
+                                      >
+                                        {getPatientDisplayName(patient)}
+                                      </div>
+                                    ))}
+                                  </div>
+                                  {appointment.consultationType && (
+                                    <Badge
+                                      variant='outline'
+                                      className='mt-2'
+                                      style={{
+                                        color:
+                                          appointment.consultationType.color,
+                                        borderColor:
+                                          appointment.consultationType.color,
+                                      }}
+                                    >
+                                      {appointment.consultationType.name}
+                                    </Badge>
+                                  )}
                                 </div>
-                              ))}
-                            </div>
-                            {appointment.consultationType && (
-                              <Badge
-                                variant='outline'
-                                className='mt-2'
-                                style={{
-                                  color: appointment.consultationType.color,
-                                  borderColor:
-                                    appointment.consultationType.color,
-                                }}
-                              >
-                                {appointment.consultationType.name}
-                              </Badge>
-                            )}
-                          </div>
-                          <Badge variant='destructive'>
-                            <Ban className='h-3 w-3 mr-1' />
-                            Will Cancel
-                          </Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                                {isSelected && (
+                                  <Badge variant='destructive'>
+                                    <Ban className='h-3 w-3 mr-1' />
+                                    Will Cancel
+                                  </Badge>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        )}
+            );
+          })()}
 
         {/* Step 3: Settings & Message */}
         {currentStep === 3 && (

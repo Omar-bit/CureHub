@@ -23,6 +23,8 @@ export class ImprevuService {
       blockTimeSlots,
       reason,
       message,
+      consultationTypeIds,
+      appointmentIds,
     } = createImprevuDto;
 
     const start = new Date(startDate);
@@ -54,13 +56,62 @@ export class ImprevuService {
         endDate,
       );
 
-      const appointmentIds = appointments.map((apt) => apt.id);
+      console.log('Total appointments found:', appointments.length);
+      console.log('consultationTypeIds:', consultationTypeIds);
+      console.log('appointmentIds:', appointmentIds);
 
-      // Cancel all affected appointments
-      if (appointmentIds.length > 0) {
+      // Filter appointments based on consultation types if specified
+      let appointmentsToCancel = appointments;
+      if (consultationTypeIds && consultationTypeIds.length > 0) {
+        appointmentsToCancel = appointments.filter(
+          (apt) =>
+            apt.consultationType?.id &&
+            consultationTypeIds.includes(apt.consultationType.id),
+        );
+        console.log(
+          'After consultation type filter:',
+          appointmentsToCancel.length,
+        );
+      }
+
+      // Further filter by specific appointment IDs if specified
+      // If appointmentIds is undefined or null, don't cancel any appointments
+      // If appointmentIds is an empty array, also don't cancel any appointments
+      // Only cancel if appointmentIds is provided and has items
+      if (appointmentIds !== undefined && appointmentIds !== null) {
+        if (appointmentIds.length === 0) {
+          // Empty array means user deselected all - don't cancel any
+          console.log('Empty appointmentIds array - cancelling none');
+          appointmentsToCancel = [];
+        } else {
+          // Filter to only the selected appointments
+          appointmentsToCancel = appointmentsToCancel.filter((apt) =>
+            appointmentIds.includes(apt.id),
+          );
+          console.log(
+            'After appointmentIds filter:',
+            appointmentsToCancel.length,
+          );
+        }
+      } else {
+        console.log(
+          'appointmentIds is undefined/null - would cancel all (but we should avoid this)',
+        );
+      }
+      // If appointmentIds is undefined/null, cancel all filtered appointments (backward compatibility)
+
+      const appointmentIdsToCancel = appointmentsToCancel.map((apt) => apt.id);
+      console.log(
+        'Final appointments to cancel:',
+        appointmentIdsToCancel.length,
+        appointmentIdsToCancel,
+      );
+
+      // Cancel selected appointments
+      if (appointmentIdsToCancel.length > 0) {
         await this.prisma.appointment.updateMany({
           where: {
-            id: { in: appointmentIds },
+            id: { in: appointmentIdsToCancel },
           },
           data: {
             status: AppointmentStatus.CANCELLED,
@@ -71,9 +122,11 @@ export class ImprevuService {
         await this.prisma.imprevu.update({
           where: { id: imprevu.id },
           data: {
-            cancelledAppointmentsCount: appointmentIds.length,
+            cancelledAppointmentsCount: appointmentIdsToCancel.length,
           },
         });
+      } else {
+        console.log('No appointments to cancel');
       }
     }
 

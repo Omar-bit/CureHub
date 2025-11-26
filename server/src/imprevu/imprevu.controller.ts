@@ -27,6 +27,10 @@ export class ImprevuController {
     if (user.role !== 'DOCTOR' || !user.doctorProfile?.id) {
       throw new Error('Only doctors can create imprevus');
     }
+    console.log(
+      'Received createImprevuDto:',
+      JSON.stringify(createImprevuDto, null, 2),
+    );
     return this.imprevuService.create(user.doctorProfile.id, createImprevuDto);
   }
 

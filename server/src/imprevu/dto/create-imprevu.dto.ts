@@ -4,6 +4,7 @@ import {
   IsBoolean,
   IsOptional,
   IsString,
+  IsArray,
 } from 'class-validator';
 
 export class CreateImprevuDto {
@@ -30,4 +31,12 @@ export class CreateImprevuDto {
   @IsOptional()
   @IsString()
   message?: string;
+
+  @IsOptional()
+  @IsArray()
+  consultationTypeIds?: string[];
+
+  @IsOptional()
+  @IsArray()
+  appointmentIds?: string[];
 }
