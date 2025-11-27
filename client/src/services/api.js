@@ -553,3 +553,22 @@ export const agendaPreferencesAPI = {
   update: (preferences) =>
     api.put('/agenda-preferences', preferences).then((res) => res.data),
 };
+
+// PTO (Paid Time Off / Congés) API
+export const ptoAPI = {
+  // Get all PTO periods
+  getAll: () => api.get('/pto').then((res) => res.data),
+
+  // Get a specific PTO period
+  getById: (id) => api.get(`/pto/${id}`).then((res) => res.data),
+
+  // Create a new PTO period
+  create: (ptoData) => api.post('/pto', ptoData).then((res) => res.data),
+
+  // Update a PTO period
+  update: (id, ptoData) =>
+    api.put(`/pto/${id}`, ptoData).then((res) => res.data),
+
+  // Delete a PTO period
+  delete: (id) => api.delete(`/pto/${id}`).then((res) => res.data),
+};

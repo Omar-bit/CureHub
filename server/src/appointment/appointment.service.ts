@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AppointmentHistoryService } from './appointment-history.service';
 import { ImprevuService } from '../imprevu/imprevu.service';
+import { PTOService } from '../pto/pto.service';
 import {
   CreateAppointmentDto,
   UpdateAppointmentDto,
@@ -37,6 +38,7 @@ export class AppointmentService {
     private prisma: PrismaService,
     private appointmentHistory: AppointmentHistoryService,
     private imprevuService: ImprevuService,
+    private ptoService: PTOService,
   ) {}
 
   async create(
@@ -715,6 +717,17 @@ export class AppointmentService {
     endTime: Date,
     excludeAppointmentId?: string,
   ): Promise<void> {
+    // Check for PTO conflicts
+    const isPTOBlocked = await this.ptoService.isDateBlockedByPTO(
+      doctorId,
+      startTime,
+    );
+    if (isPTOBlocked) {
+      throw new BadRequestException(
+        'Cannot schedule appointment during PTO period',
+      );
+    }
+
     const conflictingAppointment = await this.prisma.appointment.findFirst({
       where: {
         doctorId,
@@ -842,46 +855,73 @@ export class AppointmentService {
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
-    const [existingAppointments, blockingImprevus] = await Promise.all([
-      this.prisma.appointment.findMany({
-        where: {
-          doctorId,
-          startTime: {
-            gte: startOfDay,
-            lte: endOfDay,
+    // Get existing appointments, blocking imprevus, and PTOs for the date
+    const [existingAppointments, blockingImprevus, blockingPTOs] =
+      await Promise.all([
+        this.prisma.appointment.findMany({
+          where: {
+            doctorId,
+            startTime: {
+              gte: startOfDay,
+              lte: endOfDay,
+            },
+            status: {
+              not: 'CANCELLED',
+            },
           },
-          status: {
-            not: 'CANCELLED',
+        }),
+        this.prisma.imprevu.findMany({
+          where: {
+            doctorId,
+            blockTimeSlots: true,
+            OR: [
+              {
+                AND: [
+                  { startDate: { lte: startOfDay } },
+                  { endDate: { gt: startOfDay } },
+                ],
+              },
+              {
+                AND: [
+                  { startDate: { lt: endOfDay } },
+                  { endDate: { gte: endOfDay } },
+                ],
+              },
+              {
+                AND: [
+                  { startDate: { gte: startOfDay } },
+                  { endDate: { lte: endOfDay } },
+                ],
+              },
+            ],
           },
-        },
-      }),
-      this.prisma.imprevu.findMany({
-        where: {
-          doctorId,
-          blockTimeSlots: true,
-          OR: [
-            {
-              AND: [
-                { startDate: { lte: startOfDay } },
-                { endDate: { gt: startOfDay } },
-              ],
-            },
-            {
-              AND: [
-                { startDate: { lt: endOfDay } },
-                { endDate: { gte: endOfDay } },
-              ],
-            },
-            {
-              AND: [
-                { startDate: { gte: startOfDay } },
-                { endDate: { lte: endOfDay } },
-              ],
-            },
-          ],
-        },
-      }),
-    ]);
+        }),
+        this.prisma.doctorPTO.findMany({
+          where: {
+            doctorId,
+            OR: [
+              {
+                AND: [
+                  { startDate: { lte: startOfDay } },
+                  { endDate: { gte: startOfDay } },
+                ],
+              },
+              {
+                AND: [
+                  { startDate: { lte: endOfDay } },
+                  { endDate: { gte: endOfDay } },
+                ],
+              },
+              {
+                AND: [
+                  { startDate: { gte: startOfDay } },
+                  { endDate: { lte: endOfDay } },
+                ],
+              },
+            ],
+          },
+        }),
+      ]);
 
     // Generate all possible 15-minute slots for each time slot
     const allSlots: { time: string; available: boolean }[] = [];
@@ -894,6 +934,7 @@ export class AppointmentService {
         date,
         existingAppointments,
         blockingImprevus,
+        blockingPTOs,
         consultationType,
       );
       allSlots.push(...slots);
@@ -933,6 +974,7 @@ export class AppointmentService {
     date: Date,
     existingAppointments: any[],
     blockingImprevus: any[],
+    blockingPTOs: any[],
     consultationType?: any,
   ): { time: string; available: boolean }[] {
     const slots: { time: string; available: boolean }[] = [];
@@ -993,9 +1035,20 @@ export class AppointmentService {
         const now = new Date();
         const isPast = current <= now;
 
+        // Check if this time is blocked by PTO
+        const isBlockedByPTO = blockingPTOs.some((pto) => {
+          const ptoStart = new Date(pto.startDate);
+          ptoStart.setHours(0, 0, 0, 0);
+          const ptoEnd = new Date(pto.endDate);
+          ptoEnd.setHours(23, 59, 59, 999);
+
+          return current >= ptoStart && current <= ptoEnd;
+        });
+
         slots.push({
           time: timeString,
-          available: !hasConflict && !isPast && !isBlockedByImprevu,
+          available:
+            !hasConflict && !isPast && !isBlockedByImprevu && !isBlockedByPTO,
         });
       }
 

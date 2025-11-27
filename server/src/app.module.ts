@@ -21,6 +21,7 @@ import { PatientDocumentsModule } from './patient-documents/patient-documents.mo
 import { AppointmentDocumentsModule } from './appointment-documents/appointment-documents.module';
 import { ImprevuModule } from './imprevu/imprevu.module';
 import { AgendaPreferencesModule } from './agenda-preferences/agenda-preferences.module';
+import { PTOModule } from './pto/pto.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { AgendaPreferencesModule } from './agenda-preferences/agenda-preferences
     AppointmentDocumentsModule,
     ImprevuModule,
     AgendaPreferencesModule,
+    PTOModule,
   ],
   controllers: [AppController],
   providers: [AppService],

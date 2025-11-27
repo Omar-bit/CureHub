@@ -69,17 +69,12 @@ const SettingsPage = () => {
         ]
       : []),
     {
-      id: 'notifications',
-      title: 'Notifications',
-      description: 'Configure how you receive notifications',
+      id: 'pto',
+      title: 'PTO',
+      description: 'Configure how you receive paid time off settings',
       icon: Bell,
-      onClick: () => navigate('/settings/notifications'),
-      items: [
-        'Email Notifications',
-        'SMS Alerts',
-        'Push Notifications',
-        'Appointment Reminders',
-      ],
+      onClick: () => navigate('/settings/pto'),
+      items: [],
     },
     {
       id: 'security',

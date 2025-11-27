@@ -78,6 +78,7 @@ model DoctorProfile {
   appointmentHistory   AppointmentHistory[]
   imprevus             Imprevu[]
   agendaPreferences    AgendaPreferences?
+  ptos                 DoctorPTO[]
 
   @@map("doctor_profiles")
 }
@@ -617,4 +618,22 @@ model AgendaPreferences {
   updatedAt          DateTime           @updatedAt
 
   @@map("agenda_preferences")
+}
+
+// Doctor PTO (Paid Time Off / Congés) model
+model DoctorPTO {
+  id                String        @id @default(cuid())
+  doctorId          String
+  doctor            DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  label             String // Label for the PTO (e.g., "Formation", "Vacance")
+  startDate         DateTime      @db.Date // Start date (inclusive)
+  endDate           DateTime      @db.Date // End date (inclusive)
+  announcements     Int           @default(2) // Number of announcements/reminders
+  appointmentsCount Int           @default(0) // Number of appointments affected
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([doctorId])
+  @@index([startDate, endDate])
+  @@map("doctor_pto")
 }

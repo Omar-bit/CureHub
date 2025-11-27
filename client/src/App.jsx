@@ -20,6 +20,7 @@ import ConsultationTypesPage from './pages/ConsultationTypesPage';
 import TimeplanPage from './pages/TimeplanPage';
 import MessagingPage from './pages/MessagingPage';
 import ProfileSettingsPage from './pages/ProfileSettingsPage';
+import PTOPage from './pages/PTOPage';
 import HeroSection from './components/HeroSection';
 import FeaturesSection from './components/FeaturesSection';
 import PricingSection from './components/PricingSection';
@@ -93,6 +94,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <TimeplanPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/settings/pto'
+              element={
+                <ProtectedRoute>
+                  <PTOPage />
                 </ProtectedRoute>
               }
             />

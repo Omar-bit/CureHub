@@ -4,9 +4,10 @@ import { AppointmentController } from './appointment.controller';
 import { AppointmentHistoryService } from './appointment-history.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ImprevuModule } from '../imprevu/imprevu.module';
+import { PTOModule } from '../pto/pto.module';
 
 @Module({
-  imports: [PrismaModule, ImprevuModule],
+  imports: [PrismaModule, ImprevuModule, PTOModule],
   controllers: [AppointmentController],
   providers: [AppointmentService, AppointmentHistoryService],
   exports: [AppointmentService, AppointmentHistoryService],
