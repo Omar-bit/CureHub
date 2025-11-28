@@ -112,6 +112,10 @@ const DayView = ({
     );
     const height = CalendarUtils.getTimeSlotHeight(duration);
 
+    // Apply vertical zoom to position and height
+    const zoomedPosition = position * verticalZoom;
+    const zoomedHeight = height * verticalZoom;
+
     const leftOffset = 60; // Time label width
     const rightOffset = 10;
     const availableWidth = `calc(100% - ${leftOffset + rightOffset}px)`;
@@ -126,8 +130,8 @@ const DayView = ({
 
     return {
       position: 'absolute',
-      top: `${position}px`,
-      height: `${height}px`,
+      top: `${zoomedPosition}px`,
+      height: `${zoomedHeight}px`,
       left: leftPosition,
       width: columnWidth,
       zIndex: 10,
