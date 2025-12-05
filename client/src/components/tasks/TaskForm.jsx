@@ -33,6 +33,7 @@ const TaskForm = ({
   onCancel,
   onDelete,
   isLoading = false,
+  readOnlyPatients = false,
 }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -78,12 +79,15 @@ const TaskForm = ({
         priority: 'MEDIUM',
         category: 'AUTRE',
       });
-      setSelectedPatients([]);
+      // Auto-select patients if readOnlyPatients is true
+      setSelectedPatients(
+        readOnlyPatients && patients.length > 0 ? patients : []
+      );
       setPatientSearch('');
       setIsCompleted(false);
     }
     setErrors({});
-  }, [task]);
+  }, [task, readOnlyPatients, patients]);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
@@ -308,8 +312,15 @@ const TaskForm = ({
                   value={patientSearch}
                   onChange={handlePatientSearch}
                   onFocus={() => setShowPatientDropdown(true)}
-                  className='w-full pl-10 pr-10 py-2 border rounded-lg bg-white border-orange-200 focus:border-orange-500 focus:ring-orange-500'
-                  placeholder='Rechercher un patient...'
+                  disabled={readOnlyPatients}
+                  className={`w-full pl-10 pr-10 py-2 border rounded-lg bg-white border-orange-200 focus:border-orange-500 focus:ring-orange-500 ${
+                    readOnlyPatients ? 'opacity-60 cursor-not-allowed' : ''
+                  }`}
+                  placeholder={
+                    readOnlyPatients
+                      ? 'Patient sélectionné'
+                      : 'Rechercher un patient...'
+                  }
                 />
               </div>
 
@@ -324,13 +335,15 @@ const TaskForm = ({
                       <span className='text-sm font-medium text-orange-900'>
                         {renderPatientLabel(patient)}
                       </span>
-                      <button
-                        type='button'
-                        onClick={() => removePatient(patient.id)}
-                        className='text-orange-600 hover:text-orange-800 focus:outline-none'
-                      >
-                        <X className='h-4 w-4' />
-                      </button>
+                      {!readOnlyPatients && (
+                        <button
+                          type='button'
+                          onClick={() => removePatient(patient.id)}
+                          className='text-orange-600 hover:text-orange-800 focus:outline-none'
+                        >
+                          <X className='h-4 w-4' />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -341,7 +354,7 @@ const TaskForm = ({
               )}
 
               {/* Patient Dropdown */}
-              {showPatientDropdown && (
+              {showPatientDropdown && !readOnlyPatients && (
                 <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto'>
                   {/* Header */}
                   <div className='p-3 border-b border-gray-200 bg-gray-50'>

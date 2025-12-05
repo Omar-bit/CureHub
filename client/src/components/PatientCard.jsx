@@ -92,7 +92,7 @@ const PatientCard = ({ patient, onEdit, onDelete, onView }) => {
     {
       icon: CheckSquare,
       label: 'Tâche',
-      onClick: () => console.log('Tâche clicked'),
+      onClick: () => onView(patient, 'taches'),
       variant: 'secondary',
       badge: true,
     },

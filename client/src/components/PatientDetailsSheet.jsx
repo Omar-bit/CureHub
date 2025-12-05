@@ -18,6 +18,7 @@ import {
   ChevronDown,
   AlertCircle,
   Loader2,
+  CheckSquare,
 } from 'lucide-react';
 import { SheetContent, SheetHeader, SheetTitle, SheetFooter } from './ui/sheet';
 import { Button } from './ui/button';
@@ -26,6 +27,7 @@ import { appointmentAPI } from '../services/api';
 import PatientDocumentsTab from './PatientDocumentsTab';
 import PatientRelativesTab from './PatientRelativesTab';
 import PatientActesTab from './PatientActesTab';
+import PatientTasksTab from './PatientTasksTab';
 
 const PatientDetailsSheet = ({
   patient,
@@ -34,6 +36,7 @@ const PatientDetailsSheet = ({
   onEdit,
   onDelete,
   initialTab = 'profil',
+  onView,
 }) => {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [appointments, setAppointments] = useState({
@@ -271,7 +274,7 @@ const PatientDetailsSheet = ({
         onValueChange={setActiveTab}
         className='w-full mt-6'
       >
-        <TabsList className='grid w-full grid-cols-6'>
+        <TabsList className='grid w-full grid-cols-7'>
           <TabsTrigger value='profil' className='flex items-center gap-2'>
             <User className='w-4 h-4' />
             Profil
@@ -291,6 +294,10 @@ const PatientDetailsSheet = ({
           <TabsTrigger value='actes' className='flex items-center gap-2'>
             <Activity className='w-4 h-4' />
             Actes
+          </TabsTrigger>
+          <TabsTrigger value='taches' className='flex items-center gap-2'>
+            <CheckSquare className='w-4 h-4' />
+            Tâches
           </TabsTrigger>
           <TabsTrigger value='historique' className='flex items-center gap-2'>
             <History className='w-4 h-4' />
@@ -378,6 +385,10 @@ const PatientDetailsSheet = ({
 
           <TabsContent value='actes' className='space-y-4'>
             <PatientActesTab patient={patient} />
+          </TabsContent>
+
+          <TabsContent value='taches' className='space-y-4'>
+            <PatientTasksTab patient={patient} onPatientClick={onView} />
           </TabsContent>
 
           <TabsContent value='historique' className='space-y-4'>

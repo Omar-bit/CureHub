@@ -273,6 +273,7 @@ const PatientManagement = () => {
           onEdit={handleEditPatient}
           onDelete={handleDeletePatient}
           initialTab={selectedTab}
+          onView={handleViewPatient}
         />
       )}
 

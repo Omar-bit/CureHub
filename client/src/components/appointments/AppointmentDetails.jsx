@@ -1036,6 +1036,7 @@ const AppointmentDetails = ({
             onEdit={() => {}}
             onDelete={() => {}}
             initialTab={selectedPatientTab}
+            onView={handlePatientView}
           />
         )}
       </>
@@ -1058,6 +1059,7 @@ const AppointmentDetails = ({
           onEdit={() => {}}
           onDelete={() => {}}
           initialTab={selectedPatientTab}
+          onView={handlePatientView}
         />
       )}
     </>

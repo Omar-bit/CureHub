@@ -105,7 +105,7 @@ export class TaskQueryDto {
   completed?: boolean;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   patientId?: string;
 
   @IsOptional()
