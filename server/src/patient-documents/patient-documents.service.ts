@@ -124,7 +124,8 @@ export class PatientDocumentsService {
       ];
     }
 
-    const documents = await this.prisma.patientDocument.findMany({
+    // Fetch patient documents
+    const patientDocuments = await this.prisma.patientDocument.findMany({
       where: whereClause,
       orderBy: {
         createdAt: 'desc',
@@ -139,7 +140,71 @@ export class PatientDocumentsService {
       },
     });
 
-    return documents;
+    // Fetch appointment documents for appointments where this patient is assigned
+    const appointmentWhereClause: any = {
+      doctorId: doctorId,
+      appointment: {
+        appointmentPatients: {
+          some: {
+            patientId: patientId,
+          },
+        },
+      },
+    };
+
+    if (filters?.category) {
+      appointmentWhereClause.category = filters.category;
+    }
+
+    if (filters?.search) {
+      appointmentWhereClause.OR = [
+        { originalName: { contains: filters.search } },
+        { description: { contains: filters.search } },
+      ];
+    }
+
+    const appointmentDocuments = await this.prisma.appointmentDocument.findMany(
+      {
+        where: appointmentWhereClause,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        include: {
+          appointment: {
+            select: {
+              id: true,
+              title: true,
+              startTime: true,
+            },
+          },
+        },
+      },
+    );
+
+    // Transform appointment documents to match patient document structure
+    const transformedAppointmentDocs = appointmentDocuments.map((doc) => ({
+      ...doc,
+      patient: {
+        id: patientId,
+        name: patient.name,
+      },
+      // Add a flag to identify this as an appointment document
+      isAppointmentDocument: true,
+      appointmentInfo: {
+        id: doc.appointment.id,
+        title: doc.appointment.title,
+        startTime: doc.appointment.startTime,
+      },
+    }));
+
+    // Combine both arrays and sort by creation date
+    const allDocuments = [...patientDocuments, ...transformedAppointmentDocs];
+    allDocuments.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+
+    return allDocuments;
   }
 
   async getDocument(documentId: string, doctorId: string) {
