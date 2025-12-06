@@ -11,7 +11,7 @@ import { showError } from '../lib/toast';
 import { Loader2 } from 'lucide-react';
 
 const CalendarSection = forwardRef(
-  ({ onAppointmentClick, onTimeSlotClick }, ref) => {
+  ({ onAppointmentClick, onTimeSlotClick, isTabOpen = false }, ref) => {
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [preferences, setPreferences] = useState({
@@ -118,6 +118,7 @@ const CalendarSection = forwardRef(
           verticalZoom={preferences.verticalZoom}
           mainColor={preferences.mainColor}
           defaultView='day'
+          isTabOpen={isTabOpen}
         />
       </div>
     );

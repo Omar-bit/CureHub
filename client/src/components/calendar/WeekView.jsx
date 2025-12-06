@@ -11,6 +11,7 @@ const WeekView = ({
   onAppointmentClick,
   onTimeSlotClick,
   workingHours = { start: 8, end: 20 },
+  isTabOpen = false,
 }) => {
   const weekDays = CalendarUtils.getWeekDays(currentDate);
   const timeSlots = CalendarUtils.generateTimeSlots(

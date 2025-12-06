@@ -13,6 +13,7 @@ const DayView = ({
   workingHours = { start: 8, end: 20 },
   verticalZoom = 1,
   mainColor = '#FFA500',
+  isTabOpen = false,
 }) => {
   const timeSlots = CalendarUtils.generateTimeSlots(
     workingHours.start,
@@ -118,7 +119,12 @@ const DayView = ({
 
     const leftOffset = 60; // Time label width
     const rightOffset = 10;
-    const availableWidth = `calc(100% - ${leftOffset + rightOffset}px)`;
+
+    // When tab is open, constrain appointments to not extend beyond visible area
+    const maxWidthConstraint = isTabOpen ? 'min(100%, 50vw)' : '100%';
+    const availableWidth = `calc(${maxWidthConstraint} - ${
+      leftOffset + rightOffset
+    }px)`;
     const columnWidth =
       totalColumns > 1
         ? `calc(${availableWidth} / ${totalColumns})`

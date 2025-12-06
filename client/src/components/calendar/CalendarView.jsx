@@ -14,6 +14,7 @@ const CalendarView = forwardRef(
       verticalZoom = 1,
       mainColor = '#FFA500',
       defaultView = 'day',
+      isTabOpen = false,
     },
     ref
   ) => {
@@ -51,6 +52,7 @@ const CalendarView = forwardRef(
         workingHours,
         verticalZoom,
         mainColor,
+        isTabOpen,
       };
 
       switch (view) {

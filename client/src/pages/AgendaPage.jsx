@@ -368,7 +368,7 @@ const AgendaPage = () => {
         {/* Calendar section - always visible on left */}
         <div
           className={`
-            ${'flex-1'} 
+            ${activeTab ? 'lg:w-1/2' : 'flex-1'} 
             transition-all duration-300 overflow-y-auto
           `}
         >
@@ -376,6 +376,7 @@ const AgendaPage = () => {
             ref={calendarRef}
             onAppointmentClick={handleAppointmentClick}
             onTimeSlotClick={handleTimeSlotClick}
+            isTabOpen={!!activeTab}
           />
         </div>
 

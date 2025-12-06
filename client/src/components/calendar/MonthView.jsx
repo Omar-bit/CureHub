@@ -10,6 +10,7 @@ const MonthView = ({
   onDateChange,
   onAppointmentClick,
   onTimeSlotClick,
+  isTabOpen = false,
 }) => {
   const calendarDays = CalendarUtils.getCalendarDays(currentDate);
   const weekDayNames = CalendarUtils.getWeekDayNames(true);
