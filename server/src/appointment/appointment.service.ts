@@ -990,7 +990,7 @@ export class AppointmentService {
     const end = new Date(date);
     end.setHours(endHour, endMinute, 0, 0);
 
-    // Generate 15-minute intervals
+    // Generate 5-minute intervals (00, 05, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55)
     const current = new Date(start);
     const consultationDuration = consultationType
       ? consultationType.duration
@@ -1052,8 +1052,8 @@ export class AppointmentService {
         });
       }
 
-      // Move to next 15-minute interval
-      current.setMinutes(current.getMinutes() + 15);
+      // Move to next 5-minute interval
+      current.setMinutes(current.getMinutes() + 5);
     }
 
     return slots;

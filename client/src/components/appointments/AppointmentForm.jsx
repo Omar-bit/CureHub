@@ -18,6 +18,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import TimeSlotSelector from '../ui/TimeSlotSelector';
+import TimePickerInput from '../ui/TimePickerInput';
 import PatientFormSheet from '../PatientFormSheet';
 import { Sheet } from '../ui/sheet';
 import {
@@ -883,13 +884,13 @@ const AppointmentForm = ({
                 <Clock className='h-4 w-4 inline mr-2' />
                 Time *
               </label>
-              <input
-                type='time'
+              <TimePickerInput
                 value={manualTime}
-                onChange={handleManualTimeChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.startTime ? 'border-red-300' : 'border-gray-300'
-                }`}
+                onChange={(time) => {
+                  setManualTime(time);
+                  setFormData((prev) => ({ ...prev, startTime: time }));
+                }}
+                error={errors.startTime}
               />
               {errors.startTime && (
                 <p className='mt-1 text-sm text-red-600'>{errors.startTime}</p>
