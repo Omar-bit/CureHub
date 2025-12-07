@@ -12,7 +12,11 @@ import { EmailService } from '../email/email.service';
 import { OtpService } from '../otp/otp.service';
 import { DoctorProfileService } from '../doctor-profile/doctor-profile.service';
 import { ConsultationTypesService } from '../consultation-types/consultation-types.service';
-import { VerifyEmailDto, ResendVerificationDto } from './dto/auth.dto';
+import {
+  VerifyEmailDto,
+  ResendVerificationDto,
+  UpdateProfileDto,
+} from './dto/auth.dto';
 
 export interface LoginDto {
   email: string;
@@ -198,6 +202,30 @@ export class AuthService {
     }
 
     const { password: _, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  }
+
+  async updateProfile(
+    userId: string,
+    updateProfileDto: UpdateProfileDto,
+  ): Promise<Omit<User, 'password'>> {
+    if (updateProfileDto.email) {
+      const existingUser = await this.userService.findByEmail(
+        updateProfileDto.email,
+      );
+      if (existingUser && existingUser.id !== userId) {
+        throw new ConflictException('Email already in use');
+      }
+    }
+
+    const updatedUser = await this.userService.update(userId, {
+      email: updateProfileDto.email,
+      firstName: updateProfileDto.firstName,
+      lastName: updateProfileDto.lastName,
+      phone: updateProfileDto.phone,
+    });
+
+    const { password: _, ...userWithoutPassword } = updatedUser;
     return userWithoutPassword;
   }
 

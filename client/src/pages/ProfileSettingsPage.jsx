@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useDoctorProfile } from '../hooks/useDoctorProfile';
-import { clinicAPI, doctorProfileAPI } from '../services/api';
+import { authAPI, clinicAPI } from '../services/api';
 import { ContentContainer, PageHeader } from '../components/Layout';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import {
   ProfessionalInfoSection,
   CabinetInfoSection,
+  IdentifiersSection,
 } from '../components/ProfileSettingsSections';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -19,43 +20,75 @@ import toast from 'react-hot-toast';
  */
 const ProfileSettingsPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { profile, loading, updateProfile } = useDoctorProfile();
+  const { user, setUserData } = useAuth();
+  const { profile, loading, updateProfile, refreshProfile } =
+    useDoctorProfile();
 
   // Separate editing states for each section
   const [isEditingProfessional, setIsEditingProfessional] = useState(false);
   const [isEditingCabinet, setIsEditingCabinet] = useState(false);
+  const [isEditingIdentifiers, setIsEditingIdentifiers] = useState(false);
 
   // Form data
   const [formData, setFormData] = useState({});
   const [isSavingProfessional, setIsSavingProfessional] = useState(false);
   const [isSavingCabinet, setIsSavingCabinet] = useState(false);
+  const [isSavingIdentifiers, setIsSavingIdentifiers] = useState(false);
+
+  const populateFormFromProfile = useCallback(
+    (currentProfile) => {
+      if (!currentProfile) {
+        return;
+      }
+
+      let birthDateValue = '';
+      if (currentProfile.dateOfBirth) {
+        const parsedDate = new Date(currentProfile.dateOfBirth);
+        if (!Number.isNaN(parsedDate.getTime())) {
+          birthDateValue = parsedDate.toISOString().split('T')[0];
+        }
+      }
+
+      setFormData({
+        rppsNumber: currentProfile.rppsNumber || '',
+        sirenNumber: currentProfile.sirenNumber || '',
+        languagesSpoken: currentProfile.languagesSpoken || '',
+        diplomas: currentProfile.diplomas || '',
+        additionalDiplomas: currentProfile.additionalDiplomas || '',
+        publications: currentProfile.publications || '',
+        signature: currentProfile.signature || '',
+        absenceMessage: currentProfile.absenceMessage || '',
+        tooManyAbsencesInfo: currentProfile.tooManyAbsencesInfo || '',
+        cabinetName: currentProfile.clinic?.name || '',
+        cabinetGender: currentProfile.clinic?.gender || 'masculin',
+        clinicAddress: currentProfile.clinic?.address || '',
+        clinicAddress2: currentProfile.clinic?.address2 || '',
+        clinicPostalCode: currentProfile.clinic?.postalCode || '',
+        clinicCity: currentProfile.clinic?.city || '',
+        clinicPhone: currentProfile.clinic?.phone || '',
+        prmAccess: Boolean(currentProfile.clinic?.prmAccess),
+        videoSurveillance: Boolean(currentProfile.clinic?.videoSurveillance),
+        profession: currentProfile.specialization || '',
+        professionalStatus: currentProfile.professionalStatus || '',
+        title: currentProfile.title || '',
+        firstName: currentProfile.user?.firstName || '',
+        lastName: currentProfile.user?.lastName || '',
+        gender: currentProfile.gender || '',
+        birthDate: birthDateValue,
+        email: currentProfile.user?.email || '',
+        mobilePhone: currentProfile.user?.phone || '',
+        confidentialCode: currentProfile.confidentialCode || '',
+      });
+    },
+    [setFormData]
+  );
 
   // Initialize form data when profile loads
   useEffect(() => {
     if (profile) {
-      setFormData({
-        rppsNumber: profile.rppsNumber || '',
-        sirenNumber: profile.sirenNumber || '',
-        languagesSpoken: profile.languagesSpoken || '',
-        diplomas: profile.diplomas || '',
-        additionalDiplomas: profile.additionalDiplomas || '',
-        publications: profile.publications || '',
-        signature: profile.signature || '',
-        absenceMessage: profile.absenceMessage || '',
-        tooManyAbsencesInfo: profile.tooManyAbsencesInfo || '',
-        cabinetName: profile.clinic?.name || '',
-        cabinetGender: profile.clinic?.gender || 'masculin',
-        clinicAddress: profile.clinic?.address || '',
-        clinicAddress2: profile.clinic?.address2 || '',
-        clinicPostalCode: profile.clinic?.postalCode || '',
-        clinicCity: profile.clinic?.city || '',
-        clinicPhone: profile.clinic?.phone || '',
-        prmAccess: profile.clinic?.prmAccess || false,
-        videoSurveillance: profile.clinic?.videoSurveillance || false,
-      });
+      populateFormFromProfile(profile);
     }
-  }, [profile]);
+  }, [profile, populateFormFromProfile]);
 
   // Handle field changes
   const handleFieldChange = (field, value) => {
@@ -85,7 +118,9 @@ const ProfileSettingsPage = () => {
         '[ProfileSettingsPage] Saving professional data:',
         professionalData
       );
-      await updateProfile(professionalData);
+      await updateProfile(professionalData, {
+        successMessage: 'Informations professionnelles mises à jour !',
+      });
       console.log('[ProfileSettingsPage] Professional data saved successfully');
       setIsEditingProfessional(false);
     } catch (error) {
@@ -136,20 +171,10 @@ const ProfileSettingsPage = () => {
       console.log('[ProfileSettingsPage] Cabinet data saved successfully');
 
       // Refresh the profile to get updated clinic data
-      const updatedProfile = await doctorProfileAPI.getMyProfile();
-      // Update the profile state manually since we're not using the hook's updateProfile
-      setFormData((prev) => ({
-        ...prev,
-        cabinetName: updatedProfile.clinic?.name || '',
-        cabinetGender: updatedProfile.clinic?.gender || 'masculin',
-        clinicAddress: updatedProfile.clinic?.address || '',
-        clinicAddress2: updatedProfile.clinic?.address2 || '',
-        clinicPostalCode: updatedProfile.clinic?.postalCode || '',
-        clinicCity: updatedProfile.clinic?.city || '',
-        clinicPhone: updatedProfile.clinic?.phone || '',
-        prmAccess: updatedProfile.clinic?.prmAccess || false,
-        videoSurveillance: updatedProfile.clinic?.videoSurveillance || false,
-      }));
+      const updatedProfile = await refreshProfile({ showLoader: false });
+      if (updatedProfile) {
+        populateFormFromProfile(updatedProfile);
+      }
 
       toast.success('Clinic information updated successfully!');
       setIsEditingCabinet(false);
@@ -179,6 +204,87 @@ const ProfileSettingsPage = () => {
         videoSurveillance: profile.clinic?.videoSurveillance || false,
       }));
     }
+  };
+
+  const handleSaveIdentifiers = async () => {
+    try {
+      setIsSavingIdentifiers(true);
+      const identifierData = {
+        specialization: formData.profession || null,
+        professionalStatus: formData.professionalStatus || null,
+        title: formData.title || null,
+        gender: formData.gender || null,
+        dateOfBirth: formData.birthDate
+          ? new Date(formData.birthDate).toISOString()
+          : null,
+        confidentialCode: formData.confidentialCode || null,
+      };
+      console.log(
+        '[ProfileSettingsPage] Saving identifier data:',
+        identifierData
+      );
+
+      await updateProfile(identifierData, { showToast: false });
+
+      const emailValue = (formData.email || '').trim();
+      const userPayload = {
+        firstName: (formData.firstName || '').trim(),
+        lastName: (formData.lastName || '').trim(),
+        phone: (formData.mobilePhone || '').trim(),
+        email: emailValue || profile?.user?.email || '',
+      };
+
+      const updatedUser = await authAPI.updateProfile(userPayload);
+      setUserData(updatedUser);
+
+      const updatedProfile = await refreshProfile({ showLoader: false });
+      if (updatedProfile) {
+        populateFormFromProfile(updatedProfile);
+      }
+
+      toast.success('Identifiants mis à jour avec succès !');
+      setIsEditingIdentifiers(false);
+    } catch (error) {
+      console.error('Error saving identifier info:', error);
+      toast.error('Impossible de mettre à jour les identifiants');
+    } finally {
+      setIsSavingIdentifiers(false);
+    }
+  };
+
+  const handleCancelIdentifiers = () => {
+    setIsEditingIdentifiers(false);
+    if (profile) {
+      let birthDateValue = '';
+      if (profile.dateOfBirth) {
+        const parsedDate = new Date(profile.dateOfBirth);
+        if (!Number.isNaN(parsedDate.getTime())) {
+          birthDateValue = parsedDate.toISOString().split('T')[0];
+        }
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        profession: profile.specialization || '',
+        professionalStatus: profile.professionalStatus || '',
+        title: profile.title || '',
+        firstName: profile.user?.firstName || '',
+        lastName: profile.user?.lastName || '',
+        gender: profile.gender || '',
+        birthDate: birthDateValue,
+        email: profile.user?.email || '',
+        mobilePhone: profile.user?.phone || '',
+        confidentialCode: profile.confidentialCode || '',
+      }));
+    }
+  };
+
+  const handleResetConfidentialCode = () => {
+    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+    setFormData((prev) => ({
+      ...prev,
+      confidentialCode: newCode,
+    }));
   };
 
   // Check if user is a doctor
@@ -243,21 +349,61 @@ const ProfileSettingsPage = () => {
         </div>
 
         {/* Information Banner */}
-        {!isEditingProfessional && !isEditingCabinet && (
-          <Card className='mb-6 border-blue-100 bg-blue-50'>
-            <CardContent className='pt-6'>
-              <div className='flex items-start gap-3'>
-                <AlertCircle className='w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5' />
-                <p className='text-sm text-blue-800'>
-                  Cliquez sur le bouton "Modifier" pour editer vos informations.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {!isEditingIdentifiers &&
+          !isEditingProfessional &&
+          !isEditingCabinet && (
+            <Card className='mb-6 border-blue-100 bg-blue-50'>
+              <CardContent className='pt-6'>
+                <div className='flex items-start gap-3'>
+                  <AlertCircle className='w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5' />
+                  <p className='text-sm text-blue-800'>
+                    Cliquez sur le bouton "Modifier" pour editer vos
+                    informations.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
         {/* Form Sections */}
         <div className='space-y-8'>
+          {/* Identifiers Section */}
+          <div>
+            <IdentifiersSection
+              profile={formData}
+              onChange={handleFieldChange}
+              isEditing={isEditingIdentifiers}
+              onResetConfidentialCode={handleResetConfidentialCode}
+            />
+            <div className='mt-4 flex gap-3 px-6 pb-4'>
+              {!isEditingIdentifiers ? (
+                <Button
+                  onClick={() => setIsEditingIdentifiers(true)}
+                  className='bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-6 py-2 rounded-full shadow-md transition'
+                >
+                  Modifier
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    onClick={handleSaveIdentifiers}
+                    disabled={isSavingIdentifiers}
+                    className='bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-6 py-2 rounded-full shadow-md transition disabled:opacity-50'
+                  >
+                    {isSavingIdentifiers ? 'Enregistrement...' : 'Enregistrer'}
+                  </Button>
+                  <Button
+                    onClick={handleCancelIdentifiers}
+                    variant='outline'
+                    className='px-6 py-2 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50'
+                  >
+                    Annuler
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
           {/* Professional Information Section */}
           <div>
             <ProfessionalInfoSection

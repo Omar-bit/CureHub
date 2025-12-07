@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import { useAuth } from "../contexts/AuthContext";
-import { doctorProfileAPI } from "../services/api";
-import toast from "react-hot-toast";
+import { useCallback, useEffect, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { doctorProfileAPI } from '../services/api';
+import toast from 'react-hot-toast';
 
 export const useDoctorProfile = () => {
   const { user } = useAuth();
@@ -10,46 +10,60 @@ export const useDoctorProfile = () => {
   const [error, setError] = useState(null);
 
   // Fetch doctor profile
-  useEffect(() => {
-    if (!user || user.role !== "DOCTOR") {
-      setLoading(false);
-      return;
-    }
+  const fetchProfile = useCallback(
+    async (options = { showLoader: true }) => {
+      if (!user || user.role !== 'DOCTOR') {
+        setLoading(false);
+        return null;
+      }
 
-    const fetchProfile = async () => {
+      const shouldShowLoader = options?.showLoader !== false;
+
       try {
-        setLoading(true);
+        if (shouldShowLoader) {
+          setLoading(true);
+        }
         const data = await doctorProfileAPI.getMyProfile();
         setProfile(data);
         setError(null);
+        return data;
       } catch (err) {
-        console.error("Error fetching doctor profile:", err);
-        setError(err.response?.data?.message || "Failed to load profile");
+        console.error('Error fetching doctor profile:', err);
+        setError(err.response?.data?.message || 'Failed to load profile');
         // Initialize with empty profile if not found
         setProfile({});
+        return null;
       } finally {
-        setLoading(false);
+        if (shouldShowLoader) {
+          setLoading(false);
+        }
       }
-    };
+    },
+    [user]
+  );
 
+  useEffect(() => {
     fetchProfile();
-  }, [user]);
+  }, [fetchProfile]);
 
   // Update doctor profile
-  const updateProfile = async (data) => {
+  const updateProfile = async (data, options = {}) => {
     try {
       setLoading(true);
       const updated = await doctorProfileAPI.updateMyProfile(data);
       setProfile(updated);
       setError(null);
-      toast.success("Profile updated successfully!");
+      const { showToast = true, successMessage } = options;
+      if (showToast) {
+        toast.success(successMessage || 'Profile updated successfully!');
+      }
       return updated;
     } catch (err) {
       const message =
         err.response?.data?.message ||
         err.message ||
-        "Failed to update profile";
-      console.error("Update profile error:", {
+        'Failed to update profile';
+      console.error('Update profile error:', {
         status: err.response?.status,
         message: message,
         data: err.response?.data,
@@ -67,5 +81,6 @@ export const useDoctorProfile = () => {
     loading,
     error,
     updateProfile,
+    refreshProfile: fetchProfile,
   };
 };

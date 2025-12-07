@@ -52,3 +52,21 @@ export class ResendVerificationDto {
   @IsEmail()
   email: string;
 }
+
+export class UpdateProfileDto {
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  firstName?: string;
+
+  @IsOptional()
+  @IsString()
+  lastName?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+}

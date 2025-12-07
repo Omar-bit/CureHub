@@ -47,9 +47,14 @@ model DoctorProfile {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Professional Information
-  specialization  String?
-  bio             String? @db.Text
-  profileImageUrl String?
+  specialization     String?
+  bio                String?   @db.Text
+  profileImageUrl    String?
+  professionalStatus String?
+  title              String?
+  gender             String?
+  dateOfBirth        DateTime? @db.Date
+  confidentialCode   String?
 
   // Medical License and Registration (Votre activité)
   rppsNumber          String? @unique // RPPS number

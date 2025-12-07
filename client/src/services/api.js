@@ -65,6 +65,9 @@ export const authAPI = {
   getProfile: () => api.get('/auth/profile').then((res) => res.data),
 
   getCurrentUser: () => api.get('/auth/me').then((res) => res.data),
+
+  updateProfile: (data) =>
+    api.patch('/auth/profile', data).then((res) => res.data),
 };
 
 export const patientAPI = {

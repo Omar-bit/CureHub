@@ -7,6 +7,11 @@ export interface CreateDoctorProfileDto {
   specialization?: string;
   bio?: string;
   profileImageUrl?: string;
+  professionalStatus?: string;
+  title?: string;
+  gender?: string;
+  dateOfBirth?: Date | string | null;
+  confidentialCode?: string;
   // Professional info fields
   rppsNumber?: string;
   sirenNumber?: string;
@@ -36,6 +41,16 @@ export class DoctorProfileService {
       specialization: createDoctorProfileDto.specialization,
       bio: createDoctorProfileDto.bio,
       profileImageUrl: createDoctorProfileDto.profileImageUrl,
+      professionalStatus: createDoctorProfileDto.professionalStatus,
+      title: createDoctorProfileDto.title,
+      gender: createDoctorProfileDto.gender,
+      dateOfBirth:
+        createDoctorProfileDto.dateOfBirth === undefined
+          ? undefined
+          : createDoctorProfileDto.dateOfBirth
+            ? new Date(createDoctorProfileDto.dateOfBirth)
+            : null,
+      confidentialCode: createDoctorProfileDto.confidentialCode,
       rppsNumber: createDoctorProfileDto.rppsNumber,
       sirenNumber: createDoctorProfileDto.sirenNumber,
       languagesSpoken: createDoctorProfileDto.languagesSpoken,
@@ -129,6 +144,18 @@ export class DoctorProfileService {
       data.bio = updateDoctorProfileDto.bio;
     if (updateDoctorProfileDto.profileImageUrl !== undefined)
       data.profileImageUrl = updateDoctorProfileDto.profileImageUrl;
+    if (updateDoctorProfileDto.professionalStatus !== undefined)
+      data.professionalStatus = updateDoctorProfileDto.professionalStatus;
+    if (updateDoctorProfileDto.title !== undefined)
+      data.title = updateDoctorProfileDto.title;
+    if (updateDoctorProfileDto.gender !== undefined)
+      data.gender = updateDoctorProfileDto.gender;
+    if (updateDoctorProfileDto.dateOfBirth !== undefined)
+      data.dateOfBirth = updateDoctorProfileDto.dateOfBirth
+        ? new Date(updateDoctorProfileDto.dateOfBirth)
+        : null;
+    if (updateDoctorProfileDto.confidentialCode !== undefined)
+      data.confidentialCode = updateDoctorProfileDto.confidentialCode;
 
     // Professional info fields
     if (updateDoctorProfileDto.rppsNumber !== undefined)

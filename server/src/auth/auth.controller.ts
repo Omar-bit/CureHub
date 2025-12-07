@@ -7,16 +7,17 @@ import {
   HttpCode,
   HttpStatus,
   Res,
-  Req,
+  Patch,
 } from '@nestjs/common';
 import { I18nLang } from 'nestjs-i18n';
-import type { Response, Request } from 'express';
+import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import {
   LoginDto,
   RegisterDto,
   VerifyEmailDto,
   ResendVerificationDto,
+  UpdateProfileDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Public } from './decorators/public.decorator';
@@ -83,6 +84,15 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async getCurrentUser(@CurrentUser() user: Omit<User, 'password'>) {
     return user;
+  }
+
+  @Patch('profile')
+  @UseGuards(JwtAuthGuard)
+  async updateProfile(
+    @CurrentUser() user: Omit<User, 'password'>,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    return this.authService.updateProfile(user.id, updateProfileDto);
   }
 
   // Email verification endpoints

@@ -121,6 +121,19 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  const setUserData = useCallback((updatedUser) => {
+    if (!updatedUser) {
+      localStorage.removeItem('user');
+      setUser(null);
+      setIsAuthenticated(false);
+      return;
+    }
+
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    setUser(updatedUser);
+    setIsAuthenticated(true);
+  }, []);
+
   const verifyEmail = async (email, code) => {
     try {
       const response = await authAPI.verifyEmail({ email, code });
@@ -175,6 +188,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     verifyEmail,
     resendVerification,
+    setUserData,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
