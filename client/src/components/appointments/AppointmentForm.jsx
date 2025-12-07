@@ -146,13 +146,14 @@ const AppointmentForm = ({
       }
     } else if (selectedDate) {
       // Creating new appointment with selected date
+      const timeFromSelectedDate = format(selectedDate, 'HH:mm');
       setFormData((prev) => ({
         ...prev,
         date: format(selectedDate, 'yyyy-MM-dd'),
-        startTime: '09:00',
+        startTime: timeFromSelectedDate,
       }));
       setSelectedPatients([]);
-      setManualTime('09:00');
+      setManualTime(timeFromSelectedDate);
     } else {
       // Reset form
       setFormData({
