@@ -1,4 +1,10 @@
-import React, { useState, useImperativeHandle, forwardRef } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useImperativeHandle,
+  forwardRef,
+  useRef,
+} from 'react';
 import { Calendar, Grid3X3, MoreHorizontal } from 'lucide-react';
 import DayView from './DayView';
 import WeekView from './WeekView';
@@ -15,17 +21,31 @@ const CalendarView = forwardRef(
       mainColor = '#FFA500',
       defaultView = 'day',
       isTabOpen = false,
+      onDateChange = () => {},
     },
     ref
   ) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [view, setView] = useState(defaultView);
+    const onDateChangeRef = useRef(onDateChange);
+
+    const normalizeDate = (value) => {
+      if (!value) {
+        return new Date();
+      }
+      return value instanceof Date ? new Date(value) : new Date(value);
+    };
+
+    const updateDate = (value) => {
+      setCurrentDate(normalizeDate(value));
+    };
 
     // Expose methods to parent components
     useImperativeHandle(ref, () => ({
       navigateToDate: (date) => {
-        setCurrentDate(new Date(date));
+        updateDate(date);
       },
+      getCurrentDate: () => currentDate,
     }));
 
     const viewOptions = [
@@ -35,12 +55,20 @@ const CalendarView = forwardRef(
     ];
 
     const handleDateChange = (newDate) => {
-      setCurrentDate(newDate);
+      updateDate(newDate);
     };
 
     const goToToday = () => {
-      setCurrentDate(new Date());
+      updateDate(new Date());
     };
+
+    useEffect(() => {
+      onDateChangeRef.current = onDateChange;
+    }, [onDateChange]);
+
+    useEffect(() => {
+      onDateChangeRef.current?.(currentDate);
+    }, [currentDate]);
 
     const renderCalendarView = () => {
       const commonProps = {

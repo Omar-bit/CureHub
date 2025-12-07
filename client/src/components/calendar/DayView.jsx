@@ -178,12 +178,13 @@ const DayView = ({
           <div>
             <input
               type='date'
-              // value={CalendarUtils.formatDateInput(currentDate)}
-              value={''}
-              onChange={
-                () => 'test'
-                // onDateChange(new Date(e.target.value + 'T00:00:00'))
-              }
+              value={CalendarUtils.formatDate(currentDate)}
+              onChange={(event) => {
+                const nextValue = event.target.value;
+                if (!nextValue) return;
+                const nextDate = new Date(`${nextValue}T00:00:00`);
+                onDateChange(nextDate);
+              }}
               className='border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
             />
           </div>

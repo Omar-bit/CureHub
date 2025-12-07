@@ -6,12 +6,22 @@ import React, {
   forwardRef,
 } from 'react';
 import { CalendarView } from './calendar';
+import { CalendarUtils } from './calendar/CalendarUtils';
 import { appointmentAPI, agendaPreferencesAPI } from '../services/api';
 import { showError } from '../lib/toast';
 import { Loader2 } from 'lucide-react';
 
 const CalendarSection = forwardRef(
-  ({ onAppointmentClick, onTimeSlotClick, isTabOpen = false }, ref) => {
+  (
+    {
+      onAppointmentClick,
+      onTimeSlotClick,
+      isTabOpen = false,
+      onDateChange,
+      onAppointmentsChange,
+    },
+    ref
+  ) => {
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [preferences, setPreferences] = useState({
@@ -30,7 +40,10 @@ const CalendarSection = forwardRef(
           setLoading(true);
         }
         const data = await appointmentAPI.getAll();
-        setAppointments(data.appointments || data || []);
+        const loadedAppointments = data.appointments || data || [];
+        setAppointments(loadedAppointments);
+        onAppointmentsChange?.(loadedAppointments);
+        return loadedAppointments;
       } catch (error) {
         console.error('Error loading appointments:', error);
         showError('Failed to load appointments.');
@@ -67,6 +80,15 @@ const CalendarSection = forwardRef(
         }
       },
       refreshAppointments: () => loadAppointments({ showLoader: false }),
+      getCurrentDate: () =>
+        calendarRef.current?.getCurrentDate
+          ? calendarRef.current.getCurrentDate()
+          : null,
+      getAppointmentsForDate: (date) => {
+        const targetDate = date instanceof Date ? date : new Date(date);
+        return CalendarUtils.getAppointmentsForDay(appointments, targetDate);
+      },
+      getAllAppointments: () => appointments,
     }));
 
     // Load appointments
@@ -119,6 +141,7 @@ const CalendarSection = forwardRef(
           mainColor={preferences.mainColor}
           defaultView='day'
           isTabOpen={isTabOpen}
+          onDateChange={onDateChange}
         />
       </div>
     );

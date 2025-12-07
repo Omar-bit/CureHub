@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import PatientManagement from '../components/PatientManagement';
@@ -8,6 +8,9 @@ import TaskManagement from '../components/tasks/TaskManagement';
 import EventManagement from '../components/EventManagement';
 import ImprevusManagement from '../components/ImprevusManagement';
 import AgendaPreferences from '../components/AgendaPreferences';
+import AgendaPrintTab from '../components/AgendaPrintTab';
+import { useDoctorProfile } from '../hooks/useDoctorProfile';
+import { appointmentAPI } from '../services/api';
 import {
   Users,
   Calendar,
@@ -20,6 +23,7 @@ import {
   CalendarDays,
   AlertTriangle,
   Settings,
+  Printer,
 } from 'lucide-react';
 
 // Agenda sidebar navigation items
@@ -61,6 +65,12 @@ const agendaSidebarItems = [
     color: 'bg-yellow-500',
   },
   {
+    id: 'imprimer',
+    label: 'Imprimer',
+    icon: Printer,
+    color: 'bg-black',
+  },
+  {
     id: 'payments',
     label: 'Payments',
     icon: CreditCard,
@@ -77,6 +87,7 @@ const TabContent = ({
   onAppointmentDeleted,
   onAppointmentUpdated,
   onImprevuChanged,
+  printTabProps,
 }) => {
   const renderTabContent = () => {
     switch (activeTab) {
@@ -101,6 +112,8 @@ const TabContent = ({
         return <ImprevusManagement onImprevuChanged={onImprevuChanged} />;
       case 'vue':
         return <AgendaPreferences />;
+      case 'imprimer':
+        return <AgendaPrintTab {...printTabProps} />;
       case 'payments':
         return (
           <div className='p-4 sm:p-6'>
@@ -236,19 +249,51 @@ const AgendaSidebar = ({ activeTab, setActiveTab, isVisible, onClose }) => {
 const AgendaPage = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
+  const { profile: doctorProfile, loading: doctorProfileLoading } =
+    useDoctorProfile();
   const [activeTab, setActiveTab] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const calendarRef = useRef();
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [dailyAppointments, setDailyAppointments] = useState([]);
+  const [isAppointmentsReady, setIsAppointmentsReady] = useState(false);
 
   // Appointment panel state
   const [appointmentPanelMode, setAppointmentPanelMode] = useState('create');
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [selectedDateTime, setSelectedDateTime] = useState(null);
 
+  const syncDailyAppointments = useCallback(
+    (dateOverride) => {
+      if (!calendarRef.current?.getAppointmentsForDate) {
+        return;
+      }
+
+      const targetDateRaw =
+        dateOverride !== undefined && dateOverride !== null
+          ? dateOverride
+          : selectedDate;
+      const targetDate =
+        targetDateRaw instanceof Date
+          ? new Date(targetDateRaw)
+          : new Date(targetDateRaw);
+
+      if (Number.isNaN(targetDate.getTime())) {
+        return;
+      }
+
+      const appointmentsForDay =
+        calendarRef.current.getAppointmentsForDate(targetDate) || [];
+      setDailyAppointments(appointmentsForDay);
+    },
+    [selectedDate]
+  );
+
   // Handle appointment creation
   const handleAppointmentCreated = async (appointmentDate) => {
     if (calendarRef.current) {
       // Refresh appointments to show the new one
+      setIsAppointmentsReady(false);
       await calendarRef.current.refreshAppointments();
 
       // Navigate to the appointment's date
@@ -260,6 +305,7 @@ const AgendaPage = () => {
 
   const handleAppointmentDeleted = async () => {
     if (calendarRef.current) {
+      setIsAppointmentsReady(false);
       await calendarRef.current.refreshAppointments();
     }
     setSelectedAppointment(null);
@@ -268,6 +314,7 @@ const AgendaPage = () => {
 
   const handleAppointmentUpdated = async (updatedAppointment) => {
     if (calendarRef.current) {
+      setIsAppointmentsReady(false);
       await calendarRef.current.refreshAppointments();
       if (updatedAppointment?.startTime) {
         calendarRef.current.navigateToDate(updatedAppointment.startTime);
@@ -314,6 +361,7 @@ const AgendaPage = () => {
   // Handle imprevu changes (create/update/delete)
   const handleImprevuChanged = async () => {
     if (calendarRef.current) {
+      setIsAppointmentsReady(false);
       await calendarRef.current.refreshAppointments();
     }
   };
@@ -332,6 +380,44 @@ const AgendaPage = () => {
     mode: appointmentPanelMode,
     appointment: selectedAppointment,
     selectedDateTime: selectedDateTime,
+  };
+
+  const handleCalendarDateChange = useCallback(
+    (date) => {
+      if (!date) return;
+      const normalizedDate =
+        date instanceof Date ? new Date(date) : new Date(date);
+      if (Number.isNaN(normalizedDate.getTime())) return;
+      setSelectedDate(normalizedDate);
+      syncDailyAppointments(normalizedDate);
+    },
+    [syncDailyAppointments]
+  );
+
+  const handleAppointmentsChange = useCallback(() => {
+    syncDailyAppointments();
+    setIsAppointmentsReady(true);
+  }, [syncDailyAppointments]);
+
+  const handlePrintRefresh = useCallback(async () => {
+    if (!calendarRef.current) return;
+    setIsAppointmentsReady(false);
+    await calendarRef.current.refreshAppointments();
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'imprimer') {
+      syncDailyAppointments();
+    }
+  }, [activeTab, syncDailyAppointments]);
+
+  const printTabProps = {
+    selectedDate,
+    appointments: dailyAppointments,
+    doctorUser: user,
+    doctorProfile,
+    isLoading: doctorProfileLoading || !isAppointmentsReady,
+    onRefresh: handlePrintRefresh,
   };
 
   return (
@@ -377,6 +463,8 @@ const AgendaPage = () => {
             onAppointmentClick={handleAppointmentClick}
             onTimeSlotClick={handleTimeSlotClick}
             isTabOpen={!!activeTab}
+            onDateChange={handleCalendarDateChange}
+            onAppointmentsChange={handleAppointmentsChange}
           />
         </div>
 
@@ -395,6 +483,7 @@ const AgendaPage = () => {
               onAppointmentDeleted={handleAppointmentDeleted}
               onAppointmentUpdated={handleAppointmentUpdated}
               onImprevuChanged={handleImprevuChanged}
+              printTabProps={printTabProps}
             />
           </div>
         )}
