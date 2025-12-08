@@ -21,11 +21,14 @@ import {
   CheckSquare,
   CalendarDays,
   X,
+  UserPlus,
+  Edit,
+  Trash,
 } from 'lucide-react';
 import { SheetContent, SheetHeader, SheetTitle, SheetFooter } from './ui/sheet';
 import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { appointmentAPI } from '../services/api';
+import { appointmentAPI, taskAPI } from '../services/api';
 import PatientDocumentsTab from './PatientDocumentsTab';
 import PatientRelativesTab from './PatientRelativesTab';
 import PatientActesTab from './PatientActesTab';
@@ -132,6 +135,10 @@ const PatientDetailsSheet = ({
   const [loadingAppointments, setLoadingAppointments] = useState(false);
   const [showAppointmentForm, setShowAppointmentForm] = useState(false);
   const [preSelectedPatientId, setPreSelectedPatientId] = useState(null);
+  const [tasks, setTasks] = useState([]);
+  const [loadingTasks, setLoadingTasks] = useState(false);
+  const [timelineEvents, setTimelineEvents] = useState([]);
+  const [loadingTimeline, setLoadingTimeline] = useState(false);
   const patientName = patient.name.includes('!SP!')
     ? patient.name.split('!SP!').join(' ')
     : patient.name;
@@ -144,6 +151,20 @@ const PatientDetailsSheet = ({
       fetchPatientAppointments();
     }
   }, [patient?.id, activeTab, isOpen]);
+
+  // Fetch tasks when historique tab is active
+  useEffect(() => {
+    if (patient?.id && activeTab === 'historique') {
+      fetchPatientTasks();
+    }
+  }, [patient?.id, activeTab]);
+
+  // Build timeline when data is available
+  useEffect(() => {
+    if (activeTab === 'historique') {
+      buildTimeline();
+    }
+  }, [appointments, tasks, patient, activeTab]);
 
   // Update active tab when initialTab prop changes
   useEffect(() => {
@@ -190,6 +211,157 @@ const PatientDetailsSheet = ({
       setAppointments({ upcoming: [], past: [], cancelled: [] });
     } finally {
       setLoadingAppointments(false);
+    }
+  };
+
+  const fetchPatientTasks = async () => {
+    if (!patient?.id) return;
+
+    setLoadingTasks(true);
+    try {
+      const response = await taskAPI.getAll({ patientId: patient.id });
+      setTasks(response || []);
+    } catch (error) {
+      console.error('Error fetching patient tasks:', error);
+      setTasks([]);
+    } finally {
+      setLoadingTasks(false);
+    }
+  };
+
+  const buildTimeline = () => {
+    setLoadingTimeline(true);
+    try {
+      const events = [];
+
+      // Add patient creation event
+      if (patient?.createdAt) {
+        events.push({
+          id: `patient-created-${patient.id}`,
+          type: 'patient_created',
+          date: new Date(patient.createdAt),
+          title: 'Patient créé',
+          description: `Le dossier patient a été créé`,
+          icon: 'UserPlus',
+          color: 'green',
+        });
+      }
+
+      // Add patient update event (if updated after creation)
+      if (patient?.updatedAt && patient?.createdAt) {
+        const createdDate = new Date(patient.createdAt).getTime();
+        const updatedDate = new Date(patient.updatedAt).getTime();
+        // Only add if there's a meaningful difference (more than 1 minute)
+        if (updatedDate - createdDate > 60000) {
+          events.push({
+            id: `patient-updated-${patient.id}`,
+            type: 'patient_updated',
+            date: new Date(patient.updatedAt),
+            title: 'Informations mises à jour',
+            description: `Le dossier patient a été modifié`,
+            icon: 'Edit',
+            color: 'blue',
+          });
+        }
+      }
+
+      // Add appointments
+      const allAppointments = [
+        ...appointments.upcoming,
+        ...appointments.past,
+        ...appointments.cancelled,
+      ];
+
+      allAppointments.forEach((apt) => {
+        const aptDate = new Date(apt.startTime);
+        const now = new Date();
+        let eventType = 'appointment_scheduled';
+        let title = 'Rendez-vous programmé';
+        let description = '';
+
+        if (apt.status === 'CANCELLED') {
+          eventType = 'appointment_cancelled';
+          title = 'Rendez-vous annulé';
+          description = apt.consultationType?.name || 'Consultation';
+        } else if (apt.status === 'COMPLETED') {
+          eventType = 'appointment_completed';
+          title = 'Rendez-vous terminé';
+          description = apt.consultationType?.name || 'Consultation';
+        } else if (aptDate < now) {
+          eventType = 'appointment_past';
+          title = 'Rendez-vous passé';
+          description = apt.consultationType?.name || 'Consultation';
+        } else {
+          description = apt.consultationType?.name || 'Consultation';
+        }
+
+        events.push({
+          id: `appointment-${apt.id}`,
+          type: eventType,
+          date: aptDate,
+          title: title,
+          description: description,
+          icon: 'Calendar',
+          color:
+            apt.status === 'CANCELLED'
+              ? 'red'
+              : aptDate > now
+              ? 'blue'
+              : 'gray',
+          metadata: apt,
+        });
+      });
+
+      // Add tasks
+      tasks.forEach((task) => {
+        const taskDate = task.dueDate
+          ? new Date(task.dueDate)
+          : new Date(task.createdAt);
+
+        let eventType = task.completed ? 'task_completed' : 'task_created';
+        let title = task.completed ? 'Tâche terminée' : 'Tâche créée';
+        let color = task.completed
+          ? 'green'
+          : task.priority === 'HIGH'
+          ? 'red'
+          : 'orange';
+
+        events.push({
+          id: `task-${task.id}`,
+          type: eventType,
+          date: taskDate,
+          title: title,
+          description: task.title || task.description || 'Tâche',
+          icon: 'CheckSquare',
+          color: color,
+          metadata: task,
+        });
+
+        // Add completion event if task is completed and has completedAt date
+        if (task.completed && task.completedAt) {
+          const completedDate = new Date(task.completedAt);
+          events.push({
+            id: `task-completed-${task.id}`,
+            type: 'task_completed',
+            date: completedDate,
+            title: 'Tâche marquée comme terminée',
+            description: task.title || task.description || 'Tâche',
+            icon: 'CheckSquare',
+            color: 'green',
+            metadata: task,
+          });
+        }
+      });
+
+      // Sort events by date (most recent first)
+      events.sort((a, b) => b.date - a.date);
+
+      setTimelineEvents(events);
+    } catch (error) {
+      console.error('Error building timeline:', error);
+      setTimelineEvents([]);
+    } finally {
+      setLoadingTimeline(false);
     }
   };
 
@@ -286,6 +458,57 @@ const PatientDetailsSheet = ({
 
     // Last fallback
     return 'Médecin';
+  };
+
+  const getEventIcon = (iconName) => {
+    const icons = {
+      UserPlus: UserPlus,
+      Edit: Edit,
+      Calendar: Calendar,
+      CheckSquare: CheckSquare,
+      Trash: Trash,
+      X: X,
+    };
+    const IconComponent = icons[iconName] || Activity;
+    return IconComponent;
+  };
+
+  const getEventColorClass = (color) => {
+    const colorClasses = {
+      green: 'bg-green-100 text-green-600 border-green-200',
+      blue: 'bg-blue-100 text-blue-600 border-blue-200',
+      red: 'bg-red-100 text-red-600 border-red-200',
+      orange: 'bg-orange-100 text-orange-600 border-orange-200',
+      gray: 'bg-gray-100 text-gray-600 border-gray-200',
+      purple: 'bg-purple-100 text-purple-600 border-purple-200',
+    };
+    return colorClasses[color] || 'bg-gray-100 text-gray-600 border-gray-200';
+  };
+
+  const formatTimelineDate = (date) => {
+    const now = new Date();
+    const eventDate = new Date(date);
+    const diffInDays = Math.floor((now - eventDate) / (1000 * 60 * 60 * 24));
+
+    if (diffInDays === 0) {
+      return `Aujourd'hui à ${eventDate.toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+      })}`;
+    } else if (diffInDays === 1) {
+      return `Hier à ${eventDate.toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+      })}`;
+    } else if (diffInDays < 7) {
+      return `Il y a ${diffInDays} jours`;
+    } else {
+      return eventDate.toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      });
+    }
   };
 
   const handleNewAppointment = () => {
@@ -787,7 +1010,7 @@ const PatientDetailsSheet = ({
           </TabsContent>
 
           <TabsContent value='historique' className='space-y-4'>
-            {loadingAppointments ? (
+            {loadingAppointments || loadingTasks || loadingTimeline ? (
               <div className='flex items-center justify-center py-8'>
                 <Loader2 className='w-6 h-6 animate-spin text-primary' />
                 <span className='ml-2 text-muted-foreground'>
@@ -795,184 +1018,141 @@ const PatientDetailsSheet = ({
                 </span>
               </div>
             ) : (
-              <div className='space-y-6'>
-                {/* Header with scheduled tasks indicator */}
-                {appointments.upcoming.length > 0 && (
-                  <div className='bg-yellow-50 border border-yellow-200 rounded-lg p-3'>
-                    <div className='flex items-center gap-2 text-yellow-800'>
-                      <Clock className='w-4 h-4' />
-                      <span className='font-medium'>Tâches programmées</span>
-                    </div>
-                  </div>
-                )}
+              <div className='space-y-4'>
+                {/* Header */}
+                <div className='flex items-center justify-between'>
+                  <h3 className='text-lg font-semibold text-foreground flex items-center gap-2'>
+                    <History className='w-5 h-5 text-primary' />
+                    Historique complet
+                    <span className='text-sm font-normal text-muted-foreground'>
+                      ({timelineEvents.length} événements)
+                    </span>
+                  </h3>
+                </div>
 
-                {/* Upcoming Appointments */}
-                {appointments.upcoming.length > 0 && (
-                  <div className='space-y-3'>
-                    <div className='flex items-center justify-between'>
-                      <h3 className='text-lg font-semibold text-foreground'>
-                        RDV à venir
-                      </h3>
-                      <Button size='sm' variant='outline' className='text-xs'>
-                        <Plus className='w-3 h-3 mr-1' />
-                        {new Date().getFullYear()}
-                      </Button>
-                    </div>
+                {/* Timeline */}
+                {timelineEvents.length > 0 ? (
+                  <div className='relative space-y-4'>
+                    {/* Timeline line */}
+                    <div className='absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200'></div>
 
-                    {appointments.upcoming.map((appointment) => {
-                      const dateTime = formatDateTime(appointment.startTime);
-                      const urgency = getUrgencyLevel(appointment);
-                      const doctorName = getDoctorName(appointment);
-                      const appointmentType = getAppointmentTypeLabel(
-                        appointment.consultationType
-                      );
+                    {timelineEvents.map((event, index) => {
+                      const IconComponent = getEventIcon(event.icon);
+                      const colorClass = getEventColorClass(event.color);
 
                       return (
                         <div
-                          key={appointment.id}
-                          className='border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow'
+                          key={event.id}
+                          className='relative flex gap-4 items-start'
                         >
-                          <div className='flex items-start gap-4'>
-                            {/* Left section - Date and Type */}
-                            <div className='flex flex-col items-center min-w-[60px]'>
-                              <div className='bg-red-500 text-white text-xs font-medium px-2 py-1 rounded mb-2'>
-                                {appointmentType}
-                              </div>
-                              <div className='text-center'>
-                                <div className='text-xs text-gray-500 uppercase'>
-                                  {dateTime.date.split(' ')[0]}
-                                </div>
-                                <div className='text-xl font-bold text-gray-900'>
-                                  {dateTime.date.split(' ')[1]}
-                                </div>
-                                <div className='text-xs text-gray-500 mt-1'>
-                                  {dateTime.time}
-                                </div>
-                              </div>
-                            </div>
+                          {/* Icon */}
+                          <div
+                            className={`flex-shrink-0 w-12 h-12 rounded-full border-2 ${colorClass} flex items-center justify-center z-10`}
+                          >
+                            <IconComponent className='w-5 h-5' />
+                          </div>
 
-                            {/* Middle section - Doctor and Urgency */}
-                            <div className='flex-1'>
-                              <div className='flex items-center gap-2 mb-2'>
-                                <User className='w-4 h-4 text-yellow-500' />
-                                <span className='font-medium text-gray-900'>
-                                  {doctorName}
-                                </span>
-                              </div>
-                              <div className='flex items-center gap-2'>
-                                <div className='w-2 h-2 bg-red-500 rounded-full'></div>
-                                <span className='text-sm text-red-600 font-medium'>
-                                  {urgency}
-                                </span>
-                              </div>
-                            </div>
+                          {/* Content */}
+                          <div className='flex-1 bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow'>
+                            <div className='flex items-start justify-between gap-4'>
+                              <div className='flex-1'>
+                                <h4 className='font-semibold text-foreground mb-1'>
+                                  {event.title}
+                                </h4>
+                                <p className='text-sm text-muted-foreground mb-2'>
+                                  {event.description}
+                                </p>
+                                <div className='flex items-center gap-2 text-xs text-muted-foreground'>
+                                  <Clock className='w-3 h-3' />
+                                  <span>{formatTimelineDate(event.date)}</span>
+                                </div>
 
-                            {/* Right section - Action button */}
-                            <div className='flex items-start'>
-                              <Button
-                                size='sm'
-                                className='bg-purple-500 hover:bg-purple-600 text-white text-xs px-3 py-1.5 rounded-md'
+                                {/* Additional metadata for appointments */}
+                                {event.metadata &&
+                                  event.type.startsWith('appointment') && (
+                                    <div className='mt-3 pt-3 border-t border-gray-100'>
+                                      <div className='flex items-center gap-4 text-xs text-muted-foreground'>
+                                        <div className='flex items-center gap-1'>
+                                          <User className='w-3 h-3' />
+                                          <span>
+                                            {getDoctorName(event.metadata)}
+                                          </span>
+                                        </div>
+                                        <div className='flex items-center gap-1'>
+                                          <AlertCircle className='w-3 h-3' />
+                                          <span>
+                                            {getAppointmentStatusLabel(
+                                              event.metadata.status
+                                            )}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                {/* Additional metadata for tasks */}
+                                {event.metadata &&
+                                  event.type.startsWith('task') && (
+                                    <div className='mt-3 pt-3 border-t border-gray-100'>
+                                      <div className='flex items-center gap-4 text-xs text-muted-foreground'>
+                                        {event.metadata.priority && (
+                                          <div className='flex items-center gap-1'>
+                                            <AlertCircle className='w-3 h-3' />
+                                            <span>
+                                              Priorité:{' '}
+                                              {event.metadata.priority ===
+                                              'HIGH'
+                                                ? 'Haute'
+                                                : event.metadata.priority ===
+                                                  'MEDIUM'
+                                                ? 'Moyenne'
+                                                : 'Basse'}
+                                            </span>
+                                          </div>
+                                        )}
+                                        {event.metadata.completed && (
+                                          <div className='flex items-center gap-1'>
+                                            <CheckSquare className='w-3 h-3 text-green-600' />
+                                            <span className='text-green-600'>
+                                              Terminée
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                              </div>
+
+                              {/* Event type badge */}
+                              <div
+                                className={`px-2 py-1 rounded text-xs font-medium ${
+                                  event.color === 'green'
+                                    ? 'bg-green-50 text-green-700'
+                                    : event.color === 'blue'
+                                    ? 'bg-blue-50 text-blue-700'
+                                    : event.color === 'red'
+                                    ? 'bg-red-50 text-red-700'
+                                    : event.color === 'orange'
+                                    ? 'bg-orange-50 text-orange-700'
+                                    : 'bg-gray-50 text-gray-700'
+                                }`}
                               >
-                                <Send className='w-3 h-3 mr-1' />
-                                Envoyer un rappel
-                              </Button>
+                                {event.type
+                                  .replace('_', ' ')
+                                  .replace(/\b\w/g, (l) => l.toUpperCase())}
+                              </div>
                             </div>
-                          </div>
-
-                          {/* Bottom chevron */}
-                          <div className='flex justify-center mt-3 pt-2 border-t border-gray-100'>
-                            <ChevronDown className='w-4 h-4 text-gray-400' />
                           </div>
                         </div>
                       );
                     })}
                   </div>
-                )}
-
-                {/* Past Appointments */}
-                {appointments.past.length > 0 && (
-                  <div className='space-y-3'>
-                    <h3 className='text-lg font-semibold text-foreground'>
-                      RDV passés
-                    </h3>
-                    <div className='flex items-center justify-between'>
-                      <span className='text-sm text-muted-foreground'>
-                        {new Date().getFullYear()}
-                      </span>
-                    </div>
-
-                    {appointments.past.map((appointment) => {
-                      const dateTime = formatDateTime(appointment.startTime);
-                      const urgency = getUrgencyLevel(appointment);
-                      const doctorName = getDoctorName(appointment);
-                      const appointmentType = getAppointmentTypeLabel(
-                        appointment.consultationType
-                      );
-
-                      return (
-                        <div
-                          key={appointment.id}
-                          className='border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow'
-                        >
-                          <div className='flex items-start gap-4'>
-                            {/* Left section - Date and Type */}
-                            <div className='flex flex-col items-center min-w-[60px]'>
-                              <div className='bg-red-500 text-white text-xs font-medium px-2 py-1 rounded mb-2'>
-                                {appointmentType}
-                              </div>
-                              <div className='text-center'>
-                                <div className='text-xs text-gray-500 uppercase'>
-                                  {dateTime.date.split(' ')[0]}
-                                </div>
-                                <div className='text-xl font-bold text-gray-900'>
-                                  {dateTime.date.split(' ')[1]}
-                                </div>
-                                <div className='text-xs text-gray-500 mt-1'>
-                                  {dateTime.time}
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Middle section - Doctor and Urgency */}
-                            <div className='flex-1'>
-                              <div className='flex items-center gap-2 mb-2'>
-                                <User className='w-4 h-4 text-yellow-500' />
-                                <span className='font-medium text-gray-900'>
-                                  {doctorName}
-                                </span>
-                              </div>
-                              <div className='flex items-center gap-2'>
-                                <div className='w-2 h-2 bg-red-500 rounded-full'></div>
-                                <span className='text-sm text-red-600 font-medium'>
-                                  {urgency}
-                                </span>
-                              </div>
-                              <div className='text-xs text-gray-500 mt-2'>
-                                Statut:{' '}
-                                {getAppointmentStatusLabel(appointment.status)}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Bottom chevron */}
-                          <div className='flex justify-center mt-3 pt-2 border-t border-gray-100'>
-                            <ChevronDown className='w-4 h-4 text-gray-400' />
-                          </div>
-                        </div>
-                      );
-                    })}
+                ) : (
+                  <div className='text-center text-muted-foreground py-8 border rounded-lg'>
+                    <History className='w-12 h-12 mx-auto mb-4 opacity-50' />
+                    <p>Aucun événement dans l'historique</p>
                   </div>
                 )}
-
-                {/* Empty state if no appointments */}
-                {appointments.upcoming.length === 0 &&
-                  appointments.past.length === 0 &&
-                  !loadingAppointments && (
-                    <div className='text-center text-muted-foreground py-8'>
-                      <History className='w-12 h-12 mx-auto mb-4 opacity-50' />
-                      <p>Aucun rendez-vous dans l'historique</p>
-                    </div>
-                  )}
               </div>
             )}
           </TabsContent>
