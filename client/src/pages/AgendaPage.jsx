@@ -92,7 +92,9 @@ const TabContent = ({
   const renderTabContent = () => {
     switch (activeTab) {
       case 'patients':
-        return <PatientManagement />;
+        return (
+          <PatientManagement onAppointmentCreated={onAppointmentCreated} />
+        );
       case 'meetings':
         return (
           <AppointmentPanel

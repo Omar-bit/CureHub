@@ -85,7 +85,7 @@ const PatientCard = ({ patient, onEdit, onDelete, onView }) => {
     {
       icon: CalendarDays,
       label: 'RDV',
-      onClick: () => console.log('RDV clicked'),
+      onClick: () => onView(patient, 'rdv'),
       variant: 'secondary',
       badge: true,
     },

@@ -12,6 +12,7 @@ import {
   Users,
 } from 'lucide-react';
 import { api, patientAPI } from '../services/api';
+import { consultationTypesAPI } from '../services/api';
 import {
   showSuccess,
   showError,
@@ -31,7 +32,7 @@ import PatientDetailsSheet from './PatientDetailsSheet';
 import PatientFormSheet from './PatientFormSheet';
 
 // Main Patient Management Component
-const PatientManagement = () => {
+const PatientManagement = ({ onAppointmentCreated }) => {
   const { t } = useTranslation();
 
   // Search categories configuration
@@ -44,6 +45,7 @@ const PatientManagement = () => {
   ];
   const [patients, setPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
+  const [consultationTypes, setConsultationTypes] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchCategory, setSearchCategory] = useState('name');
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -105,8 +107,12 @@ const PatientManagement = () => {
   const loadPatients = async () => {
     try {
       setIsLoading(true);
-      const response = await patientAPI.getAll();
-      setPatients(response);
+      const [patientsResponse, consultationTypesResponse] = await Promise.all([
+        patientAPI.getAll(),
+        consultationTypesAPI.getAll(),
+      ]);
+      setPatients(patientsResponse);
+      setConsultationTypes(consultationTypesResponse);
       setError('');
     } catch (error) {
       const errorMessage = 'Failed to load patients';
@@ -274,6 +280,9 @@ const PatientManagement = () => {
           onDelete={handleDeletePatient}
           initialTab={selectedTab}
           onView={handleViewPatient}
+          patients={patients}
+          consultationTypes={consultationTypes}
+          onAppointmentCreated={onAppointmentCreated}
         />
       )}
 
