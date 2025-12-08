@@ -23,6 +23,17 @@ const DayView = ({
   mainColor = '#FFA500',
   isTabOpen = false,
 }) => {
+  const [currentTimePosition, setCurrentTimePosition] = React.useState(null);
+
+  // Update current time every 5 minutes
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      getCurrentTimePosition();
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => clearInterval(interval);
+  }, []);
+
   const timeSlots = CalendarUtils.generateTimeSlots(
     workingHours.start,
     workingHours.end,
@@ -93,6 +104,23 @@ const DayView = ({
   };
 
   const appointmentLayouts = calculateAppointmentLayout(dayAppointments);
+
+  // Calculate current time indicator position
+  const getCurrentTimePosition = () => {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    // Only show if it's today and within working hours
+    const isToday =
+      CalendarUtils.formatDate(now) === CalendarUtils.formatDate(currentDate);
+    if (!isToday || hours < workingHours.start || hours >= workingHours.end) {
+      return null;
+    }
+
+    const minutesFromStart = (hours - workingHours.start) * 60 + minutes;
+    const position = minutesFromStart * verticalZoom;
+    setCurrentTimePosition(position);
+  };
 
   // Get status icon and background color based on appointment status
   const getStatusIcon = (status) => {
@@ -255,11 +283,48 @@ const DayView = ({
                   style={{ height: `${60 * verticalZoom}px` }}
                   onClick={() => handleTimeSlotClick(timeSlot)}
                 >
-                  <div className='h-full w-full'></div>
+                  <div className='h-full w-full relative'>
+                    {/* 15-minute mark */}
+                    <div
+                      className='absolute left-0 right-0 border-t border-gray-100'
+                      style={{ top: `${15 * verticalZoom}px` }}
+                    />
+                    {/* 30-minute mark */}
+                    <div
+                      className='absolute left-0 right-0 border-t border-gray-100'
+                      style={{ top: `${30 * verticalZoom}px` }}
+                    />
+                    {/* 45-minute mark */}
+                    <div
+                      className='absolute left-0 right-0 border-t border-gray-100'
+                      style={{ top: `${45 * verticalZoom}px` }}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
           ))}
+
+          {/* Current Time Indicator */}
+          {currentTimePosition !== null && (
+            <div
+              className='absolute left-0 right-0 z-20 pointer-events-none'
+              style={{ top: `${currentTimePosition}px` }}
+            >
+              <div className='relative flex items-center'>
+                {/* Circle */}
+                <div
+                  className='w-3 h-3 rounded-full border-2 border-white shadow-lg ml-12'
+                  style={{ backgroundColor: mainColor }}
+                />
+                {/* Line */}
+                <div
+                  className='flex-1 h-0.5 shadow-sm'
+                  style={{ backgroundColor: mainColor }}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Appointments */}
           {appointmentLayouts.map(({ appointment, column, totalColumns }) => {
