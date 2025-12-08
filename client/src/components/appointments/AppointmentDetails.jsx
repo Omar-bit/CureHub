@@ -461,11 +461,11 @@ const AppointmentDetails = ({
                 : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
             }`}
           >
-            <Circle
-              className={`w-3 h-3 ${
+            <Clock
+              className={`w-4 h-4 ${
                 selectedStatusChip === 'waiting'
-                  ? 'fill-white'
-                  : 'fill-blue-500'
+                  ? 'text-white'
+                  : 'text-blue-500'
               }`}
             />
             En salle d'attente
@@ -479,9 +479,9 @@ const AppointmentDetails = ({
                 : 'bg-green-50 text-green-700 hover:bg-green-100'
             }`}
           >
-            <Circle
-              className={`w-3 h-3 ${
-                selectedStatusChip === 'seen' ? 'fill-white' : 'fill-green-500'
+            <CheckCircle
+              className={`w-4 h-4 ${
+                selectedStatusChip === 'seen' ? 'text-white' : 'text-green-500'
               }`}
             />
             Patient vu
@@ -495,9 +495,9 @@ const AppointmentDetails = ({
                 : 'bg-red-50 text-red-700 hover:bg-red-100'
             }`}
           >
-            <Circle
-              className={`w-3 h-3 ${
-                selectedStatusChip === 'absent' ? 'fill-white' : 'fill-red-500'
+            <XCircle
+              className={`w-4 h-4 ${
+                selectedStatusChip === 'absent' ? 'text-white' : 'text-red-500'
               }`}
             />
             Patient absent
@@ -511,11 +511,11 @@ const AppointmentDetails = ({
                 : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
             }`}
           >
-            <Circle
-              className={`w-3 h-3 ${
+            <X
+              className={`w-4 h-4 ${
                 selectedStatusChip === 'cancelled'
-                  ? 'fill-white'
-                  : 'fill-gray-500'
+                  ? 'text-white'
+                  : 'text-gray-500'
               }`}
             />
             Annulé

@@ -2,7 +2,15 @@ import React from 'react';
 import { CalendarUtils } from './CalendarUtils';
 import { getAppointmentPatientsDisplay } from '../../lib/patient';
 import { getAppointmentColorClasses } from '../../lib/consultationStyles';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Clock,
+  CheckCircle,
+  XCircle,
+  X,
+} from 'lucide-react';
 
 const DayView = ({
   currentDate,
@@ -85,6 +93,38 @@ const DayView = ({
   };
 
   const appointmentLayouts = calculateAppointmentLayout(dayAppointments);
+
+  // Get status icon and background color based on appointment status
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'SCHEDULED':
+        return (
+          <div className='bg-blue-500 rounded-full p-0.5 flex items-center justify-center'>
+            <Clock className='w-2.5 h-2.5 text-white' />
+          </div>
+        );
+      case 'COMPLETED':
+        return (
+          <div className='bg-green-500 rounded-full p-0.5 flex items-center justify-center'>
+            <CheckCircle className='w-2.5 h-2.5 text-white' />
+          </div>
+        );
+      case 'ABSENT':
+        return (
+          <div className='bg-red-500 rounded-full p-0.5 flex items-center justify-center'>
+            <XCircle className='w-2.5 h-2.5 text-white' />
+          </div>
+        );
+      case 'CANCELLED':
+        return (
+          <div className='bg-gray-500 rounded-full p-0.5 flex items-center justify-center'>
+            <X className='w-2.5 h-2.5 text-white' />
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
 
   const goToPreviousDay = () => {
     onDateChange(CalendarUtils.goToPreviousDay(currentDate));
@@ -228,6 +268,7 @@ const DayView = ({
               new Date(appointment.startTime)
             );
             const isCancelled = appointment.status === 'CANCELLED';
+            const statusIcon = getStatusIcon(appointment.status);
             return (
               <div
                 key={appointment.id}
@@ -243,9 +284,10 @@ const DayView = ({
               >
                 {/* Time Badge */}
                 <div
-                  className={`${colorClasses.bgColor} text-white px-3 py-2 font-bold text-xs whitespace-nowrap flex-shrink-0 rounded-l-lg`}
+                  className={`${colorClasses.bgColor} text-white px-3 py-2 font-bold text-xs whitespace-nowrap flex-shrink-0 rounded-l-lg flex items-center gap-1.5`}
                 >
-                  {startTime}
+                  <span>{startTime}</span>
+                  {statusIcon && <span>{statusIcon}</span>}
                 </div>
 
                 {/* Appointment Info */}

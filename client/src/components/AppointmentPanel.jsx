@@ -191,6 +191,11 @@ const AppointmentPanel = ({
 
       setCurrentAppointment(updatedAppointment);
 
+      // Notify parent component to refresh the calendar
+      if (onAppointmentUpdated) {
+        onAppointmentUpdated(updatedAppointment);
+      }
+
       showSuccess(`Appointment status updated to ${newStatus.toLowerCase()}`);
     } catch (error) {
       console.error('Error updating appointment status:', error);
