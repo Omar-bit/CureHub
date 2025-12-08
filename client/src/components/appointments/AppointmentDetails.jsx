@@ -845,61 +845,54 @@ const AppointmentDetails = ({
                   ) : history.length > 0 ? (
                     <div className='space-y-3'>
                       {history.map((entry) => {
-                        const getActionIcon = (action) => {
+                        const getActionBadge = (action) => {
                           switch (action) {
                             case 'CREATED':
-                              return (
-                                <CheckCircle className='w-4 h-4 text-green-600' />
-                              );
+                              return { text: 'CRE', bgColor: 'bg-green-500' };
                             case 'UPDATED':
                             case 'RESCHEDULED':
+                              return { text: 'EDIT', bgColor: 'bg-yellow-500' };
                             case 'CONSULTATION_TYPE_CHANGED':
-                              return <Edit className='w-4 h-4 text-blue-600' />;
+                              return { text: 'EDIT', bgColor: 'bg-yellow-500' };
                             case 'STATUS_CHANGED':
-                              return (
-                                <Circle className='w-4 h-4 text-purple-600' />
-                              );
+                              return { text: 'EDIT', bgColor: 'bg-yellow-500' };
                             case 'DOCUMENT_UPLOADED':
-                              return (
-                                <Upload className='w-4 h-4 text-green-600' />
-                              );
+                              return { text: 'DOC', bgColor: 'bg-blue-500' };
                             case 'DOCUMENT_DELETED':
-                              return (
-                                <Trash2 className='w-4 h-4 text-red-600' />
-                              );
+                              return { text: 'DEL', bgColor: 'bg-red-500' };
                             default:
-                              return (
-                                <History className='w-4 h-4 text-gray-600' />
-                              );
-                          }
-                        };
-
-                        const getActionBadgeColor = (action) => {
-                          switch (action) {
-                            case 'CREATED':
-                              return 'bg-green-100 text-green-700';
-                            case 'UPDATED':
-                            case 'RESCHEDULED':
-                            case 'CONSULTATION_TYPE_CHANGED':
-                              return 'bg-blue-100 text-blue-700';
-                            case 'STATUS_CHANGED':
-                              return 'bg-purple-100 text-purple-700';
-                            case 'DOCUMENT_UPLOADED':
-                              return 'bg-green-100 text-green-700';
-                            case 'DOCUMENT_DELETED':
-                              return 'bg-red-100 text-red-700';
-                            default:
-                              return 'bg-gray-100 text-gray-700';
+                              return { text: 'LOG', bgColor: 'bg-gray-500' };
                           }
                         };
 
                         const formatTimestamp = (timestamp) => {
                           try {
-                            const date = new Date(timestamp);
-                            const distance = formatDistanceToNow(date, {
-                              addSuffix: true,
-                              locale: fr,
-                            });
+                            // Clean up potential malformed timestamps
+                            const cleanTimestamp =
+                              timestamp?.replace(/0+Z$/, 'Z') || timestamp;
+                            const date = new Date(cleanTimestamp);
+
+                            // Check if date is valid
+                            if (isNaN(date.getTime())) {
+                              return {
+                                dayMonth: '',
+                                time: '',
+                                formattedDate: timestamp,
+                              };
+                            }
+
+                            const dayMonth = new Intl.DateTimeFormat('fr-FR', {
+                              weekday: 'short',
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: '2-digit',
+                            }).format(date);
+
+                            const time = new Intl.DateTimeFormat('fr-FR', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            }).format(date);
+
                             const formattedDate = new Intl.DateTimeFormat(
                               'fr-FR',
                               {
@@ -910,85 +903,168 @@ const AppointmentDetails = ({
                                 minute: '2-digit',
                               }
                             ).format(date);
-                            return { distance, formattedDate };
+
+                            return { dayMonth, time, formattedDate };
                           } catch (error) {
-                            return { distance: '', formattedDate: timestamp };
+                            console.error(
+                              'Error formatting timestamp:',
+                              error,
+                              timestamp
+                            );
+                            return {
+                              dayMonth: '',
+                              time: '',
+                              formattedDate: timestamp,
+                            };
                           }
                         };
 
-                        const { distance, formattedDate } = formatTimestamp(
+                        const { dayMonth, time } = formatTimestamp(
                           entry.createdAt
                         );
                         const doctorName = entry.doctor?.user
                           ? `${entry.doctor.user.firstName || ''} ${
                               entry.doctor.user.lastName || ''
                             }`.trim()
-                          : 'Système';
+                          : 'DAVID Nicole';
+
+                        const badge = getActionBadge(entry.action);
+
+                        // Extract change details for display
+                        const getChangeDetails = () => {
+                          if (entry.action === 'CREATED') {
+                            return null;
+                          }
+
+                          if (
+                            entry.changedFields &&
+                            Object.keys(entry.changedFields).length > 0
+                          ) {
+                            return Object.entries(entry.changedFields).map(
+                              ([field, change]) => {
+                                const fieldLabels = {
+                                  status: "L'acte associé au RDV",
+                                  startTime: "L'horaire du RDV",
+                                  endTime: "L'horaire du RDV",
+                                  consultationType: 'Type de consultation',
+                                  description: 'Motif de consultation',
+                                  notes: 'Note privée',
+                                };
+
+                                const fieldLabel = fieldLabels[field] || field;
+
+                                // Format values based on field type
+                                const formatValue = (value, fieldName) => {
+                                  if (!value) return '—';
+
+                                  if (
+                                    fieldName === 'startTime' ||
+                                    fieldName === 'endTime'
+                                  ) {
+                                    const cleanTimestamp =
+                                      value?.replace(/0+Z$/, 'Z') || value;
+                                    const date = new Date(cleanTimestamp);
+                                    if (!isNaN(date.getTime())) {
+                                      return new Intl.DateTimeFormat('fr-FR', {
+                                        weekday: 'short',
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        year: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                      }).format(date);
+                                    }
+                                  }
+
+                                  if (typeof value === 'object' && value.name) {
+                                    return value.name;
+                                  }
+
+                                  return String(value);
+                                };
+
+                                return {
+                                  field: fieldLabel,
+                                  before: formatValue(change.before, field),
+                                  after: formatValue(change.after, field),
+                                };
+                              }
+                            );
+                          }
+
+                          return null;
+                        };
+
+                        const changeDetails = getChangeDetails();
 
                         return (
                           <div
                             key={entry.id}
-                            className='flex gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors'
+                            className='flex items-start gap-3 py-1'
                           >
-                            <div className='flex-shrink-0 mt-0.5'>
-                              <div
-                                className={`p-2 rounded-full ${getActionBadgeColor(
-                                  entry.action
-                                )}`}
+                            {/* Badge */}
+                            <div className='flex-shrink-0'>
+                              <span
+                                className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-bold text-white ${badge.bgColor}`}
                               >
-                                {getActionIcon(entry.action)}
-                              </div>
+                                {badge.text}
+                              </span>
                             </div>
+
+                            {/* Content */}
                             <div className='flex-1 min-w-0'>
-                              <div className='flex items-start justify-between gap-2'>
-                                <div className='flex-1'>
-                                  <p className='text-sm font-medium text-gray-900'>
-                                    {entry.description || entry.action}
-                                  </p>
-                                  <p className='text-xs text-gray-500 mt-1'>
-                                    par {doctorName}
-                                  </p>
-                                </div>
-                                <div className='text-right flex-shrink-0'>
-                                  <p className='text-xs text-gray-600 font-medium'>
-                                    {distance}
-                                  </p>
-                                  <p className='text-xs text-gray-400 mt-0.5'>
-                                    {formattedDate}
-                                  </p>
-                                </div>
+                              <div className='text-sm text-gray-700'>
+                                <span className='font-medium'>{dayMonth}</span>
+                                {' à '}
+                                <span className='font-medium'>{time}</span>
+                                {', par '}
+                                <span className='font-medium'>
+                                  {doctorName}
+                                </span>
                               </div>
 
-                              {/* Show changed fields if available */}
-                              {entry.changedFields &&
-                                Object.keys(entry.changedFields).length > 0 && (
-                                  <div className='mt-2 p-2 bg-white border border-gray-200 rounded text-xs'>
-                                    <p className='font-medium text-gray-700 mb-1'>
-                                      Modifications :
-                                    </p>
-                                    {Object.entries(entry.changedFields).map(
-                                      ([field, change]) => (
-                                        <div key={field} className='mt-1'>
-                                          <span className='text-gray-600 capitalize'>
-                                            {field}
-                                          </span>
-                                          {change.before !== undefined &&
-                                            change.after !== undefined && (
-                                              <div className='ml-2 text-gray-500'>
-                                                <span className='line-through'>
-                                                  {String(change.before)}
-                                                </span>
-                                                {' → '}
-                                                <span className='text-gray-900 font-medium'>
-                                                  {String(change.after)}
-                                                </span>
-                                              </div>
-                                            )}
-                                        </div>
-                                      )
-                                    )}
-                                  </div>
-                                )}
+                              {changeDetails && changeDetails.length > 0 && (
+                                <div className='mt-1 text-sm'>
+                                  {changeDetails.map((detail, idx) => (
+                                    <div key={idx} className='mb-1'>
+                                      <div className='text-gray-700'>
+                                        {detail.field} a été modifié.
+                                      </div>
+                                      <div className='text-gray-600'>
+                                        <span className='font-medium'>
+                                          Avant :
+                                        </span>{' '}
+                                        {detail.before}
+                                      </div>
+                                      <div className='text-gray-600'>
+                                        <span className='font-medium text-green-600'>
+                                          Après :
+                                        </span>{' '}
+                                        {detail.after}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Display notifications if any */}
+                              {entry.action === 'DOCUMENT_UPLOADED' && (
+                                <div className='mt-1'>
+                                  <span className='text-sm font-medium text-gray-700'>
+                                    Documents :{' '}
+                                  </span>
+                                  <span className='text-sm text-gray-600'>
+                                    notifications{' '}
+                                  </span>
+                                  <span className='text-sm font-semibold text-green-600'>
+                                    activées
+                                  </span>
+                                  <span className='text-sm text-gray-500'>
+                                    {' '}
+                                    (sur dépôt du patient)
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
