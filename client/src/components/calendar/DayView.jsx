@@ -5,6 +5,8 @@ import { getAppointmentColorClasses } from '../../lib/consultationStyles';
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Plus,
   Clock,
   CheckCircle,
@@ -22,6 +24,8 @@ const DayView = ({
   verticalZoom = 1,
   mainColor = '#FFA500',
   isTabOpen = false,
+  currentView = 'day',
+  onViewChange,
 }) => {
   const [currentTimePosition, setCurrentTimePosition] = React.useState(null);
 
@@ -162,6 +166,18 @@ const DayView = ({
     onDateChange(CalendarUtils.goToNextDay(currentDate));
   };
 
+  const goToPreviousWeek = () => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() - 7); // Same day, previous week
+    onDateChange(newDate);
+  };
+
+  const goToNextWeek = () => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() + 7); // Same day, next week
+    onDateChange(newDate);
+  };
+
   const handleTimeSlotClick = (timeSlot) => {
     const [hour, minute] = timeSlot.split(':').map(Number);
     const slotDate = new Date(currentDate);
@@ -219,13 +235,43 @@ const DayView = ({
       <div className='border-b border-gray-200 p-4'>
         <div className='flex items-center justify-between'>
           <div className='flex items-center space-x-4'>
+            {/* View Toggle */}
+            <div className='inline-flex rounded-lg border border-gray-300 p-1'>
+              <button
+                onClick={() => onViewChange?.('day')}
+                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                  currentView === 'day'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                Day
+              </button>
+              <button
+                onClick={() => onViewChange?.('week')}
+                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                  currentView === 'week'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                Week
+              </button>
+            </div>
+            <button
+              onClick={goToPreviousWeek}
+              className='p-2 hover:bg-gray-100 rounded-lg transition-colors'
+              title='Same day, previous week'
+            >
+              <ChevronsLeft className='h-5 w-5' />
+            </button>
             <button
               onClick={goToPreviousDay}
               className='p-2 hover:bg-gray-100 rounded-lg transition-colors'
             >
               <ChevronLeft className='h-5 w-5' />
             </button>
-            <h2 className='text-lg font-semibold text-gray-900'>
+            <h2 className='text-lg font-semibold text-gray-900 w-64 text-center'>
               {CalendarUtils.formatDisplayDate(currentDate)}
             </h2>
             <button
@@ -233,6 +279,13 @@ const DayView = ({
               className='p-2 hover:bg-gray-100 rounded-lg transition-colors'
             >
               <ChevronRight className='h-5 w-5' />
+            </button>
+            <button
+              onClick={goToNextWeek}
+              className='p-2 hover:bg-gray-100 rounded-lg transition-colors'
+              title='Same day, next week'
+            >
+              <ChevronsRight className='h-5 w-5' />
             </button>
           </div>
           {/* <button

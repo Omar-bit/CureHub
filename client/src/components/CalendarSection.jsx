@@ -24,6 +24,7 @@ const CalendarSection = forwardRef(
   ) => {
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [currentView, setCurrentView] = useState('day');
     const [preferences, setPreferences] = useState({
       mainColor: '#FFA500',
       startHour: 8,
@@ -127,22 +128,25 @@ const CalendarSection = forwardRef(
     }
 
     return (
-      <div className='h-full bg-white lg:border-r border-gray-200 '>
-        <CalendarView
-          ref={calendarRef}
-          appointments={appointments}
-          onAppointmentClick={onAppointmentClick}
-          onTimeSlotClick={onTimeSlotClick}
-          workingHours={{
-            start: preferences.startHour,
-            end: preferences.endHour,
-          }}
-          verticalZoom={preferences.verticalZoom}
-          mainColor={preferences.mainColor}
-          defaultView='day'
-          isTabOpen={isTabOpen}
-          onDateChange={onDateChange}
-        />
+      <div className='h-full bg-white lg:border-r border-gray-200 flex flex-col'>
+        {/* Calendar View */}
+        <div className='flex-1 overflow-hidden'>
+          <CalendarView
+            ref={calendarRef}
+            appointments={appointments}
+            onAppointmentClick={onAppointmentClick}
+            onTimeSlotClick={onTimeSlotClick}
+            workingHours={{
+              start: preferences.startHour,
+              end: preferences.endHour,
+            }}
+            verticalZoom={preferences.verticalZoom}
+            mainColor={preferences.mainColor}
+            defaultView={currentView}
+            isTabOpen={isTabOpen}
+            onDateChange={onDateChange}
+          />
+        </div>
       </div>
     );
   }

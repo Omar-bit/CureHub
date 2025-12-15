@@ -70,6 +70,10 @@ const CalendarView = forwardRef(
       onDateChangeRef.current?.(currentDate);
     }, [currentDate]);
 
+    useEffect(() => {
+      setView(defaultView);
+    }, [defaultView]);
+
     const renderCalendarView = () => {
       const commonProps = {
         currentDate,
@@ -81,6 +85,8 @@ const CalendarView = forwardRef(
         verticalZoom,
         mainColor,
         isTabOpen,
+        currentView: view,
+        onViewChange: setView,
       };
 
       switch (view) {
