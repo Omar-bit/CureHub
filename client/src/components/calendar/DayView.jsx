@@ -2,6 +2,7 @@ import React from 'react';
 import { CalendarUtils } from './CalendarUtils';
 import { getAppointmentPatientsDisplay } from '../../lib/patient';
 import { getAppointmentColorClasses } from '../../lib/consultationStyles';
+import DatePickerPopup from './DatePickerPopup';
 import {
   ChevronLeft,
   ChevronRight,
@@ -12,6 +13,7 @@ import {
   CheckCircle,
   XCircle,
   X,
+  Calendar,
 } from 'lucide-react';
 
 const DayView = ({
@@ -28,6 +30,8 @@ const DayView = ({
   onViewChange,
 }) => {
   const [currentTimePosition, setCurrentTimePosition] = React.useState(null);
+  const [showDatePicker, setShowDatePicker] = React.useState(false);
+  const datePickerRef = React.useRef(null);
 
   // Update current time every 5 minutes
   React.useEffect(() => {
@@ -37,6 +41,24 @@ const DayView = ({
 
     return () => clearInterval(interval);
   }, []);
+
+  // Close date picker when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        datePickerRef.current &&
+        !datePickerRef.current.contains(event.target)
+      ) {
+        setShowDatePicker(false);
+      }
+    };
+
+    if (showDatePicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () =>
+        document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showDatePicker]);
 
   const timeSlots = CalendarUtils.generateTimeSlots(
     workingHours.start,
@@ -158,24 +180,64 @@ const DayView = ({
     }
   };
 
-  const goToPreviousDay = () => {
-    onDateChange(CalendarUtils.goToPreviousDay(currentDate));
+  // Single arrow navigation (1 step)
+  const goToPreviousStep = () => {
+    if (currentView === 'week') {
+      // Week view: go to previous week
+      const newDate = new Date(currentDate);
+      newDate.setDate(newDate.getDate() - 7);
+      onDateChange(newDate);
+    } else {
+      // Day view: go to previous day
+      onDateChange(CalendarUtils.goToPreviousDay(currentDate));
+    }
   };
 
-  const goToNextDay = () => {
-    onDateChange(CalendarUtils.goToNextDay(currentDate));
+  const goToNextStep = () => {
+    if (currentView === 'week') {
+      // Week view: go to next week
+      const newDate = new Date(currentDate);
+      newDate.setDate(newDate.getDate() + 7);
+      onDateChange(newDate);
+    } else {
+      // Day view: go to next day
+      onDateChange(CalendarUtils.goToNextDay(currentDate));
+    }
   };
 
-  const goToPreviousWeek = () => {
-    const newDate = new Date(currentDate);
-    newDate.setDate(newDate.getDate() - 7); // Same day, previous week
-    onDateChange(newDate);
+  // Double arrow navigation (2 steps)
+  const goToPreviousBigStep = () => {
+    if (currentView === 'week') {
+      // Week view: go to first day of previous month
+      const newDate = new Date(currentDate);
+      newDate.setMonth(newDate.getMonth() - 1);
+      newDate.setDate(1);
+      onDateChange(newDate);
+    } else {
+      // Day view: go to same day of previous week
+      const newDate = new Date(currentDate);
+      newDate.setDate(newDate.getDate() - 7);
+      onDateChange(newDate);
+    }
   };
 
-  const goToNextWeek = () => {
-    const newDate = new Date(currentDate);
-    newDate.setDate(newDate.getDate() + 7); // Same day, next week
-    onDateChange(newDate);
+  const goToNextBigStep = () => {
+    if (currentView === 'week') {
+      // Week view: go to first day of next month
+      const newDate = new Date(currentDate);
+      newDate.setMonth(newDate.getMonth() + 1);
+      newDate.setDate(1);
+      onDateChange(newDate);
+    } else {
+      // Day view: go to same day of next week
+      const newDate = new Date(currentDate);
+      newDate.setDate(newDate.getDate() + 7);
+      onDateChange(newDate);
+    }
+  };
+
+  const goToToday = () => {
+    onDateChange(new Date());
   };
 
   const handleTimeSlotClick = (timeSlot) => {
@@ -258,57 +320,89 @@ const DayView = ({
                 Week
               </button>
             </div>
+
+            {/* Double arrow - 2 steps */}
             <button
-              onClick={goToPreviousWeek}
+              onClick={goToPreviousBigStep}
               className='p-2 hover:bg-gray-100 rounded-lg transition-colors'
-              title='Same day, previous week'
+              title={
+                currentView === 'week'
+                  ? 'Premier jour du mois précédent'
+                  : 'Même jour de la semaine précédente'
+              }
             >
               <ChevronsLeft className='h-5 w-5' />
             </button>
+
+            {/* Single arrow - 1 step */}
             <button
-              onClick={goToPreviousDay}
+              onClick={goToPreviousStep}
               className='p-2 hover:bg-gray-100 rounded-lg transition-colors'
+              title={
+                currentView === 'week' ? 'Semaine précédente' : 'Jour précédent'
+              }
             >
               <ChevronLeft className='h-5 w-5' />
             </button>
-            <h2 className='text-lg font-semibold text-gray-900 w-64 text-center'>
-              {CalendarUtils.formatDisplayDate(currentDate)}
-            </h2>
+
+            {/* Current date display */}
+            <div
+              className='flex items-center gap-2 relative'
+              ref={datePickerRef}
+            >
+              <h2 className='text-lg font-semibold text-gray-900 w-64 text-center'>
+                {CalendarUtils.formatDisplayDate(currentDate)}
+              </h2>
+              {/* Calendar icon for date picker */}
+              <button
+                onClick={() => setShowDatePicker(!showDatePicker)}
+                className='p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer'
+              >
+                <Calendar className='h-5 w-5 text-gray-600' />
+              </button>
+
+              {/* Date Picker Popup */}
+              {showDatePicker && (
+                <DatePickerPopup
+                  currentDate={currentDate}
+                  onDateChange={onDateChange}
+                  onClose={() => setShowDatePicker(false)}
+                />
+              )}
+            </div>
+
+            {/* Single arrow - 1 step */}
             <button
-              onClick={goToNextDay}
+              onClick={goToNextStep}
               className='p-2 hover:bg-gray-100 rounded-lg transition-colors'
+              title={
+                currentView === 'week' ? 'Semaine suivante' : 'Jour suivant'
+              }
             >
               <ChevronRight className='h-5 w-5' />
             </button>
+
+            {/* Double arrow - 2 steps */}
             <button
-              onClick={goToNextWeek}
+              onClick={goToNextBigStep}
               className='p-2 hover:bg-gray-100 rounded-lg transition-colors'
-              title='Same day, next week'
+              title={
+                currentView === 'week'
+                  ? 'Premier jour du mois suivant'
+                  : 'Même jour de la semaine suivante'
+              }
             >
               <ChevronsRight className='h-5 w-5' />
             </button>
           </div>
-          {/* <button
-            onClick={() => onTimeSlotClick?.(new Date())}
-            className='flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+
+          {/* Today button */}
+          <button
+            onClick={goToToday}
+            className='px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-300'
           >
-            <Plus className='h-4 w-4' />
-            <span>New Appointment</span>
-          </button> */}
-          {/* choose date */}
-          <div>
-            <input
-              type='date'
-              value={CalendarUtils.formatDate(currentDate)}
-              onChange={(event) => {
-                const nextValue = event.target.value;
-                if (!nextValue) return;
-                const nextDate = new Date(`${nextValue}T00:00:00`);
-                onDateChange(nextDate);
-              }}
-              className='border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
-            />
-          </div>
+            Aujourd'hui
+          </button>
         </div>
       </div>
 
