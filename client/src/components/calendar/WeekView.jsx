@@ -22,8 +22,10 @@ const WeekView = ({
   isTabOpen = false,
   currentView = 'week',
   onViewChange,
+  mainColor = '#FFA500',
 }) => {
   const [showDatePicker, setShowDatePicker] = React.useState(false);
+  const [currentTimePosition, setCurrentTimePosition] = React.useState(null);
   const datePickerRef = React.useRef(null);
 
   const weekDays = CalendarUtils.getWeekDays(currentDate);
@@ -32,6 +34,42 @@ const WeekView = ({
     workingHours.end,
     60
   );
+
+  // Calculate current time indicator position
+  const getCurrentTimePosition = React.useCallback(() => {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    // Only show if within working hours and today is in the current week
+    const isThisWeek = weekDays.some(
+      (day) => CalendarUtils.formatDate(day) === CalendarUtils.formatDate(now)
+    );
+    if (
+      !isThisWeek ||
+      hours < workingHours.start ||
+      hours >= workingHours.end
+    ) {
+      setCurrentTimePosition(null);
+      return null;
+    }
+
+    const minutesFromStart = (hours - workingHours.start) * 60 + minutes;
+    const position = minutesFromStart;
+    setCurrentTimePosition(position);
+  }, [weekDays, workingHours.start, workingHours.end]);
+
+  // Initialize and update current time position
+  React.useEffect(() => {
+    // Call immediately on mount and when dependencies change
+    getCurrentTimePosition();
+
+    // Update current time every minute for accuracy
+    const interval = setInterval(() => {
+      getCurrentTimePosition();
+    }, 60 * 1000); // 1 minute
+
+    return () => clearInterval(interval);
+  }, [getCurrentTimePosition]);
 
   // Close date picker when clicking outside
   React.useEffect(() => {
@@ -348,6 +386,27 @@ const WeekView = ({
                         }px`,
                       }}
                     >
+                      {/* Current Time Indicator */}
+                      {currentTimePosition !== null &&
+                        CalendarUtils.isToday(day) && (
+                          <div
+                            className='absolute left-0 right-0 z-20 pointer-events-none'
+                            style={{ top: `${currentTimePosition}px` }}
+                          >
+                            <div className='relative flex items-center'>
+                              {/* Circle */}
+                              <div
+                                className='w-2.5 h-2.5 rounded-full border-2 border-white shadow-lg'
+                                style={{ backgroundColor: mainColor }}
+                              />
+                              {/* Line */}
+                              <div
+                                className='flex-1 h-0.5 shadow-sm'
+                                style={{ backgroundColor: mainColor }}
+                              />
+                            </div>
+                          </div>
+                        )}
                       {/* Appointments for this day */}
                       {getDayAppointmentLayouts(day).map(
                         ({ appointment, column, totalColumns }) => {

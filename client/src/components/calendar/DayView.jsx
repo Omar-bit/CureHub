@@ -33,14 +33,36 @@ const DayView = ({
   const [showDatePicker, setShowDatePicker] = React.useState(false);
   const datePickerRef = React.useRef(null);
 
-  // Update current time every 5 minutes
+  // Calculate current time indicator position
+  const getCurrentTimePosition = React.useCallback(() => {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    // Only show if it's today and within working hours
+    const isToday =
+      CalendarUtils.formatDate(now) === CalendarUtils.formatDate(currentDate);
+    if (!isToday || hours < workingHours.start || hours >= workingHours.end) {
+      setCurrentTimePosition(null);
+      return null;
+    }
+
+    const minutesFromStart = (hours - workingHours.start) * 60 + minutes;
+    const position = minutesFromStart * verticalZoom;
+    setCurrentTimePosition(position);
+  }, [currentDate, workingHours.start, workingHours.end, verticalZoom]);
+
+  // Initialize and update current time position
   React.useEffect(() => {
+    // Call immediately on mount and when dependencies change
+    getCurrentTimePosition();
+
+    // Update current time every minute for accuracy
     const interval = setInterval(() => {
       getCurrentTimePosition();
-    }, 5 * 60 * 1000); // 5 minutes
+    }, 60 * 1000); // 1 minute
 
     return () => clearInterval(interval);
-  }, []);
+  }, [getCurrentTimePosition]);
 
   // Close date picker when clicking outside
   React.useEffect(() => {
@@ -130,23 +152,6 @@ const DayView = ({
   };
 
   const appointmentLayouts = calculateAppointmentLayout(dayAppointments);
-
-  // Calculate current time indicator position
-  const getCurrentTimePosition = () => {
-    const now = new Date();
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
-    // Only show if it's today and within working hours
-    const isToday =
-      CalendarUtils.formatDate(now) === CalendarUtils.formatDate(currentDate);
-    if (!isToday || hours < workingHours.start || hours >= workingHours.end) {
-      return null;
-    }
-
-    const minutesFromStart = (hours - workingHours.start) * 60 + minutes;
-    const position = minutesFromStart * verticalZoom;
-    setCurrentTimePosition(position);
-  };
 
   // Get status icon and background color based on appointment status
   const getStatusIcon = (status) => {
