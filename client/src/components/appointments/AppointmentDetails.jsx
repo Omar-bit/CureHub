@@ -669,7 +669,12 @@ const AppointmentDetails = ({
                 value='documents'
                 className='rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent text-sm font-medium'
               >
-                Documents
+                <span className='flex items-center gap-2'>
+                  Documents
+                  <span className='inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 rounded-full'>
+                    {documents.length}
+                  </span>
+                </span>
               </TabsTrigger>
               <TabsTrigger
                 value='honoraires'
