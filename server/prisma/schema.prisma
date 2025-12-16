@@ -517,17 +517,19 @@ model PatientConsultationTypeAccess {
 
 // Appointment document model
 model AppointmentDocument {
-  id           String           @id @default(cuid())
-  originalName String // Original filename when uploaded
-  fileName     String // Stored filename on server
-  filePath     String // File storage path
-  fileSize     Int // File size in bytes
-  mimeType     String // MIME type (e.g., "application/pdf", "image/jpeg")
-  category     DocumentCategory @default(AUTRE)
-  description  String? // Optional description
-  uploadDate   DateTime         @default(now())
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  id                  String           @id @default(cuid())
+  originalName        String // Original filename when uploaded
+  fileName            String // Stored filename on server
+  filePath            String // File storage path
+  fileSize            Int // File size in bytes
+  mimeType            String // MIME type (e.g., "application/pdf", "image/jpeg")
+  category            DocumentCategory @default(AUTRE)
+  description         String? // Optional description
+  blockClientDownload Boolean          @default(false) // Block patient download from client space
+  shareUntilDate      DateTime? // Date until which document can be shared with patient
+  uploadDate          DateTime         @default(now())
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
 
   // Relations
   appointmentId String

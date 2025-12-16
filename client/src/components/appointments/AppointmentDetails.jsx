@@ -24,6 +24,8 @@ import {
   Download,
   Upload,
   History,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -37,6 +39,7 @@ import { appointmentAPI, appointmentDocumentsApi } from '../../services/api';
 import { showSuccess, showError } from '../../lib/toast';
 import PatientCard from '../PatientCard';
 import PatientDetailsSheet from '../PatientDetailsSheet';
+import DatePickerPopup from '../calendar/DatePickerPopup';
 
 const STATUS_CHIP_TO_APPOINTMENT_STATUS = {
   waiting: 'SCHEDULED',
@@ -75,6 +78,8 @@ const AppointmentDetails = ({
   const [absenceCount, setAbsenceCount] = useState(0); // Track patient absence count
   const [selectedPatientForView, setSelectedPatientForView] = useState(null); // Track which patient's details to show
   const [selectedPatientTab, setSelectedPatientTab] = useState('profil'); // Track which tab to show for patient details
+  const [documentBlockSettings, setDocumentBlockSettings] = useState({}); // Track block/share settings per document {documentId: {blockClientDownload: bool, shareUntilDate: string}}
+  const [openDatePickerId, setOpenDatePickerId] = useState(null); // Track which document's date picker is open
 
   // When inline mode is true, show content if appointment exists, regardless of isOpen
   // When inline mode is false (modal/overlay), require both isOpen and appointment
@@ -303,9 +308,16 @@ const AppointmentDetails = ({
 
     setIsUploadingDocument(true);
     try {
-      // Upload each file
+      // Upload each file with default blocking settings (not blocked, no expiry)
       for (const file of files) {
-        await appointmentDocumentsApi.upload(file, appointment.id);
+        await appointmentDocumentsApi.upload(
+          file,
+          appointment.id,
+          null,
+          null,
+          false,
+          null
+        );
       }
 
       showSuccess(`${files.length} document(s) uploaded successfully`);
@@ -352,6 +364,37 @@ const AppointmentDetails = ({
     } catch (error) {
       console.error('Error downloading document:', error);
       showError('Failed to download document');
+    }
+  };
+
+  // Toggle document blocking for client download
+  const handleToggleDocumentBlock = async (documentId, currentBlockStatus) => {
+    try {
+      const newBlockStatus = !currentBlockStatus;
+      await appointmentDocumentsApi.update(documentId, {
+        blockClientDownload: newBlockStatus,
+      });
+      showSuccess(
+        `Document ${newBlockStatus ? 'blocked' : 'unblocked'} successfully`
+      );
+      await loadDocuments();
+    } catch (error) {
+      console.error('Error toggling document block:', error);
+      showError('Failed to update document settings');
+    }
+  };
+
+  // Update document share until date
+  const handleUpdateShareDate = async (documentId, date) => {
+    try {
+      await appointmentDocumentsApi.update(documentId, {
+        shareUntilDate: date,
+      });
+      showSuccess('Document sharing date updated successfully');
+      await loadDocuments();
+    } catch (error) {
+      console.error('Error updating share date:', error);
+      showError('Failed to update sharing date');
     }
   };
 
@@ -761,44 +804,136 @@ const AppointmentDetails = ({
                     {documents.map((doc) => (
                       <div
                         key={doc.id}
-                        className='flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors'
+                        className='p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors'
                       >
-                        <div className='flex items-center gap-2 flex-1 min-w-0'>
-                          <FileText className='w-4 h-4 text-gray-400 flex-shrink-0' />
-                          <div className='min-w-0'>
-                            <p className='text-sm font-medium text-gray-900 truncate'>
-                              {doc.originalName}
-                            </p>
-                            <p className='text-xs text-gray-500'>
-                              {(doc.fileSize / 1024).toFixed(2)} KB
-                              {doc.category && doc.category !== 'AUTRE' && (
-                                <span className='ml-2'>• {doc.category}</span>
+                        <div className='flex items-center justify-between'>
+                          <div className='flex items-center gap-2 flex-1 min-w-0'>
+                            <FileText className='w-4 h-4 text-gray-400 flex-shrink-0' />
+                            <div className='min-w-0'>
+                              <p className='text-sm font-medium text-gray-900 truncate'>
+                                {doc.originalName}
+                              </p>
+                              <p className='text-xs text-gray-500'>
+                                {(doc.fileSize / 1024).toFixed(2)} KB
+                                {doc.category && doc.category !== 'AUTRE' && (
+                                  <span className='ml-2'>• {doc.category}</span>
+                                )}
+                                {doc.description && (
+                                  <span className='ml-2'>
+                                    • {doc.description}
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <div className='flex items-center gap-2'>
+                            <button
+                              onClick={() =>
+                                handleToggleDocumentBlock(
+                                  doc.id,
+                                  doc.blockClientDownload
+                                )
+                              }
+                              className={`p-1 transition-colors ${
+                                doc.blockClientDownload
+                                  ? 'text-red-600 hover:text-red-700'
+                                  : 'text-gray-400 hover:text-gray-600'
+                              }`}
+                              title={
+                                doc.blockClientDownload
+                                  ? 'Blocked from client'
+                                  : 'Accessible to client'
+                              }
+                            >
+                              {doc.blockClientDownload ? (
+                                <Lock className='w-4 h-4' />
+                              ) : (
+                                <Unlock className='w-4 h-4' />
                               )}
-                              {doc.description && (
-                                <span className='ml-2'>
-                                  • {doc.description}
-                                </span>
-                              )}
-                            </p>
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleDownloadDocument(doc.id, doc.originalName)
+                              }
+                              className='p-1 text-gray-400 hover:text-blue-600 transition-colors'
+                              title='Download'
+                            >
+                              <Download className='w-4 h-4' />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteDocument(doc.id)}
+                              className='p-1 text-gray-400 hover:text-red-600 transition-colors'
+                              title='Delete'
+                            >
+                              <Trash2 className='w-4 h-4' />
+                            </button>
                           </div>
                         </div>
-                        <div className='flex items-center gap-2'>
-                          <button
-                            onClick={() =>
-                              handleDownloadDocument(doc.id, doc.originalName)
-                            }
-                            className='p-1 text-gray-400 hover:text-blue-600 transition-colors'
-                            title='Download'
-                          >
-                            <Download className='w-4 h-4' />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteDocument(doc.id)}
-                            className='p-1 text-gray-400 hover:text-red-600 transition-colors'
-                            title='Delete'
-                          >
-                            <Trash2 className='w-4 h-4' />
-                          </button>
+
+                        {/* Share until date selector */}
+                        <div className='mt-2 flex items-center gap-2'>
+                          <label className='text-xs text-gray-600 whitespace-nowrap'>
+                            Partager jusqu'au:
+                          </label>
+                          <div className='relative flex-1'>
+                            <button
+                              type='button'
+                              onClick={() =>
+                                setOpenDatePickerId(
+                                  openDatePickerId === doc.id ? null : doc.id
+                                )
+                              }
+                              className='w-full text-xs border border-gray-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer hover:border-gray-400 transition-colors text-left flex items-center justify-between'
+                            >
+                              <span
+                                className={
+                                  doc.shareUntilDate
+                                    ? 'text-gray-900'
+                                    : 'text-gray-400'
+                                }
+                              >
+                                {doc.shareUntilDate
+                                  ? new Date(
+                                      doc.shareUntilDate
+                                    ).toLocaleDateString('fr-FR', {
+                                      day: '2-digit',
+                                      month: '2-digit',
+                                      year: 'numeric',
+                                    })
+                                  : 'Sélectionner une date'}
+                              </span>
+                              <Calendar className='w-3.5 h-3.5 text-gray-400' />
+                            </button>
+                            {openDatePickerId === doc.id && (
+                              <DatePickerPopup
+                                currentDate={
+                                  doc.shareUntilDate
+                                    ? new Date(doc.shareUntilDate)
+                                    : new Date()
+                                }
+                                onDateChange={(date) => {
+                                  handleUpdateShareDate(
+                                    doc.id,
+                                    date.toISOString().split('T')[0]
+                                  );
+                                  setOpenDatePickerId(null);
+                                }}
+                                onClose={() => setOpenDatePickerId(null)}
+                              />
+                            )}
+                          </div>
+                          {doc.shareUntilDate && (
+                            <button
+                              onClick={() => {
+                                handleUpdateShareDate(doc.id, null);
+                                setOpenDatePickerId(null);
+                              }}
+                              className='p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors'
+                              title='Effacer la date'
+                            >
+                              <X className='w-3.5 h-3.5' />
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}

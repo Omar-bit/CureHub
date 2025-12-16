@@ -412,12 +412,22 @@ export const documentsApi = {
 // Appointment Documents API
 export const appointmentDocumentsApi = {
   // Upload a document for an appointment
-  upload: (file, appointmentId, category, description) => {
+  upload: (
+    file,
+    appointmentId,
+    category,
+    description,
+    blockClientDownload,
+    shareUntilDate
+  ) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('appointmentId', appointmentId);
     if (category) formData.append('category', category);
     if (description) formData.append('description', description);
+    if (blockClientDownload !== undefined)
+      formData.append('blockClientDownload', blockClientDownload);
+    if (shareUntilDate) formData.append('shareUntilDate', shareUntilDate);
 
     return api
       .post('/appointment-documents/upload', formData, {

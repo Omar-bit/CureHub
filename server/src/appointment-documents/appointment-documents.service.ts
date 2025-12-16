@@ -74,6 +74,10 @@ export class AppointmentDocumentsService {
         mimeType: file.mimetype,
         category: createDocumentDto.category || DocumentCategory.AUTRE,
         description: createDocumentDto.description,
+        blockClientDownload: createDocumentDto.blockClientDownload ?? false,
+        shareUntilDate: createDocumentDto.shareUntilDate
+          ? new Date(createDocumentDto.shareUntilDate)
+          : null,
         appointment: {
           connect: {
             id: createDocumentDto.appointmentId,
@@ -201,9 +205,14 @@ export class AppointmentDocumentsService {
       throw new NotFoundException('Document not found');
     }
 
+    const updateData: any = { ...updateDocumentDto };
+    if (updateDocumentDto.shareUntilDate) {
+      updateData.shareUntilDate = new Date(updateDocumentDto.shareUntilDate);
+    }
+
     const updatedDocument = await this.prisma.appointmentDocument.update({
       where: { id: documentId },
-      data: updateDocumentDto,
+      data: updateData,
       include: {
         appointment: {
           select: {
