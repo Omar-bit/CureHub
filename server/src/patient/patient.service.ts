@@ -632,4 +632,55 @@ export class PatientService {
     // If no record exists, default to enabled
     return access ? access.isEnabled : true;
   }
+
+  /**
+   * Send a custom email to a patient
+   */
+  async sendEmailToPatient(
+    patientId: string,
+    doctorId: string,
+    subject: string,
+    message: string,
+    doctorName: string,
+  ): Promise<{ success: boolean; message: string }> {
+    // Find the patient and verify ownership
+    const patient = await this.prisma.patient.findFirst({
+      where: {
+        id: patientId,
+        doctorId,
+        isDeleted: false,
+      },
+    });
+
+    if (!patient) {
+      throw new NotFoundException('Patient not found');
+    }
+
+    if (!patient.email) {
+      throw new BadRequestException("Ce patient n'a pas d'adresse email");
+    }
+
+    // Get patient name (replace !SP! with space)
+    const patientName = patient.name.replace(/!SP!/g, ' ');
+
+    // Send the email
+    const emailSent = await this.emailService.sendCustomPatientEmail(
+      patient.email,
+      patientName,
+      doctorName,
+      subject,
+      message,
+    );
+
+    if (!emailSent) {
+      throw new BadRequestException(
+        "Échec de l'envoi de l'email. Veuillez vérifier l'adresse email et réessayer.",
+      );
+    }
+
+    return {
+      success: true,
+      message: `Email envoyé avec succès à ${patient.email}`,
+    };
+  }
 }

@@ -330,4 +330,35 @@ export class EmailService {
       return false;
     }
   }
+
+  /**
+   * Send custom email to patient from doctor
+   */
+  async sendCustomPatientEmail(
+    email: string,
+    patientName: string,
+    doctorName: string,
+    subject: string,
+    message: string,
+  ): Promise<boolean> {
+    try {
+      const template = this.emailTemplateService.generateCustomPatientEmail({
+        patientName,
+        doctorName,
+        subject,
+        message,
+      });
+
+      return await this.sendEmail({
+        to: email,
+        template,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to send custom email to patient ${email}:`,
+        error,
+      );
+      return false;
+    }
+  }
 }

@@ -10,6 +10,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { PatientService } from './patient.service';
 import {
@@ -236,6 +237,43 @@ export class PatientController {
       patientId,
       user.doctorProfile.id,
       accessDto,
+    );
+  }
+
+  // Email Endpoint
+
+  @Post(':id/send-email')
+  @HttpCode(HttpStatus.OK)
+  async sendEmailToPatient(
+    @CurrentUser() user: any,
+    @Param('id') patientId: string,
+    @Body() body: { subject: string; message: string },
+  ) {
+    // Ensure user is a doctor and has a doctor profile
+    if (user.role !== 'DOCTOR' || !user.doctorProfile?.id) {
+      throw new BadRequestException('Only doctors can send emails to patients');
+    }
+
+    if (!body.message || body.message.trim() === '') {
+      throw new BadRequestException('Le message ne peut pas être vide');
+    }
+
+    // Get doctor name for email
+    const doctorName =
+      user.doctorProfile.title && user.lastName
+        ? `${user.doctorProfile.title} ${user.lastName}`
+        : user.firstName && user.lastName
+          ? `Dr ${user.firstName} ${user.lastName}`
+          : user.email;
+
+    const subject = body.subject || 'Message de votre médecin';
+
+    return this.patientService.sendEmailToPatient(
+      patientId,
+      user.doctorProfile.id,
+      subject,
+      body.message,
+      doctorName,
     );
   }
 }

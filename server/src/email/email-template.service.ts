@@ -338,4 +338,109 @@ export class EmailTemplateService {
 
     return { subject, html, text };
   }
+
+  /**
+   * Generate custom email template for doctor-to-patient communication
+   */
+  generateCustomPatientEmail(data: {
+    patientName: string;
+    doctorName: string;
+    subject: string;
+    message: string;
+  }): EmailTemplate {
+    const { patientName, doctorName, subject, message } = data;
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${subject}</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9fafb;
+          }
+          .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 40px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+          }
+          .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2563eb;
+            margin-bottom: 10px;
+          }
+          .message-container {
+            background-color: #f8fafc;
+            border-left: 4px solid #2563eb;
+            padding: 20px;
+            margin: 20px 0;
+            white-space: pre-wrap;
+          }
+          .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 14px;
+            color: #6b7280;
+            text-align: center;
+          }
+          .doctor-info {
+            background-color: #eef2ff;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 20px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">CureHub</div>
+          </div>
+          
+          <p>Bonjour ${patientName},</p>
+          
+          <div class="message-container">
+            ${message.replace(/\n/g, '<br>')}
+          </div>
+          
+          <div class="doctor-info">
+            <p><strong>Envoyé par:</strong> ${doctorName}</p>
+          </div>
+          
+          <div class="footer">
+            <p>Ceci est un message de votre médecin via CureHub.<br>
+            Si vous avez des questions, veuillez contacter votre médecin directement.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `
+      Bonjour ${patientName},
+      
+      ${message}
+      
+      ---
+      Envoyé par: ${doctorName}
+      via CureHub
+    `;
+
+    return { subject, html, text };
+  }
 }

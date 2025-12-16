@@ -141,6 +141,10 @@ export const patientAPI = {
     api
       .patch(`/patients/${patientId}/consultation-type-access`, accessData)
       .then((res) => res.data),
+
+  // Send email to patient
+  sendEmail: (patientId, data) =>
+    api.post(`/patients/${patientId}/send-email`, data).then((res) => res.data),
 };
 
 export const consultationTypesAPI = {

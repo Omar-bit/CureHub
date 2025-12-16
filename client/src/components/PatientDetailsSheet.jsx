@@ -28,13 +28,13 @@ import {
 import { SheetContent, SheetHeader, SheetTitle, SheetFooter } from './ui/sheet';
 import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { appointmentAPI, taskAPI } from '../services/api';
+import { appointmentAPI, taskAPI, patientAPI } from '../services/api';
 import PatientDocumentsTab from './PatientDocumentsTab';
 import PatientRelativesTab from './PatientRelativesTab';
 import PatientActesTab from './PatientActesTab';
 import PatientTasksTab from './PatientTasksTab';
 import AppointmentForm from './appointments/AppointmentForm';
-import { showSuccess } from '../lib/toast';
+import { showSuccess, showError } from '../lib/toast';
 import { useAuth } from '../contexts/AuthContext';
 import { useDoctorProfile } from '../hooks/useDoctorProfile';
 
@@ -139,6 +139,9 @@ const PatientDetailsSheet = ({
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [timelineEvents, setTimelineEvents] = useState([]);
   const [loadingTimeline, setLoadingTimeline] = useState(false);
+  const [emailMessage, setEmailMessage] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [smsMessage, setSmsMessage] = useState('');
   const patientName = patient.name.includes('!SP!')
     ? patient.name.split('!SP!').join(' ')
     : patient.name;
@@ -706,33 +709,101 @@ const PatientDetailsSheet = ({
 
               {/* SMS Contact */}
               {patient.phoneNumber && (
-                <div className='flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer'>
-                  <div className='flex items-center gap-3'>
+                <div className='p-4 border rounded-lg'>
+                  <div className='flex items-center gap-3 mb-4'>
                     <div className='w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center'>
                       <MessageSquare className='w-5 h-5 text-blue-600' />
                     </div>
                     <div>
                       <p className='font-medium text-foreground'>Par SMS</p>
-                      <p className='text-sm text-muted-foreground'>
-                        Envoyer un SMS au {patient.phoneNumber}
-                      </p>
                     </div>
+                  </div>
+                  <div className='space-y-3'>
+                    <textarea
+                      value={smsMessage}
+                      onChange={(e) => setSmsMessage(e.target.value)}
+                      placeholder={`Message pour ${patientName}...`}
+                      className='w-full min-h-[80px] p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary/50'
+                    />
+                    <div className='flex items-center justify-between'>
+                      <span className='text-sm text-muted-foreground'>
+                        {patient.phoneNumber}
+                      </span>
+                      <Button
+                        size='sm'
+                        disabled={!smsMessage.trim()}
+                        variant='outline'
+                        onClick={() => {
+                          showError(
+                            'Service SMS non disponible pour le moment'
+                          );
+                        }}
+                      >
+                        <Send className='w-4 h-4 mr-1' />
+                        Envoyer
+                      </Button>
+                    </div>
+                    <p className='text-xs text-muted-foreground italic'>
+                      * Service SMS bientôt disponible
+                    </p>
                   </div>
                 </div>
               )}
 
               {/* Email Contact */}
               {patient.email && (
-                <div className='flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer'>
-                  <div className='flex items-center gap-3'>
+                <div className='p-4 border rounded-lg'>
+                  <div className='flex items-center gap-3 mb-4'>
                     <div className='w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center'>
                       <Mail className='w-5 h-5 text-orange-600' />
                     </div>
                     <div>
                       <p className='font-medium text-foreground'>Par email</p>
-                      <p className='text-sm text-blue-600 hover:underline'>
+                    </div>
+                  </div>
+                  <div className='space-y-3'>
+                    <textarea
+                      value={emailMessage}
+                      onChange={(e) => setEmailMessage(e.target.value)}
+                      placeholder={patientName}
+                      className='w-full min-h-[80px] p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary/50'
+                    />
+                    <div className='flex items-center justify-between'>
+                      <a
+                        href={`mailto:${patient.email}`}
+                        className='flex items-center gap-1 text-sm text-blue-600 hover:underline'
+                      >
+                        <Mail className='w-3 h-3' />
                         {patient.email}
-                      </p>
+                      </a>
+                      <Button
+                        size='sm'
+                        disabled={!emailMessage.trim() || sendingEmail}
+                        onClick={async () => {
+                          if (!emailMessage.trim()) return;
+                          setSendingEmail(true);
+                          try {
+                            await patientAPI.sendEmail(patient.id, {
+                              subject: 'Message de votre médecin',
+                              message: emailMessage,
+                            });
+                            showSuccess('Email envoyé avec succès');
+                            setEmailMessage('');
+                          } catch (error) {
+                            showError(
+                              error.response?.data?.message ||
+                                "Échec de l'envoi de l'email"
+                            );
+                          } finally {
+                            setSendingEmail(false);
+                          }
+                        }}
+                      >
+                        {sendingEmail ? (
+                          <Loader2 className='w-4 h-4 animate-spin mr-1' />
+                        ) : null}
+                        Envoyer
+                      </Button>
                     </div>
                   </div>
                 </div>
