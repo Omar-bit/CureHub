@@ -990,7 +990,8 @@ export class AppointmentService {
     const end = new Date(date);
     end.setHours(endHour, endMinute, 0, 0);
 
-    // Generate 5-minute intervals (00, 05, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55)
+    // Generate slots based on consultation type duration
+    // Slots are spaced by the consultation duration to ensure back-to-back appointments
     const current = new Date(start);
     const consultationDuration = consultationType
       ? consultationType.duration
@@ -1052,8 +1053,9 @@ export class AppointmentService {
         });
       }
 
-      // Move to next 5-minute interval
-      current.setMinutes(current.getMinutes() + 5);
+      // Move to next slot based on consultation duration (not 5-minute interval)
+      // This ensures appointments are back-to-back with no wasted time
+      current.setMinutes(current.getMinutes() + consultationDuration);
     }
 
     return slots;
