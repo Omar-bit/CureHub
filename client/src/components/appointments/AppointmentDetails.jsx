@@ -1097,27 +1097,46 @@ const AppointmentDetails = ({
                                 const formatValue = (value, fieldName) => {
                                   if (!value) return '—';
 
-                                  if (
-                                    fieldName === 'startTime' ||
-                                    fieldName === 'endTime'
-                                  ) {
-                                    const cleanTimestamp =
-                                      value?.replace(/0+Z$/, 'Z') || value;
-                                    const date = new Date(cleanTimestamp);
-                                    if (!isNaN(date.getTime())) {
-                                      return new Intl.DateTimeFormat('fr-FR', {
-                                        weekday: 'short',
-                                        day: '2-digit',
-                                        month: '2-digit',
-                                        year: '2-digit',
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                      }).format(date);
-                                    }
-                                  }
-
+                                  // Check if value is an object with a name property
                                   if (typeof value === 'object' && value.name) {
                                     return value.name;
+                                  }
+
+                                  // Check if value is a date string (ISO format or timestamp)
+                                  if (typeof value === 'string') {
+                                    // Try to detect ISO date strings
+                                    const isDateString =
+                                      fieldName === 'startTime' ||
+                                      fieldName === 'endTime' ||
+                                      /^\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}/.test(
+                                        value
+                                      );
+
+                                    if (isDateString) {
+                                      try {
+                                        const date = new Date(value);
+
+                                        if (!isNaN(date.getTime())) {
+                                          return new Intl.DateTimeFormat(
+                                            'fr-FR',
+                                            {
+                                              weekday: 'short',
+                                              day: '2-digit',
+                                              month: 'short',
+                                              year: 'numeric',
+                                              hour: '2-digit',
+                                              minute: '2-digit',
+                                            }
+                                          ).format(date);
+                                        }
+                                      } catch (error) {
+                                        console.error(
+                                          'Error formatting date:',
+                                          error,
+                                          value
+                                        );
+                                      }
+                                    }
                                   }
 
                                   return String(value);
