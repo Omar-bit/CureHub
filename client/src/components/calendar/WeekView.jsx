@@ -192,30 +192,14 @@ const WeekView = ({
       {/* Header */}
       <div className='border-b border-gray-200 p-4'>
         <div className='flex items-center justify-between'>
+          <button
+            onClick={goToToday}
+            className='flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium'
+          >
+            <CalendarCheck className='h-4 w-4' />
+            <span>Aujourd'hui</span>
+          </button>
           <div className='flex items-center space-x-2'>
-            {/* View Toggle */}
-            <div className='inline-flex rounded-lg border border-gray-300 p-1'>
-              <button
-                onClick={() => onViewChange?.('day')}
-                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                  currentView === 'day'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                Day
-              </button>
-              <button
-                onClick={() => onViewChange?.('week')}
-                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                  currentView === 'week'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                Week
-              </button>
-            </div>
             <button
               onClick={goToPreviousMonth}
               className='p-2 hover:bg-gray-100 rounded-md transition-colors'
@@ -233,17 +217,19 @@ const WeekView = ({
             <div className='relative' ref={datePickerRef}>
               <button
                 onClick={() => setShowDatePicker(!showDatePicker)}
-                className='flex items-center space-x-2 px-3 py-1.5 bg-white border border-gray-300 rounded-md w-[32rem] hover:bg-gray-50 transition-colors'
+                className='flex items-center space-x-2 px-3 py-1.5 bg-white  rounded-md w-[20rem] hover:bg-gray-50 transition-colors'
               >
                 <Calendar className='h-4 w-4 text-gray-600 flex-shrink-0' />
                 <span className='text-sm font-medium text-gray-900 whitespace-nowrap'>
                   Du{' '}
-                  {CalendarUtils.formatDisplayDate(
-                    CalendarUtils.getWeekStart(currentDate)
+                  {CalendarUtils.formatDate(
+                    CalendarUtils.getWeekStart(currentDate),
+                    'EEEE dd/MM'
                   )}{' '}
                   au{' '}
-                  {CalendarUtils.formatDisplayDate(
-                    CalendarUtils.getWeekEnd(currentDate)
+                  {CalendarUtils.formatDate(
+                    CalendarUtils.getWeekEnd(currentDate),
+                    'EEEE dd/MM/yyyy'
                   )}
                 </span>
               </button>
@@ -272,13 +258,30 @@ const WeekView = ({
               <ChevronsRight className='h-4 w-4 text-gray-600' />
             </button>
           </div>
-          <button
-            onClick={goToToday}
-            className='flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium'
-          >
-            <CalendarCheck className='h-4 w-4' />
-            <span>Aujourd'hui</span>
-          </button>
+
+          {/* View Toggle */}
+          <div className='inline-flex rounded-lg border border-gray-300 p-1'>
+            <button
+              onClick={() => onViewChange?.('day')}
+              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                currentView === 'day'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              Day
+            </button>
+            <button
+              onClick={() => onViewChange?.('week')}
+              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                currentView === 'week'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              Week
+            </button>
+          </div>
         </div>
       </div>
 
@@ -296,7 +299,7 @@ const WeekView = ({
                   CalendarUtils.isToday(day) ? 'text-blue-600' : 'text-gray-700'
                 }`}
               >
-                {CalendarUtils.formatDate(day, 'EEE')}
+                {CalendarUtils.formatDate(day, isTabOpen ? 'EEE' : 'EEEE')}
               </div>
               <div
                 className={`text-lg ${

@@ -333,17 +333,17 @@ const DayView = ({
               className='flex items-center gap-2 relative'
               ref={datePickerRef}
             >
-              <Calendar className='h-5 w-5 text-gray-600' />
-
-              <h2 className='text-lg font-semibold text-gray-900 w-64 text-center'>
-                {CalendarUtils.formatDisplayDate(currentDate)}
-              </h2>
+              {' '}
               {/* Calendar icon for date picker */}
               <button
                 onClick={() => setShowDatePicker(!showDatePicker)}
                 className='p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer'
-              ></button>
-
+              >
+                <Calendar className='h-5 w-5 text-gray-600' />
+              </button>
+              <h2 className='text-lg font-semibold text-gray-900 w-64 text-center'>
+                {CalendarUtils.formatDisplayDate(currentDate)}
+              </h2>
               {/* Date Picker Popup */}
               {showDatePicker && (
                 <DatePickerPopup
