@@ -296,31 +296,14 @@ const DayView = ({
       {/* Header */}
       <div className='border-b border-gray-200 p-4'>
         <div className='flex items-center justify-between'>
+          {/* Today button */}
+          <button
+            onClick={goToToday}
+            className='px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-300'
+          >
+            Aujourd'hui
+          </button>
           <div className='flex items-center space-x-4'>
-            {/* View Toggle */}
-            <div className='inline-flex rounded-lg border border-gray-300 p-1'>
-              <button
-                onClick={() => onViewChange?.('day')}
-                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                  currentView === 'day'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                Day
-              </button>
-              <button
-                onClick={() => onViewChange?.('week')}
-                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                  currentView === 'week'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                Week
-              </button>
-            </div>
-
             {/* Double arrow - 2 steps */}
             <button
               onClick={goToPreviousBigStep}
@@ -350,6 +333,8 @@ const DayView = ({
               className='flex items-center gap-2 relative'
               ref={datePickerRef}
             >
+              <Calendar className='h-5 w-5 text-gray-600' />
+
               <h2 className='text-lg font-semibold text-gray-900 w-64 text-center'>
                 {CalendarUtils.formatDisplayDate(currentDate)}
               </h2>
@@ -357,9 +342,7 @@ const DayView = ({
               <button
                 onClick={() => setShowDatePicker(!showDatePicker)}
                 className='p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer'
-              >
-                <Calendar className='h-5 w-5 text-gray-600' />
-              </button>
+              ></button>
 
               {/* Date Picker Popup */}
               {showDatePicker && (
@@ -395,14 +378,29 @@ const DayView = ({
               <ChevronsRight className='h-5 w-5' />
             </button>
           </div>
-
-          {/* Today button */}
-          <button
-            onClick={goToToday}
-            className='px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-300'
-          >
-            Aujourd'hui
-          </button>
+          {/* View Toggle */}
+          <div className='inline-flex rounded-lg border border-gray-300 p-1'>
+            <button
+              onClick={() => onViewChange?.('day')}
+              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                currentView === 'day'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              Day
+            </button>
+            <button
+              onClick={() => onViewChange?.('week')}
+              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                currentView === 'week'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              Week
+            </button>
+          </div>
         </div>
       </div>
 
