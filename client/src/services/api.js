@@ -145,6 +145,18 @@ export const patientAPI = {
   // Send email to patient
   sendEmail: (patientId, data) =>
     api.post(`/patients/${patientId}/send-email`, data).then((res) => res.data),
+
+  // Increment absence count for a patient
+  incrementAbsenceCount: (patientId) =>
+    api
+      .patch(`/patients/${patientId}/increment-absence-count`)
+      .then((res) => res.data),
+
+  // Decrement absence count for a patient
+  decrementAbsenceCount: (patientId) =>
+    api
+      .patch(`/patients/${patientId}/decrement-absence-count`)
+      .then((res) => res.data),
 };
 
 export const consultationTypesAPI = {

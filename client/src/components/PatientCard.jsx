@@ -15,9 +15,17 @@ import {
   CheckSquare,
   ChevronDown,
   ChevronUp,
+  UserX,
 } from 'lucide-react';
 
-const PatientCard = ({ patient, onEdit, onDelete, onView }) => {
+const PatientCard = ({
+  patient,
+  onEdit,
+  onDelete,
+  onView,
+  absenceCount = 0,
+  onIncrementAbsence,
+}) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const patientName = patient.name.includes('!SP!')
@@ -113,7 +121,7 @@ const PatientCard = ({ patient, onEdit, onDelete, onView }) => {
 
           {/* Essential contact info in collapsed state */}
           {!isExpanded && (
-            <div className='flex items-center space-x-4 text-sm text-gray-600'>
+            <div className='flex items-center flex-wrap gap-x-4 gap-y-2 text-sm text-gray-600'>
               {patient.phoneNumber && (
                 <div className='flex items-center'>
                   <Phone className='w-3 h-3 mr-1' />
@@ -129,6 +137,17 @@ const PatientCard = ({ patient, onEdit, onDelete, onView }) => {
                   <MapPin className='w-3 h-3 mr-1' />
                 </div>
               )}
+              {/* Absence counter badge */}
+
+              <div
+                className='flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium'
+                style={{ backgroundColor: '#f9516a', color: 'white' }}
+              >
+                <UserX className='w-3 h-3' />
+                <span>
+                  {absenceCount} absence{absenceCount > 1 ? 's' : ''}
+                </span>
+              </div>
             </div>
           )}
         </div>

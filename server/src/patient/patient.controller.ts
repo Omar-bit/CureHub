@@ -240,6 +240,44 @@ export class PatientController {
     );
   }
 
+  // Absence Count Endpoints
+
+  @Patch(':id/increment-absence-count')
+  async incrementAbsenceCount(
+    @CurrentUser() user: any,
+    @Param('id') patientId: string,
+  ) {
+    // Ensure user is a doctor and has a doctor profile
+    if (user.role !== 'DOCTOR' || !user.doctorProfile?.id) {
+      throw new BadRequestException(
+        'Only doctors can update patient absence count',
+      );
+    }
+
+    return this.patientService.incrementAbsenceCount(
+      patientId,
+      user.doctorProfile.id,
+    );
+  }
+
+  @Patch(':id/decrement-absence-count')
+  async decrementAbsenceCount(
+    @CurrentUser() user: any,
+    @Param('id') patientId: string,
+  ) {
+    // Ensure user is a doctor and has a doctor profile
+    if (user.role !== 'DOCTOR' || !user.doctorProfile?.id) {
+      throw new BadRequestException(
+        'Only doctors can update patient absence count',
+      );
+    }
+
+    return this.patientService.decrementAbsenceCount(
+      patientId,
+      user.doctorProfile.id,
+    );
+  }
+
   // Email Endpoint
 
   @Post(':id/send-email')

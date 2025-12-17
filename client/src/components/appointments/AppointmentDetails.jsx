@@ -40,7 +40,11 @@ import {
   getPatientDisplayName,
   getAppointmentPatientsDisplay,
 } from '../../lib/patient';
-import { appointmentAPI, appointmentDocumentsApi } from '../../services/api';
+import {
+  appointmentAPI,
+  appointmentDocumentsApi,
+  patientAPI,
+} from '../../services/api';
 import { showSuccess, showError } from '../../lib/toast';
 import PatientCard from '../PatientCard';
 import PatientDetailsSheet from '../PatientDetailsSheet';
@@ -82,7 +86,7 @@ const AppointmentDetails = ({
   const [showVideoCall, setShowVideoCall] = useState(false); // Track if video call panel is visible
   const [history, setHistory] = useState([]); // Appointment history
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  const [absenceCount, setAbsenceCount] = useState(0); // Track patient absence count
+  const [absenceCounts, setAbsenceCounts] = useState({}); // Track patient absence counts {patientId: count}
   const [selectedPatientForView, setSelectedPatientForView] = useState(null); // Track which patient's details to show
   const [selectedPatientTab, setSelectedPatientTab] = useState('profil'); // Track which tab to show for patient details
   const [documentBlockSettings, setDocumentBlockSettings] = useState({}); // Track block/share settings per document {documentId: {blockClientDownload: bool, shareUntilDate: string}}
@@ -165,12 +169,9 @@ const AppointmentDetails = ({
       loadHistory();
     }
 
-    // Load absence count for primary patient
+    // Load absence counts for all patients
     const allPatients = getAllPatients();
-    const primaryPatient = allPatients[0];
-    if (primaryPatient?.id) {
-      loadAbsenceCount(primaryPatient.id);
-    }
+    loadAbsenceCounts(allPatients);
   }, [appointment?.status, appointment?.id, appointment?.updatedAt]);
 
   // Load documents from server
@@ -207,19 +208,45 @@ const AppointmentDetails = ({
     }
   };
 
-  // Load absence count for a patient
-  const loadAbsenceCount = async (patientId) => {
-    if (!patientId) return;
+  // Load absence counts for all patients
+  const loadAbsenceCounts = async (patientsList) => {
+    if (!patientsList || patientsList.length === 0) return;
+
+    const counts = {};
+    // Fetch each patient's data from API to get the latest absenceCount
+    for (const patient of patientsList) {
+      if (patient?.id) {
+        try {
+          const patientData = await patientAPI.getById(patient.id);
+          counts[patient.id] = patientData.absenceCount || 0;
+        } catch (error) {
+          console.error(
+            'Error fetching patient absence count:',
+            patient.id,
+            error
+          );
+          // Fallback to the absenceCount from the patient object if API fails
+          counts[patient.id] = patient.absenceCount || 0;
+        }
+      }
+    }
+    setAbsenceCounts(counts);
+  };
+
+  // Handle incrementing absence count for a patient
+  const handleIncrementAbsence = async (patient) => {
+    if (!patient?.id) return;
 
     try {
-      // Get all appointments for this patient with ABSENT status
-      const appointments = await appointmentAPI.getByPatient(patientId, {
-        status: 'ABSENT',
-      });
-      setAbsenceCount(appointments?.length || 0);
+      const result = await patientAPI.incrementAbsenceCount(patient.id);
+      setAbsenceCounts((prev) => ({
+        ...prev,
+        [patient.id]: result.absenceCount,
+      }));
+      showSuccess("Compteur d'absences mis à jour");
     } catch (error) {
-      console.error('Error loading absence count:', error);
-      setAbsenceCount(0);
+      console.error('Error incrementing absence count:', error);
+      showError('Erreur lors de la mise à jour du compteur');
     }
   };
 
@@ -245,6 +272,51 @@ const AppointmentDetails = ({
     try {
       setIsStatusUpdating(true);
       await onStatusChange(appointment.id, mappedStatus);
+
+      const allPatients = getAllPatients();
+
+      // Automatically increment absence count for all patients when status changes to absent
+      if (chipName === 'absent') {
+        for (const patient of allPatients) {
+          if (patient?.id) {
+            try {
+              const result = await patientAPI.incrementAbsenceCount(patient.id);
+              setAbsenceCounts((prev) => ({
+                ...prev,
+                [patient.id]: result.absenceCount,
+              }));
+            } catch (error) {
+              console.error(
+                'Error incrementing absence count for patient:',
+                patient.id,
+                error
+              );
+            }
+          }
+        }
+      }
+
+      // Automatically decrement absence count for all patients when status changes from absent to another status
+      if (previousChip === 'absent' && chipName !== 'absent') {
+        for (const patient of allPatients) {
+          if (patient?.id) {
+            try {
+              const result = await patientAPI.decrementAbsenceCount(patient.id);
+              setAbsenceCounts((prev) => ({
+                ...prev,
+                [patient.id]: result.absenceCount,
+              }));
+            } catch (error) {
+              console.error(
+                'Error decrementing absence count for patient:',
+                patient.id,
+                error
+              );
+            }
+          }
+        }
+      }
+
       // Reload history after status change
       loadHistory();
     } catch (error) {
@@ -563,6 +635,8 @@ const AppointmentDetails = ({
                   onEdit={handlePatientEdit}
                   onDelete={handlePatientDelete}
                   onView={handlePatientView}
+                  absenceCount={absenceCounts[patient.id] || 0}
+                  onIncrementAbsence={handleIncrementAbsence}
                 />
               </div>
             ))}

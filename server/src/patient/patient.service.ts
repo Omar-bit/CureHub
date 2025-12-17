@@ -276,6 +276,59 @@ export class PatientService {
     return password;
   }
 
+  /**
+   * Increment absence count for a patient
+   */
+  async incrementAbsenceCount(id: string, doctorId: string) {
+    // Check if patient exists and belongs to doctor
+    await this.findOne(id, doctorId);
+
+    return this.prisma.patient.update({
+      where: { id },
+      data: {
+        absenceCount: {
+          increment: 1,
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        absenceCount: true,
+      },
+    });
+  }
+
+  /**
+   * Decrement absence count for a patient (minimum 0)
+   */
+  async decrementAbsenceCount(id: string, doctorId: string) {
+    // Check if patient exists and belongs to doctor
+    const patient = await this.findOne(id, doctorId);
+
+    // Only decrement if absenceCount is greater than 0
+    if (patient.absenceCount <= 0) {
+      return {
+        id: patient.id,
+        name: patient.name,
+        absenceCount: 0,
+      };
+    }
+
+    return this.prisma.patient.update({
+      where: { id },
+      data: {
+        absenceCount: {
+          decrement: 1,
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        absenceCount: true,
+      },
+    });
+  }
+
   // Patient Relationships Methods
 
   /**
