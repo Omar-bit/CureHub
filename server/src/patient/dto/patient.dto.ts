@@ -49,8 +49,9 @@ export class CreatePatientDto {
   city?: string;
 
   @IsOptional()
-  @IsBoolean()
-  dejaVu?: boolean;
+  @IsInt()
+  @Min(0)
+  dejaVu?: number;
 
   @IsOptional()
   @IsInt()
@@ -104,8 +105,9 @@ export class UpdatePatientDto {
   city?: string;
 
   @IsOptional()
-  @IsBoolean()
-  dejaVu?: boolean;
+  @IsInt()
+  @Min(0)
+  dejaVu?: number;
 
   @IsOptional()
   @IsInt()

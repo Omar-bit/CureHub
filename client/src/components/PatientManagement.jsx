@@ -11,8 +11,12 @@ import {
   MapPin,
   Users,
 } from 'lucide-react';
-import { api, patientAPI } from '../services/api';
-import { consultationTypesAPI } from '../services/api';
+import {
+  api,
+  patientAPI,
+  appointmentAPI,
+  consultationTypesAPI,
+} from '../services/api';
 import {
   showSuccess,
   showError,
@@ -26,6 +30,13 @@ import { EntityCard } from './ui/entity-card';
 import { FormInput, FormSelect, FormTextarea } from './ui/form-field';
 import { CategorizedSearchBar } from './ui/categorized-search-bar';
 import { Alert } from './ui/alert';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
 
 import PatientCard from './PatientCard';
 import PatientDetailsSheet from './PatientDetailsSheet';
@@ -38,17 +49,31 @@ const PatientManagement = ({ onAppointmentCreated }) => {
 
   // Search categories configuration
   const searchCategories = [
-    { value: 'name', label: t('Name') || 'Nom Prénom' },
+    { value: 'fullName', label: t('Full Name') || 'Nom Prénom' },
+    { value: 'lastName', label: t('Last Name') || 'Nom' },
+    { value: 'firstName', label: t('First Name') || 'Prénom' },
     { value: 'dateOfBirth', label: t('Birth Date') || 'Date naiss.' },
     { value: 'phoneNumber', label: t('Phone') || 'Téléphone' },
     { value: 'email', label: t('Email') || 'Email' },
-    { value: 'address', label: t('Address') || 'Adresse' },
   ];
+
+  // Status filter categories
+  const statusCategories = [
+    { value: 'all', label: t('All') || 'Tous' },
+    { value: 'new', label: t('New') || 'Nouveaux' },
+    { value: 'seen', label: t('Already Seen') || 'Déjà vus' },
+    { value: 'visitors', label: t('Visitors') || 'Visiteurs' },
+    { value: 'relatives', label: t('Relatives') || 'Proches' },
+    { value: 'blocked', label: t('Blocked') || 'Blacklisté' },
+  ];
+
   const [patients, setPatients] = useState([]);
+  const [visitors, setVisitors] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [consultationTypes, setConsultationTypes] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchCategory, setSearchCategory] = useState('name');
+  const [searchCategory, setSearchCategory] = useState('fullName');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [selectedTab, setSelectedTab] = useState('profil');
   const [editingPatient, setEditingPatient] = useState(null);
@@ -64,17 +89,72 @@ const PatientManagement = ({ onAppointmentCreated }) => {
     loadPatients();
   }, []);
 
-  // Filter patients based on search query and category
+  // Filter patients based on search query, category, and status filter
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredPatients(patients);
+    let filtered = [];
+
+    // Apply status filter first
+    if (statusFilter === 'visitors') {
+      // Show only visitors (passagers from appointments without patientId)
+      filtered = [...visitors];
+    } else if (statusFilter === 'all') {
+      // Show both regular patients and visitors
+      filtered = [...patients, ...visitors];
     } else {
-      const filtered = patients.filter((patient) => {
+      // Filter regular patients only
+      filtered = patients.filter((patient) => {
+        switch (statusFilter) {
+          case 'new':
+            // New patients have dejaVu = 0 (never been seen)
+            return patient.dejaVu === 0;
+          case 'seen':
+            // Seen patients have dejaVu > 0 (been seen at least once)
+            return patient.dejaVu > 0;
+          case 'relatives':
+            // Patients who have relationships (either as main or related patient)
+            return (
+              (patient.relatedPatients && patient.relatedPatients.length > 0) ||
+              (patient.relationshipsAsRelated &&
+                patient.relationshipsAsRelated.length > 0)
+            );
+          case 'blocked':
+            return patient.isBlocked;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Then apply search filter
+    if (searchQuery.trim()) {
+      filtered = filtered.filter((patient) => {
         const query = searchQuery.toLowerCase();
 
+        // Handle visitors (simple name) vs regular patients (firstName!SP!lastName)
+        let firstName = '';
+        let lastName = '';
+        let fullName = '';
+
+        if (patient.isVisitor) {
+          // Visitors have simple name, no !SP! separator
+          fullName = (patient.name || '').toLowerCase();
+          firstName = fullName;
+          lastName = fullName;
+        } else {
+          // Parse name field: format is "firstName!SP!lastName"
+          const nameParts = patient.name?.split('!SP!') || [];
+          firstName = (nameParts[0] || '').toLowerCase();
+          lastName = (nameParts[1] || '').toLowerCase();
+          fullName = patient.name?.replace('!SP!', ' ').toLowerCase() || '';
+        }
+
         switch (searchCategory) {
-          case 'name':
-            return patient.name?.toLowerCase().includes(query);
+          case 'fullName':
+            return fullName.includes(query);
+          case 'lastName':
+            return lastName.includes(query);
+          case 'firstName':
+            return firstName.includes(query);
           case 'dateOfBirth':
             // Convert date to string for searching
             const dateStr = patient.dateOfBirth
@@ -85,35 +165,70 @@ const PatientManagement = ({ onAppointmentCreated }) => {
             return patient.phoneNumber?.includes(query);
           case 'email':
             return patient.email?.toLowerCase().includes(query);
-          case 'address':
-            return patient.address?.toLowerCase().includes(query);
           default:
             // Fallback to search all fields if category not found
             const fallbackDateStr = patient.dateOfBirth
               ? new Date(patient.dateOfBirth).toLocaleDateString()
               : '';
             return (
-              patient.name?.toLowerCase().includes(query) ||
+              fullName.includes(query) ||
               patient.email?.toLowerCase().includes(query) ||
               patient.phoneNumber?.includes(query) ||
-              patient.address?.toLowerCase().includes(query) ||
               fallbackDateStr.toLowerCase().includes(query)
             );
         }
       });
-      setFilteredPatients(filtered);
     }
-  }, [patients, searchQuery, searchCategory]);
+
+    setFilteredPatients(filtered);
+  }, [patients, visitors, searchQuery, searchCategory, statusFilter]);
 
   const loadPatients = async () => {
     try {
       setIsLoading(true);
-      const [patientsResponse, consultationTypesResponse] = await Promise.all([
+      const [
+        patientsResponse,
+        consultationTypesResponse,
+        appointmentsResponse,
+      ] = await Promise.all([
         patientAPI.getAll(),
         consultationTypesAPI.getAll(),
+        appointmentAPI.getAll(),
       ]);
       setPatients(patientsResponse);
       setConsultationTypes(consultationTypesResponse);
+
+      // Extract visitors (passagers) from appointments without patientId
+      const appointments = appointmentsResponse.appointments || [];
+      const visitorsFromAppointments = appointments
+        .filter((apt) => !apt.patientId && apt.title)
+        .flatMap((apt) => {
+          // Split title by comma to get individual visitor names
+          const names = apt.title
+            .split(',')
+            .map((n) => n.trim())
+            .filter(Boolean);
+          return names.map((name, index) => ({
+            id: `visitor-${apt.id}-${index}`,
+            name: name,
+            isVisitor: true,
+            appointmentId: apt.id,
+            appointmentDate: apt.startTime,
+          }));
+        });
+
+      // Remove duplicate visitor names
+      const uniqueVisitors = visitorsFromAppointments.reduce((acc, visitor) => {
+        const existingVisitor = acc.find(
+          (v) => v.name.toLowerCase() === visitor.name.toLowerCase()
+        );
+        if (!existingVisitor) {
+          acc.push(visitor);
+        }
+        return acc;
+      }, []);
+
+      setVisitors(uniqueVisitors);
       setError('');
     } catch (error) {
       const errorMessage = 'Failed to load patients';
@@ -209,15 +324,31 @@ const PatientManagement = ({ onAppointmentCreated }) => {
           </div>
         </div>
 
-        {/* Search Bar with Categories */}
-        <CategorizedSearchBar
-          value={searchQuery}
-          selectedCategory={searchCategory}
-          categories={searchCategories}
-          onChange={handleSearchChange}
-          onClear={handleSearchClear}
-          onCategoryChange={handleCategoryChange}
-        />
+        {/* Search Bar with Categories and Status Filter */}
+        <div className='flex gap-2 items-center'>
+          <div className='flex-1'>
+            <CategorizedSearchBar
+              value={searchQuery}
+              selectedCategory={searchCategory}
+              categories={searchCategories}
+              onChange={handleSearchChange}
+              onClear={handleSearchClear}
+              onCategoryChange={handleCategoryChange}
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className='w-[140px]'>
+              <SelectValue placeholder={t('Status') || 'Statut'} />
+            </SelectTrigger>
+            <SelectContent>
+              {statusCategories.map((category) => (
+                <SelectItem key={category.value} value={category.value}>
+                  {category.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Content */}
@@ -276,6 +407,7 @@ const PatientManagement = ({ onAppointmentCreated }) => {
           onClose={() => {
             setShowDetails(false);
             setSelectedTab('profil'); // Reset to default tab when closing
+            loadPatients(); // Reload patients to reflect any changes made in the details view
           }}
           onEdit={handleEditPatient}
           onDelete={handleDeletePatient}
@@ -284,6 +416,7 @@ const PatientManagement = ({ onAppointmentCreated }) => {
           patients={patients}
           consultationTypes={consultationTypes}
           onAppointmentCreated={onAppointmentCreated}
+          onPatientUpdated={loadPatients}
         />
       )}
 

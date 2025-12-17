@@ -124,6 +124,7 @@ const PatientDetailsSheet = ({
   patients = [],
   consultationTypes = [],
   onAppointmentCreated,
+  onPatientUpdated,
 }) => {
   const { user } = useAuth();
   const { profile: doctorProfile } = useDoctorProfile();
@@ -688,6 +689,10 @@ const PatientDetailsSheet = ({
                 try {
                   await patientAPI.update(patient.id, data);
                   showSuccess('Patient modifié avec succès');
+                  // Refresh the patient list to reflect the change
+                  if (onPatientUpdated) {
+                    onPatientUpdated();
+                  }
                   // Refresh the patient data
                   if (onEdit) {
                     onEdit(patient, true); // true indicates a refresh is needed
@@ -709,6 +714,10 @@ const PatientDetailsSheet = ({
                       ? 'Patient bloqué avec succès'
                       : 'Patient débloqué avec succès'
                   );
+                  // Refresh the patient list to reflect the change
+                  if (onPatientUpdated) {
+                    onPatientUpdated();
+                  }
                   if (onEdit) {
                     onEdit(patient, true);
                   }

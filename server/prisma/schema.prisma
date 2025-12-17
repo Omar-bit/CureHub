@@ -171,7 +171,7 @@ model Patient {
   address       String?  @db.Text
   postalCode    String?
   city          String?
-  dejaVu        Boolean  @default(false)
+  dejaVu        Int      @default(0)
   absenceCount  Int      @default(0)
   divers        String?  @db.Text
   isDeleted     Boolean  @default(false)

@@ -112,6 +112,7 @@ const PatientFormSheet = ({
         firstName = patient.firstName || '';
         lastName = patient.lastName || '';
       }
+      console.log('zboub zebi:', patient);
 
       setFormData({
         lastName: lastName,
@@ -129,7 +130,7 @@ const PatientFormSheet = ({
         city: (isFullPatient && patient.city) || '',
         showProvisionalCode: false,
         profileImage: (isFullPatient && patient.profileImage) || '',
-        dejaVu: (isFullPatient && patient.dejaVu) || false,
+        dejaVu: (isFullPatient && patient.dejaVu > 0) || false,
         absenceCount: (isFullPatient && patient.absenceCount) || 0,
         divers: (isFullPatient && patient.divers) || '',
       });
@@ -167,6 +168,8 @@ const PatientFormSheet = ({
         // Combine first and last name for backend compatibility
         name: buildPatientName(formData.firstName, formData.lastName),
         phoneNumber: formData.mobilePhone, // Map to existing backend field
+        // Convert dejaVu boolean to integer (1 = seen, 0 = not seen)
+        dejaVu: formData.dejaVu ? 1 : 0,
       };
 
       // Remove empty fields and form-specific fields
@@ -448,10 +451,16 @@ const PatientFormSheet = ({
                 <Button
                   type='button'
                   variant='outline'
-                  className={`w-full ${patient?.isBlocked ? 'border-green-500 text-green-600 hover:bg-green-50' : 'border-orange-500 text-orange-600 hover:bg-orange-50'}`}
+                  className={`w-full ${
+                    patient?.isBlocked
+                      ? 'border-green-500 text-green-600 hover:bg-green-50'
+                      : 'border-orange-500 text-orange-600 hover:bg-orange-50'
+                  }`}
                   onClick={() => setShowBlockConfirm(true)}
                 >
-                  {patient?.isBlocked ? 'Débloquer le patient' : 'Bloquer le patient'}
+                  {patient?.isBlocked
+                    ? 'Débloquer le patient'
+                    : 'Bloquer le patient'}
                 </Button>
 
                 <Button
@@ -492,10 +501,17 @@ const PatientFormSheet = ({
             onBlock(patient);
           }
         }}
-        title={patient?.isBlocked ? 'Débloquer le patient' : 'Bloquer le patient'}
-        description={patient?.isBlocked 
-          ? `Êtes-vous sûr de vouloir débloquer ${getPatientDisplayName(patient) || 'ce patient'} ? Le patient pourra à nouveau prendre des rendez-vous.`
-          : `Êtes-vous sûr de vouloir bloquer ${getPatientDisplayName(patient) || 'ce patient'} ? Le patient ne pourra plus prendre de rendez-vous.`
+        title={
+          patient?.isBlocked ? 'Débloquer le patient' : 'Bloquer le patient'
+        }
+        description={
+          patient?.isBlocked
+            ? `Êtes-vous sûr de vouloir débloquer ${
+                getPatientDisplayName(patient) || 'ce patient'
+              } ? Le patient pourra à nouveau prendre des rendez-vous.`
+            : `Êtes-vous sûr de vouloir bloquer ${
+                getPatientDisplayName(patient) || 'ce patient'
+              } ? Le patient ne pourra plus prendre de rendez-vous.`
         }
         confirmText={patient?.isBlocked ? 'Débloquer' : 'Bloquer'}
         cancelText='Annuler'

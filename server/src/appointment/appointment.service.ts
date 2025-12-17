@@ -32,6 +32,7 @@ const PATIENT_SELECT_FIELDS = {
   phoneNumber: true,
   address: true,
   gender: true,
+  dejaVu: true,
 };
 
 @Injectable()
@@ -573,9 +574,67 @@ export class AppointmentService {
         oldStatus,
         status,
       );
+
+      // Update dejaVu count for all patients in the appointment
+      await this.updateDejaVuCounts(appointment, oldStatus, status);
     }
 
     return updatedAppointment;
+  }
+
+  /**
+   * Update dejaVu count for patients when appointment status changes
+   * Increment when status changes to COMPLETED
+   * Decrement when status changes from COMPLETED to something else
+   */
+  private async updateDejaVuCounts(
+    appointment: any,
+    oldStatus: AppointmentStatus,
+    newStatus: AppointmentStatus,
+  ): Promise<void> {
+    // Get all patient IDs from the appointment
+    const patientIds: string[] = [];
+
+    if (appointment.patientId) {
+      patientIds.push(appointment.patientId);
+    }
+
+    if (
+      appointment.appointmentPatients &&
+      appointment.appointmentPatients.length > 0
+    ) {
+      for (const ap of appointment.appointmentPatients) {
+        if (ap.patientId && !patientIds.includes(ap.patientId)) {
+          patientIds.push(ap.patientId);
+        }
+      }
+    }
+
+    if (patientIds.length === 0) return;
+
+    // Increment dejaVu when changing TO COMPLETED
+    if (
+      newStatus === AppointmentStatus.COMPLETED &&
+      oldStatus !== AppointmentStatus.COMPLETED
+    ) {
+      await this.prisma.patient.updateMany({
+        where: { id: { in: patientIds } },
+        data: { dejaVu: { increment: 1 } },
+      });
+    }
+    // Decrement dejaVu when changing FROM COMPLETED to something else
+    else if (
+      oldStatus === AppointmentStatus.COMPLETED &&
+      newStatus !== AppointmentStatus.COMPLETED
+    ) {
+      // Only decrement if dejaVu > 0
+      for (const patientId of patientIds) {
+        await this.prisma.patient.updateMany({
+          where: { id: patientId, dejaVu: { gt: 0 } },
+          data: { dejaVu: { decrement: 1 } },
+        });
+      }
+    }
   }
 
   async remove(id: string, doctorId: string): Promise<void> {

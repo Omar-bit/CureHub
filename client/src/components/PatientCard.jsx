@@ -23,7 +23,7 @@ const PatientCard = ({
   onEdit,
   onDelete,
   onView,
-  absenceCount = 0,
+  absenceCount = null,
   onIncrementAbsence,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -31,6 +31,26 @@ const PatientCard = ({
   const patientName = patient.name.includes('!SP!')
     ? patient.name.split('!SP!').join(' ')
     : patient.name;
+
+  // If this is a visitor (passager), show simplified card
+  if (patient.isVisitor) {
+    return (
+      <div className='bg-gray-100 rounded-lg shadow-sm border border-gray-300 p-4 mb-4 hover:shadow-md transition-all duration-300'>
+        <div className='flex items-center justify-between'>
+          <div className='flex-1'>
+            <div className='flex items-center gap-2'>
+              <h3 className='text-lg font-semibold text-gray-900'>
+                {patientName}
+              </h3>
+              <span className='px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-700 rounded-full'>
+                Visiteur
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -138,16 +158,17 @@ const PatientCard = ({
                 </div>
               )}
               {/* Absence counter badge */}
-
-              <div
-                className='flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium'
-                style={{ backgroundColor: '#f9516a', color: 'white' }}
-              >
-                <UserX className='w-3 h-3' />
-                <span>
-                  {absenceCount} absence{absenceCount > 1 ? 's' : ''}
-                </span>
-              </div>
+              {absenceCount !== null && (
+                <div
+                  className='flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium'
+                  style={{ backgroundColor: '#f9516a', color: 'white' }}
+                >
+                  <UserX className='w-3 h-3' />
+                  <span>
+                    {absenceCount} absence{absenceCount > 1 ? 's' : ''}
+                  </span>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -14,6 +14,7 @@ import {
 } from './ui/select';
 import { patientAPI } from '../services/api';
 import { showSuccess, showError } from '../lib/toast';
+import { getPatientDisplayName } from '../lib/patient';
 
 const FAMILY_RELATIONSHIPS = [
   { value: 'SON', label: 'Fils' },
@@ -201,14 +202,11 @@ const AddRelativeSheet = ({ open, onOpenChange, mainPatient, onSuccess }) => {
   if (!open) return null;
 
   return (
-    <SheetContent
-      title="Ajouter un proche"
-      onClose={handleClose}
-    >
-      <div className="space-y-4">
-        <div className="text-sm text-muted-foreground">
+    <SheetContent title='Ajouter un proche' onClose={handleClose}>
+      <div className='space-y-4'>
+        <div className='text-sm text-muted-foreground'>
           Ajoutez un nouveau patient ou sélectionnez un patient existant comme
-          proche de <strong>{mainPatient?.name}</strong>
+          proche de <strong>{getPatientDisplayName(mainPatient)}</strong>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className='w-full'>
@@ -342,7 +340,7 @@ const AddRelativeSheet = ({ open, onOpenChange, mainPatient, onSuccess }) => {
               {/* Relationship Information */}
               <div className='space-y-3 border-t pt-4'>
                 <h3 className='font-semibold text-sm'>
-                  Relation avec {mainPatient?.name}
+                  Relation avec {getPatientDisplayName(mainPatient)}
                 </h3>
 
                 <div className='space-y-3'>

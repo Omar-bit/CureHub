@@ -68,6 +68,18 @@ export class PatientService {
         updatedAt: true,
         canAddRelatives: true,
         canBookForRelatives: true,
+        relatedPatients: {
+          select: {
+            id: true,
+            relatedPatientId: true,
+          },
+        },
+        relationshipsAsRelated: {
+          select: {
+            id: true,
+            mainPatientId: true,
+          },
+        },
       },
     });
   }
@@ -111,7 +123,7 @@ export class PatientService {
   }
 
   async create(doctorId: string, createPatientDto: CreatePatientDto) {
-    const { email, ...patientData } = createPatientDto;
+    const { email, dejaVu, ...patientData } = createPatientDto;
 
     // Check if email already exists for another patient
     if (email) {
@@ -136,6 +148,10 @@ export class PatientService {
       hashedPassword = await bcrypt.hash(password, 10);
     }
 
+    // Handle dejaVu: if provided as a truthy value (1 or true from frontend), set to 1
+    // Otherwise default to 0
+    const dejaVuValue = dejaVu && dejaVu > 0 ? dejaVu : 0;
+
     const patient = await this.prisma.patient.create({
       data: {
         ...patientData,
@@ -143,6 +159,7 @@ export class PatientService {
         password: hashedPassword,
         dateOfBirth: new Date(createPatientDto.dateOfBirth),
         doctorId,
+        dejaVu: dejaVuValue,
       },
       select: {
         id: true,
@@ -182,13 +199,13 @@ export class PatientService {
     updatePatientDto: UpdatePatientDto,
   ) {
     // Check if patient exists and belongs to doctor
-    await this.findOne(id, doctorId);
+    const existingPatient = await this.findOne(id, doctorId);
 
-    const { email, ...updateData } = updatePatientDto;
+    const { email, dejaVu, ...updateData } = updatePatientDto;
 
     // Check if email already exists for another patient
     if (email) {
-      const existingPatient = await this.prisma.patient.findFirst({
+      const existingPatientWithEmail = await this.prisma.patient.findFirst({
         where: {
           email,
           id: { not: id },
@@ -196,7 +213,7 @@ export class PatientService {
         },
       });
 
-      if (existingPatient) {
+      if (existingPatientWithEmail) {
         throw new BadRequestException('Patient with this email already exists');
       }
     }
@@ -205,6 +222,24 @@ export class PatientService {
 
     if (updatePatientDto.dateOfBirth) {
       updatePayload.dateOfBirth = new Date(updatePatientDto.dateOfBirth);
+    }
+
+    // Handle dejaVu update:
+    // If dejaVu is explicitly set to 0 (user set it to "non"), reset to 0
+    // If dejaVu is set to a value > 0, use that value
+    // If dejaVu is not provided (undefined), don't change it
+    if (dejaVu !== undefined) {
+      if (dejaVu === 0) {
+        // User explicitly set dejaVu to "non" (0), reset the count
+        updatePayload.dejaVu = 0;
+      } else if (dejaVu > 0) {
+        // User set dejaVu to a positive value
+        // If the existing value is 0, set to the new value (minimum 1)
+        if (existingPatient.dejaVu === 0) {
+          updatePayload.dejaVu = dejaVu;
+        }
+        // Otherwise, keep the existing count (don't overwrite from UI)
+      }
     }
 
     return this.prisma.patient.update({
