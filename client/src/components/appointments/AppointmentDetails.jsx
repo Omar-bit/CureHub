@@ -1080,12 +1080,12 @@ const AppointmentDetails = ({
                             entry.changedFields &&
                             Object.keys(entry.changedFields).length > 0
                           ) {
-                            return Object.entries(entry.changedFields).map(
-                              ([field, change]) => {
+                            return Object.entries(entry.changedFields)
+                              .filter(([field]) => field !== 'endTime') // Hide endTime, only show startTime
+                              .map(([field, change]) => {
                                 const fieldLabels = {
                                   status: "L'acte associé au RDV",
                                   startTime: "L'horaire du RDV",
-                                  endTime: "L'horaire du RDV",
                                   consultationType: 'Type de consultation',
                                   description: 'Motif de consultation',
                                   notes: 'Note privée',
@@ -1147,8 +1147,7 @@ const AppointmentDetails = ({
                                   before: formatValue(change.before, field),
                                   after: formatValue(change.after, field),
                                 };
-                              }
-                            );
+                              });
                           }
 
                           return null;
