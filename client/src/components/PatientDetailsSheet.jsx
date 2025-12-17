@@ -33,6 +33,7 @@ import PatientDocumentsTab from './PatientDocumentsTab';
 import PatientRelativesTab from './PatientRelativesTab';
 import PatientActesTab from './PatientActesTab';
 import PatientTasksTab from './PatientTasksTab';
+import PatientFormSheet from './PatientFormSheet';
 import AppointmentForm from './appointments/AppointmentForm';
 import { showSuccess, showError } from '../lib/toast';
 import { useAuth } from '../contexts/AuthContext';
@@ -679,7 +680,46 @@ const PatientDetailsSheet = ({
 
         <div className='mt-6'>
           <TabsContent value='profil' className='space-y-4'>
-            <ProfileContent />
+            <PatientFormSheet
+              patient={patient}
+              isOpen={true}
+              onClose={() => {}}
+              onSave={async (data) => {
+                try {
+                  await patientAPI.update(patient.id, data);
+                  showSuccess('Patient modifié avec succès');
+                  // Refresh the patient data
+                  if (onEdit) {
+                    onEdit(patient, true); // true indicates a refresh is needed
+                  }
+                } catch (error) {
+                  showError(error.message || 'Erreur lors de la modification');
+                  throw error;
+                }
+              }}
+              onDelete={onDelete}
+              onBlock={async (patientToBlock) => {
+                try {
+                  const newBlockedStatus = !patientToBlock.isBlocked;
+                  await patientAPI.update(patientToBlock.id, {
+                    isBlocked: newBlockedStatus,
+                  });
+                  showSuccess(
+                    newBlockedStatus
+                      ? 'Patient bloqué avec succès'
+                      : 'Patient débloqué avec succès'
+                  );
+                  if (onEdit) {
+                    onEdit(patient, true);
+                  }
+                } catch (error) {
+                  showError(
+                    error.message || 'Erreur lors de la modification du statut'
+                  );
+                }
+              }}
+              inline={true}
+            />
           </TabsContent>
 
           <TabsContent value='proches' className='space-y-4'>
@@ -1229,27 +1269,6 @@ const PatientDetailsSheet = ({
           </TabsContent>
         </div>
       </Tabs>
-
-      {/* Action Buttons */}
-      {activeTab === 'profil' && (
-        <SheetFooter className='mt-8'>
-          <Button
-            onClick={() => onEdit(patient)}
-            className='flex-1'
-            leftIcon={<Edit3 />}
-          >
-            Edit Patient
-          </Button>
-          <Button
-            onClick={() => onDelete(patient)}
-            variant='destructive'
-            className='flex-1'
-            leftIcon={<Trash2 />}
-          >
-            Delete
-          </Button>
-        </SheetFooter>
-      )}
 
       {/* Appointment Form Modal */}
       {showAppointmentForm && (

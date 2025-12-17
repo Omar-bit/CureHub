@@ -5,6 +5,8 @@ import {
   IsEnum,
   IsDateString,
   IsBoolean,
+  IsInt,
+  Min,
 } from 'class-validator';
 import { Gender } from '@prisma/client';
 
@@ -32,7 +34,32 @@ export class CreatePatientDto {
 
   @IsOptional()
   @IsString()
+  landlinePhone?: string;
+
+  @IsOptional()
+  @IsString()
   address?: string;
+
+  @IsOptional()
+  @IsString()
+  postalCode?: string;
+
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  dejaVu?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  absenceCount?: number;
+
+  @IsOptional()
+  @IsString()
+  divers?: string;
 }
 
 export class UpdatePatientDto {
@@ -62,7 +89,36 @@ export class UpdatePatientDto {
 
   @IsOptional()
   @IsString()
+  landlinePhone?: string;
+
+  @IsOptional()
+  @IsString()
   address?: string;
+
+  @IsOptional()
+  @IsString()
+  postalCode?: string;
+
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  dejaVu?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  absenceCount?: number;
+
+  @IsOptional()
+  @IsString()
+  divers?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isBlocked?: boolean;
 }
 
 export class PatientQueryDto {

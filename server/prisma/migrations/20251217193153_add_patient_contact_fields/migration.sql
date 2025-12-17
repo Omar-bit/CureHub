@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE `patients` ADD COLUMN `absenceCount` INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN `city` VARCHAR(191) NULL,
+    ADD COLUMN `dejaVu` BOOLEAN NOT NULL DEFAULT false,
+    ADD COLUMN `divers` TEXT NULL,
+    ADD COLUMN `landlinePhone` VARCHAR(191) NULL,
+    ADD COLUMN `postalCode` VARCHAR(191) NULL;

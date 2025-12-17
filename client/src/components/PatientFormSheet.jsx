@@ -3,9 +3,68 @@ import { SheetContent, SheetFooter } from './ui/sheet';
 import { Button } from './ui/button';
 import { FormInput, FormSelect, FormTextarea } from './ui/form-field';
 import { Alert } from './ui/alert';
-import { splitPatientName, buildPatientName } from '../lib/patient';
+import { ConfirmDialog } from './ui/confirm-dialog';
+import {
+  splitPatientName,
+  buildPatientName,
+  getPatientDisplayName,
+} from '../lib/patient';
+import { ChevronDown, ChevronRight, Ban, Trash2, Unlock } from 'lucide-react';
 
-const PatientFormSheet = ({ patient, isOpen, onClose, onSave }) => {
+// Accordion Section Component
+const AccordionSection = ({
+  title,
+  isOpen,
+  onToggle,
+  children,
+  showSaveButton,
+  isLoading,
+  isEditMode,
+}) => {
+  return (
+    <div className='border border-gray-200 rounded-lg overflow-hidden'>
+      <button
+        type='button'
+        onClick={onToggle}
+        className='w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition-colors'
+      >
+        <span className='text-sm font-medium text-gray-700'>{title}</span>
+        {isOpen ? (
+          <ChevronDown className='w-4 h-4 text-gray-500' />
+        ) : (
+          <ChevronRight className='w-4 h-4 text-gray-500' />
+        )}
+      </button>
+      {isOpen && (
+        <div className='p-4 space-y-4'>
+          {children}
+          {showSaveButton && (
+            <div className='pt-4 border-t'>
+              <Button
+                type='submit'
+                loading={isLoading}
+                disabled={isLoading}
+                className='w-full bg-purple-600 hover:bg-purple-700'
+              >
+                {isEditMode ? 'Modifier' : 'Enregistrer'}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const PatientFormSheet = ({
+  patient,
+  isOpen,
+  onClose,
+  onSave,
+  onDelete,
+  onBlock,
+  inline = false,
+}) => {
   // initial parsing is done when the sheet opens (see useEffect)
 
   const [formData, setFormData] = useState({
@@ -17,11 +76,23 @@ const PatientFormSheet = ({ patient, isOpen, onClose, onSave }) => {
     mobilePhone: '',
     landlinePhone: '',
     address: '',
+    postalCode: '',
+    city: '',
     showProvisionalCode: false,
     profileImage: '',
+    dejaVu: false,
+    absenceCount: 0,
+    divers: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [openSection, setOpenSection] = useState(null); // null = all closed, or section name
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const toggleSection = (sectionName) => {
+    setOpenSection(openSection === sectionName ? null : sectionName);
+  };
 
   useEffect(() => {
     if (patient) {
@@ -52,10 +123,15 @@ const PatientFormSheet = ({ patient, isOpen, onClose, onSave }) => {
         gender: (isFullPatient && patient.gender) || 'MALE',
         email: (isFullPatient && patient.email) || '',
         mobilePhone: (isFullPatient && patient.phoneNumber) || '',
-        landlinePhone: '',
+        landlinePhone: (isFullPatient && patient.landlinePhone) || '',
         address: (isFullPatient && patient.address) || '',
+        postalCode: (isFullPatient && patient.postalCode) || '',
+        city: (isFullPatient && patient.city) || '',
         showProvisionalCode: false,
         profileImage: (isFullPatient && patient.profileImage) || '',
+        dejaVu: (isFullPatient && patient.dejaVu) || false,
+        absenceCount: (isFullPatient && patient.absenceCount) || 0,
+        divers: (isFullPatient && patient.divers) || '',
       });
     } else {
       setFormData({
@@ -67,11 +143,17 @@ const PatientFormSheet = ({ patient, isOpen, onClose, onSave }) => {
         mobilePhone: '',
         landlinePhone: '',
         address: '',
+        postalCode: '',
+        city: '',
         showProvisionalCode: false,
         profileImage: '',
+        dejaVu: false,
+        absenceCount: 0,
+        divers: '',
       });
     }
     setErrors({});
+    setOpenSection(null); // Reset accordion state when sheet opens
   }, [patient, isOpen]);
 
   const handleSubmit = async (e) => {
@@ -95,7 +177,6 @@ const PatientFormSheet = ({ patient, isOpen, onClose, onSave }) => {
             'firstName',
             'lastName',
             'mobilePhone',
-            'landlinePhone',
             'showProvisionalCode',
           ].includes(key)
         ) {
@@ -127,173 +208,331 @@ const PatientFormSheet = ({ patient, isOpen, onClose, onSave }) => {
   const isEditMode = patient && patient.name !== undefined;
   const sheetTitle = isEditMode ? 'Modifier Patient' : 'Nouveau patient';
 
-  return (
-    <SheetContent title={sheetTitle} onClose={onClose}>
-      <form onSubmit={handleSubmit} className='space-y-6'>
+  const formContent = (
+    <>
+      <form onSubmit={handleSubmit} className='space-y-3'>
         {errors.general && (
           <Alert variant='destructive'>{errors.general}</Alert>
         )}
+
         {/* Identity Section */}
-        <div className='space-y-4'>
-          <h3 className='text-sm font-medium text-gray-700 border-b pb-2'>
-            Identité
-          </h3>
+        <AccordionSection
+          title='Identité'
+          isOpen={openSection === 'identity'}
+          onToggle={() => toggleSection('identity')}
+          showSaveButton={isEditMode}
+          isLoading={isLoading}
+          isEditMode={isEditMode}
+        >
+          <FormInput
+            label='Nom'
+            name='lastName'
+            value={formData.lastName}
+            onChange={handleChange}
+            required
+            placeholder='Nom'
+            error={errors.lastName}
+          />
 
-          <div className='pl-4 space-y-4'>
-            <FormInput
-              label='Nom'
-              name='lastName'
-              value={formData.lastName}
-              onChange={handleChange}
-              required
-              placeholder='Nom'
-              error={errors.lastName}
-            />
+          <FormInput
+            label='Prénom'
+            name='firstName'
+            value={formData.firstName}
+            onChange={handleChange}
+            required
+            placeholder='Prénom'
+            error={errors.firstName}
+          />
 
-            <FormInput
-              label='Prénom'
-              name='firstName'
-              value={formData.firstName}
-              onChange={handleChange}
-              required
-              placeholder='Prénom'
-              error={errors.firstName}
-            />
+          <FormInput
+            label='Date nais.'
+            name='dateOfBirth'
+            type='date'
+            value={formData.dateOfBirth}
+            onChange={handleChange}
+            required
+            placeholder='Date de nais. (JJ/MM/AAAA)'
+            error={errors.dateOfBirth}
+          />
 
-            <FormInput
-              label='Date nais.'
-              name='dateOfBirth'
-              type='date'
-              value={formData.dateOfBirth}
-              onChange={handleChange}
-              required
-              placeholder='Date de nais. (JJ/MM/AAAA)'
-              error={errors.dateOfBirth}
-            />
-
-            {/* Gender Radio Buttons */}
-            <div className='space-y-2'>
-              <label className='text-sm font-medium text-gray-700'>
-                Genre <span className='text-destructive ml-1'>*</span>
+          {/* Gender Radio Buttons */}
+          <div className='space-y-2'>
+            <label className='text-sm font-medium text-gray-700'>
+              Genre <span className='text-destructive ml-1'>*</span>
+            </label>
+            <div className='flex space-x-6'>
+              <label className='flex items-center space-x-2'>
+                <input
+                  type='radio'
+                  name='gender'
+                  value='MALE'
+                  checked={formData.gender === 'MALE'}
+                  onChange={handleChange}
+                  className='w-4 h-4 text-blue-600'
+                />
+                <span className='text-sm text-gray-700'>Homme</span>
               </label>
-              <div className='flex space-x-6'>
-                <label className='flex items-center space-x-2'>
-                  <input
-                    type='radio'
-                    name='gender'
-                    value='MALE'
-                    checked={formData.gender === 'MALE'}
-                    onChange={handleChange}
-                    className='w-4 h-4 text-blue-600'
-                  />
-                  <span className='text-sm text-gray-700'>Homme</span>
-                </label>
-                <label className='flex items-center space-x-2'>
-                  <input
-                    type='radio'
-                    name='gender'
-                    value='FEMALE'
-                    checked={formData.gender === 'FEMALE'}
-                    onChange={handleChange}
-                    className='w-4 h-4 text-blue-600'
-                  />
-                  <span className='text-sm text-gray-700'>Femme</span>
-                </label>
-              </div>
-              {errors.gender && (
-                <p className='text-sm text-red-600'>{errors.gender}</p>
-              )}
+              <label className='flex items-center space-x-2'>
+                <input
+                  type='radio'
+                  name='gender'
+                  value='FEMALE'
+                  checked={formData.gender === 'FEMALE'}
+                  onChange={handleChange}
+                  className='w-4 h-4 text-blue-600'
+                />
+                <span className='text-sm text-gray-700'>Femme</span>
+              </label>
             </div>
+            {errors.gender && (
+              <p className='text-sm text-red-600'>{errors.gender}</p>
+            )}
           </div>
-        </div>
+        </AccordionSection>
+
         {/* Coordinates Section */}
-        <div className='space-y-4'>
-          <h3 className='text-sm font-medium text-gray-700 border-b pb-2'>
-            Coordonnées
-          </h3>
+        <AccordionSection
+          title='Coordonnées'
+          isOpen={openSection === 'coordinates'}
+          onToggle={() => toggleSection('coordinates')}
+          showSaveButton={isEditMode}
+          isLoading={isLoading}
+          isEditMode={isEditMode}
+        >
+          <FormInput
+            label='Email'
+            name='email'
+            type='email'
+            value={formData.email}
+            onChange={handleChange}
+            placeholder='Adresse email'
+            error={errors.email}
+          />
 
-          <div className='pl-4 space-y-4'>
+          <FormInput
+            label='Tél. port.'
+            name='mobilePhone'
+            type='tel'
+            value={formData.mobilePhone}
+            onChange={handleChange}
+            placeholder='N° de tél. portable'
+            error={errors.mobilePhone}
+          />
+
+          <FormInput
+            label='Tél. fixe'
+            name='landlinePhone'
+            type='tel'
+            value={formData.landlinePhone}
+            onChange={handleChange}
+            placeholder='N° de tél. fixe'
+            error={errors.landlinePhone}
+          />
+
+          <FormInput
+            label='Adresse'
+            name='address'
+            value={formData.address}
+            onChange={handleChange}
+            placeholder='Adresse'
+            error={errors.address}
+          />
+
+          <div className='grid grid-cols-2 gap-3'>
             <FormInput
-              label='Email'
-              name='email'
-              type='email'
-              value={formData.email}
+              label='Code postal'
+              name='postalCode'
+              value={formData.postalCode}
               onChange={handleChange}
-              placeholder='Adresse email'
-              error={errors.email}
+              placeholder='Code postal'
+              error={errors.postalCode}
             />
 
             <FormInput
-              label='Tél. port.'
-              name='mobilePhone'
-              type='tel'
-              value={formData.mobilePhone}
+              label='Ville'
+              name='city'
+              value={formData.city}
               onChange={handleChange}
-              placeholder='N° de tél. portable'
-              error={errors.mobilePhone}
+              placeholder='Ville'
+              error={errors.city}
             />
+          </div>
 
-            <FormInput
-              label='Tél. fixe'
-              name='landlinePhone'
-              type='tel'
-              value={formData.landlinePhone}
-              onChange={handleChange}
-              placeholder='N° de tél. fixe'
-              error={errors.landlinePhone}
-            />
+          <FormTextarea
+            label='Divers'
+            name='divers'
+            value={formData.divers}
+            onChange={handleChange}
+            placeholder='ex: code porte, n° infirmerie'
+            rows={3}
+            error={errors.divers}
+          />
+        </AccordionSection>
 
-            <div className='flex items-center space-x-2'>
-              <input
-                type='checkbox'
-                id='showProvisionalCode'
-                name='showProvisionalCode'
-                checked={formData.showProvisionalCode}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    showProvisionalCode: e.target.checked,
-                  }))
-                }
-                className='w-4 h-4 text-blue-600'
-              />
-              <label
-                htmlFor='showProvisionalCode'
-                className='text-sm text-gray-700'
-              >
-                Afficher le code confidentiel provisoire
+        {/* Information Section */}
+        <AccordionSection
+          title='Information'
+          isOpen={openSection === 'information'}
+          onToggle={() => toggleSection('information')}
+          showSaveButton={isEditMode}
+          isLoading={isLoading}
+          isEditMode={isEditMode}
+        >
+          {/* Déjà vu Radio Buttons */}
+          <div className='space-y-2'>
+            <label className='text-sm font-medium text-gray-700'>Déjà vu</label>
+            <div className='flex space-x-6'>
+              <label className='flex items-center space-x-2'>
+                <input
+                  type='radio'
+                  name='dejaVu'
+                  value='true'
+                  checked={formData.dejaVu === true}
+                  onChange={() =>
+                    setFormData((prev) => ({ ...prev, dejaVu: true }))
+                  }
+                  className='w-4 h-4 text-blue-600'
+                />
+                <span className='text-sm text-gray-700'>Oui</span>
+              </label>
+              <label className='flex items-center space-x-2'>
+                <input
+                  type='radio'
+                  name='dejaVu'
+                  value='false'
+                  checked={formData.dejaVu === false}
+                  onChange={() =>
+                    setFormData((prev) => ({ ...prev, dejaVu: false }))
+                  }
+                  className='w-4 h-4 text-blue-600'
+                />
+                <span className='text-sm text-gray-700'>Non</span>
               </label>
             </div>
           </div>
-        </div>
-        {/* Address Section */}
-        <div className='space-y-4'>
-          <h3 className='text-sm font-medium text-gray-700 border-b pb-2'>
-            Adresse
-          </h3>
 
-          <div className='pl-4'>
-            <FormTextarea
-              name='address'
-              value={formData.address}
-              onChange={handleChange}
-              placeholder='Adresse complète'
-              rows={3}
-              error={errors.address}
-            />
-          </div>
-        </div>{' '}
-        <SheetFooter>
-          <Button
-            type='submit'
-            loading={isLoading}
-            disabled={isLoading}
-            className='bg-purple-600 hover:bg-purple-700'
+          <FormInput
+            label='Absence'
+            name='absenceCount'
+            type='number'
+            min='0'
+            value={formData.absenceCount}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                absenceCount: parseInt(e.target.value) || 0,
+              }))
+            }
+            placeholder="Nombre d'absences"
+            error={errors.absenceCount}
+          />
+        </AccordionSection>
+
+        {/* Block/Delete Section - Only show in edit mode */}
+        {isEditMode && (
+          <AccordionSection
+            title='Bloquer/Supprimer'
+            isOpen={openSection === 'danger'}
+            onToggle={() => toggleSection('danger')}
+            showSaveButton={false}
+            isLoading={isLoading}
+            isEditMode={isEditMode}
           >
-            {isEditMode ? 'Modifier' : 'Enregistrer'}
-          </Button>
-        </SheetFooter>
+            <div className='space-y-4'>
+              <p className='text-sm text-gray-600'>
+                Actions de gestion du patient. Ces actions peuvent avoir des
+                conséquences importantes.
+              </p>
+
+              <div className='space-y-3'>
+                <Button
+                  type='button'
+                  variant='outline'
+                  className={`w-full ${patient?.isBlocked ? 'border-green-500 text-green-600 hover:bg-green-50' : 'border-orange-500 text-orange-600 hover:bg-orange-50'}`}
+                  onClick={() => setShowBlockConfirm(true)}
+                >
+                  {patient?.isBlocked ? 'Débloquer le patient' : 'Bloquer le patient'}
+                </Button>
+
+                <Button
+                  type='button'
+                  variant='destructive'
+                  className='w-full'
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  Supprimer le patient
+                </Button>
+              </div>
+            </div>
+          </AccordionSection>
+        )}
+
+        {/* Single Save Button for Create Mode */}
+        {!isEditMode && (
+          <div className='pt-4'>
+            <Button
+              type='submit'
+              loading={isLoading}
+              disabled={isLoading}
+              className='w-full bg-purple-600 hover:bg-purple-700'
+            >
+              Enregistrer
+            </Button>
+          </div>
+        )}
       </form>
+
+      {/* Block Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showBlockConfirm}
+        onClose={() => setShowBlockConfirm(false)}
+        onConfirm={() => {
+          setShowBlockConfirm(false);
+          if (onBlock) {
+            onBlock(patient);
+          }
+        }}
+        title={patient?.isBlocked ? 'Débloquer le patient' : 'Bloquer le patient'}
+        description={patient?.isBlocked 
+          ? `Êtes-vous sûr de vouloir débloquer ${getPatientDisplayName(patient) || 'ce patient'} ? Le patient pourra à nouveau prendre des rendez-vous.`
+          : `Êtes-vous sûr de vouloir bloquer ${getPatientDisplayName(patient) || 'ce patient'} ? Le patient ne pourra plus prendre de rendez-vous.`
+        }
+        confirmText={patient?.isBlocked ? 'Débloquer' : 'Bloquer'}
+        cancelText='Annuler'
+        variant={patient?.isBlocked ? 'default' : 'warning'}
+        icon={patient?.isBlocked ? Unlock : Ban}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={() => {
+          setShowDeleteConfirm(false);
+          if (onDelete) {
+            onDelete(patient);
+          }
+        }}
+        title='Supprimer le patient'
+        description={`Êtes-vous sûr de vouloir supprimer ${
+          getPatientDisplayName(patient) || 'ce patient'
+        } ? Cette action est irréversible.`}
+        confirmText='Supprimer'
+        cancelText='Annuler'
+        variant='destructive'
+        icon={Trash2}
+      />
+    </>
+  );
+
+  // If inline mode, return form content directly without SheetContent wrapper
+  if (inline) {
+    return formContent;
+  }
+
+  return (
+    <SheetContent title={sheetTitle} onClose={onClose}>
+      {formContent}
     </SheetContent>
   );
 };

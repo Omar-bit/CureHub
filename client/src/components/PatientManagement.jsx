@@ -30,6 +30,7 @@ import { Alert } from './ui/alert';
 import PatientCard from './PatientCard';
 import PatientDetailsSheet from './PatientDetailsSheet';
 import PatientFormSheet from './PatientFormSheet';
+import { getPatientDisplayName } from '../lib/patient';
 
 // Main Patient Management Component
 const PatientManagement = ({ onAppointmentCreated }) => {
@@ -292,6 +293,31 @@ const PatientManagement = ({ onAppointmentCreated }) => {
           isOpen={showAddEdit}
           onClose={() => setShowAddEdit(false)}
           onSave={handleSavePatient}
+          onDelete={(patient) => {
+            setShowAddEdit(false);
+            handleDeletePatient(patient);
+          }}
+          onBlock={async (patient) => {
+            try {
+              const newBlockedStatus = !patient.isBlocked;
+              const updatedPatient = await patientAPI.update(patient.id, {
+                isBlocked: newBlockedStatus,
+              });
+              await loadPatients();
+              // Update editingPatient with the new blocked status
+              setEditingPatient(updatedPatient);
+              showSuccess(
+                newBlockedStatus
+                  ? 'Patient bloqué avec succès'
+                  : 'Patient débloqué avec succès'
+              );
+            } catch (error) {
+              showApiError(
+                error,
+                'Erreur lors de la modification du statut du patient'
+              );
+            }
+          }}
         />
       )}
 
@@ -300,7 +326,9 @@ const PatientManagement = ({ onAppointmentCreated }) => {
         onClose={() => setPatientToDelete(null)}
         onConfirm={confirmDeletePatient}
         title='Delete Patient'
-        description={`Are you sure you want to delete ${patientToDelete?.name}? This action cannot be undone.`}
+        description={`Are you sure you want to delete ${getPatientDisplayName(
+          patientToDelete
+        )}? This action cannot be undone.`}
         confirmText='Delete'
         cancelText='Cancel'
         variant='destructive'
