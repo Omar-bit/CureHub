@@ -445,16 +445,7 @@ const AppointmentForm = ({
       newErrors.consultationTypeId = 'Consultation type is required';
     }
 
-    // Validate date is not in the past (only for new appointments)
-    if (!appointment && formData.date) {
-      const selectedDate = new Date(formData.date);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      if (selectedDate < today) {
-        newErrors.date = 'Cannot schedule appointments in the past';
-      }
-    }
+    // Allow scheduling appointments in the past (for historical records)
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;

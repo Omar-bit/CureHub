@@ -770,9 +770,7 @@ export class AppointmentService {
       throw new BadRequestException('Start time must be before end time');
     }
 
-    if (startTime < new Date()) {
-      throw new BadRequestException('Cannot schedule appointment in the past');
-    }
+    // Allow scheduling appointments in the past (for historical records)
 
     // Maximum appointment duration: 4 hours
     const maxDurationMs = 4 * 60 * 60 * 1000;
