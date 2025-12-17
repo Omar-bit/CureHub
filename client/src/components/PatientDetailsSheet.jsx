@@ -24,6 +24,9 @@ import {
   UserPlus,
   Edit,
   Trash,
+  Sparkles,
+  Copy,
+  RotateCcw,
 } from 'lucide-react';
 import { SheetContent, SheetHeader, SheetTitle, SheetFooter } from './ui/sheet';
 import { Button } from './ui/button';
@@ -38,6 +41,7 @@ import AppointmentForm from './appointments/AppointmentForm';
 import { showSuccess, showError } from '../lib/toast';
 import { useAuth } from '../contexts/AuthContext';
 import { useDoctorProfile } from '../hooks/useDoctorProfile';
+import { geminiService } from '../services/gemini';
 
 // Wrapper component to pre-select a patient in the appointment form
 const PreSelectedPatientAppointmentForm = ({
@@ -144,6 +148,15 @@ const PatientDetailsSheet = ({
   const [emailMessage, setEmailMessage] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
   const [smsMessage, setSmsMessage] = useState('');
+
+  // AI Message Generation State
+  const [emailAiPrompt, setEmailAiPrompt] = useState('');
+  const [smsAiPrompt, setSmsAiPrompt] = useState('');
+  const [generatingEmailAi, setGeneratingEmailAi] = useState(false);
+  const [generatingSmsAi, setGeneratingSmsAi] = useState(false);
+  const [showEmailAiPanel, setShowEmailAiPanel] = useState(false);
+  const [showSmsAiPanel, setShowSmsAiPanel] = useState(false);
+
   const patientName = patient.name.includes('!SP!')
     ? patient.name.split('!SP!').join(' ')
     : patient.name;
@@ -367,6 +380,82 @@ const PatientDetailsSheet = ({
       setTimelineEvents([]);
     } finally {
       setLoadingTimeline(false);
+    }
+  };
+
+  // AI Message Generation Functions
+  const getDoctorFullName = () => {
+    if (doctorProfile?.user) {
+      const { firstName, lastName } = doctorProfile.user;
+      if (firstName && lastName) return `Dr. ${firstName} ${lastName}`;
+      if (firstName) return `Dr. ${firstName}`;
+      if (lastName) return `Dr. ${lastName}`;
+    }
+    if (user?.firstName && user?.lastName) {
+      return `Dr. ${user.firstName} ${user.lastName}`;
+    }
+    return 'Dr.';
+  };
+
+  const handleGenerateEmailWithAi = async () => {
+    if (!emailAiPrompt.trim()) {
+      showError('Veuillez décrire le message que vous souhaitez générer');
+      return;
+    }
+
+    setGeneratingEmailAi(true);
+    try {
+      const generatedEmail = await geminiService.generateProfessionalEmail({
+        description: emailAiPrompt,
+        patientName: patientName,
+        doctorName: getDoctorFullName(),
+        clinicName: doctorProfile?.clinicName || '',
+        language: 'fr',
+      });
+      setEmailMessage(generatedEmail);
+      setEmailAiPrompt('');
+      setShowEmailAiPanel(false);
+      showSuccess('Message généré avec succès !');
+    } catch (error) {
+      console.error('Error generating email with AI:', error);
+      showError(
+        error.response?.data?.message ||
+          error.message ||
+          'Erreur lors de la génération du message'
+      );
+    } finally {
+      setGeneratingEmailAi(false);
+    }
+  };
+
+  const handleGenerateSmsWithAi = async () => {
+    if (!smsAiPrompt.trim()) {
+      showError('Veuillez décrire le message que vous souhaitez générer');
+      return;
+    }
+
+    setGeneratingSmsAi(true);
+    try {
+      const generatedSms = await geminiService.generateProfessionalSMS({
+        description: smsAiPrompt,
+        patientName: patientName,
+        doctorName: getDoctorFullName(),
+        clinicName: doctorProfile?.clinicName || '',
+        language: 'fr',
+      });
+      setSmsMessage(generatedSms);
+      setSmsAiPrompt('');
+      setShowSmsAiPanel(false);
+      showSuccess('Message généré avec succès !');
+    } catch (error) {
+      console.error('Error generating SMS with AI:', error);
+      showError(
+        error.response?.data?.message ||
+          error.message ||
+          'Erreur lors de la génération du message'
+      );
+    } finally {
+      setGeneratingSmsAi(false);
     }
   };
 
@@ -759,21 +848,98 @@ const PatientDetailsSheet = ({
               {/* SMS Contact */}
               {patient.phoneNumber && (
                 <div className='p-4 border rounded-lg'>
-                  <div className='flex items-center gap-3 mb-4'>
-                    <div className='w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center'>
-                      <MessageSquare className='w-5 h-5 text-blue-600' />
+                  <div className='flex items-center justify-between mb-4'>
+                    <div className='flex items-center gap-3'>
+                      <div className='w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center'>
+                        <MessageSquare className='w-5 h-5 text-blue-600' />
+                      </div>
+                      <div>
+                        <p className='font-medium text-foreground'>Par SMS</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className='font-medium text-foreground'>Par SMS</p>
-                    </div>
+                    <Button
+                      size='sm'
+                      variant='ghost'
+                      className='text-purple-600 hover:text-purple-700 hover:bg-purple-50'
+                      onClick={() => setShowSmsAiPanel(!showSmsAiPanel)}
+                    >
+                      <Sparkles className='w-4 h-4 mr-1' />
+                      {showSmsAiPanel ? 'Masquer IA' : 'Générer avec IA'}
+                    </Button>
                   </div>
+
+                  {/* AI Generation Panel for SMS */}
+                  {showSmsAiPanel && (
+                    <div className='mb-4 p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg'>
+                      <div className='flex items-center gap-2 mb-3'>
+                        <Sparkles className='w-4 h-4 text-purple-600' />
+                        <span className='text-sm font-medium text-purple-800'>
+                          Assistant IA - Génération de SMS
+                        </span>
+                      </div>
+                      <textarea
+                        value={smsAiPrompt}
+                        onChange={(e) => setSmsAiPrompt(e.target.value)}
+                        placeholder="Décrivez le message que vous souhaitez envoyer... (ex: 'Rappeler le rendez-vous de demain à 14h', 'Demander de rappeler pour confirmer', 'Informer d'un changement d'horaire')"
+                        className='w-full min-h-[60px] p-3 border border-purple-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white text-sm'
+                        disabled={generatingSmsAi}
+                      />
+                      <div className='flex items-center justify-between mt-3'>
+                        <p className='text-xs text-purple-600'>
+                          L'IA génèrera un SMS professionnel et concis
+                        </p>
+                        <Button
+                          size='sm'
+                          disabled={!smsAiPrompt.trim() || generatingSmsAi}
+                          onClick={handleGenerateSmsWithAi}
+                          className='bg-purple-600 hover:bg-purple-700 text-white'
+                        >
+                          {generatingSmsAi ? (
+                            <>
+                              <Loader2 className='w-4 h-4 animate-spin mr-1' />
+                              Génération...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className='w-4 h-4 mr-1' />
+                              Générer
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   <div className='space-y-3'>
-                    <textarea
-                      value={smsMessage}
-                      onChange={(e) => setSmsMessage(e.target.value)}
-                      placeholder={`Message pour ${patientName}...`}
-                      className='w-full min-h-[80px] p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary/50'
-                    />
+                    <div className='relative'>
+                      <textarea
+                        value={smsMessage}
+                        onChange={(e) => setSmsMessage(e.target.value)}
+                        placeholder={`Message pour ${patientName}...`}
+                        className='w-full min-h-[80px] p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary/50'
+                      />
+                      {smsMessage && (
+                        <div className='absolute top-2 right-2 flex gap-1'>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(smsMessage);
+                              showSuccess('Message copié !');
+                            }}
+                            className='p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded'
+                            title='Copier'
+                          >
+                            <Copy className='w-4 h-4' />
+                          </button>
+                          <button
+                            onClick={() => setSmsMessage('')}
+                            className='p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded'
+                            title='Effacer'
+                          >
+                            <RotateCcw className='w-4 h-4' />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                     <div className='flex items-center justify-between'>
                       <span className='text-sm text-muted-foreground'>
                         {patient.phoneNumber}
@@ -802,21 +968,98 @@ const PatientDetailsSheet = ({
               {/* Email Contact */}
               {patient.email && (
                 <div className='p-4 border rounded-lg'>
-                  <div className='flex items-center gap-3 mb-4'>
-                    <div className='w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center'>
-                      <Mail className='w-5 h-5 text-orange-600' />
+                  <div className='flex items-center justify-between mb-4'>
+                    <div className='flex items-center gap-3'>
+                      <div className='w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center'>
+                        <Mail className='w-5 h-5 text-orange-600' />
+                      </div>
+                      <div>
+                        <p className='font-medium text-foreground'>Par email</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className='font-medium text-foreground'>Par email</p>
-                    </div>
+                    <Button
+                      size='sm'
+                      variant='ghost'
+                      className='text-purple-600 hover:text-purple-700 hover:bg-purple-50'
+                      onClick={() => setShowEmailAiPanel(!showEmailAiPanel)}
+                    >
+                      <Sparkles className='w-4 h-4 mr-1' />
+                      {showEmailAiPanel ? 'Masquer IA' : 'Générer avec IA'}
+                    </Button>
                   </div>
+
+                  {/* AI Generation Panel for Email */}
+                  {showEmailAiPanel && (
+                    <div className='mb-4 p-4 bg-gradient-to-r from-purple-50 to-orange-50 border border-purple-200 rounded-lg'>
+                      <div className='flex items-center gap-2 mb-3'>
+                        <Sparkles className='w-4 h-4 text-purple-600' />
+                        <span className='text-sm font-medium text-purple-800'>
+                          Assistant IA - Génération d'Email
+                        </span>
+                      </div>
+                      <textarea
+                        value={emailAiPrompt}
+                        onChange={(e) => setEmailAiPrompt(e.target.value)}
+                        placeholder="Décrivez le message que vous souhaitez envoyer... (ex: 'Envoyer les résultats d'analyse avec une explication rassurante', 'Rappeler le rendez-vous de suivi', 'Demander de prendre un nouveau rendez-vous')"
+                        className='w-full min-h-[80px] p-3 border border-purple-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white text-sm'
+                        disabled={generatingEmailAi}
+                      />
+                      <div className='flex items-center justify-between mt-3'>
+                        <p className='text-xs text-purple-600'>
+                          L'IA génèrera un email professionnel et bienveillant
+                        </p>
+                        <Button
+                          size='sm'
+                          disabled={!emailAiPrompt.trim() || generatingEmailAi}
+                          onClick={handleGenerateEmailWithAi}
+                          className='bg-purple-600 hover:bg-purple-700 text-white'
+                        >
+                          {generatingEmailAi ? (
+                            <>
+                              <Loader2 className='w-4 h-4 animate-spin mr-1' />
+                              Génération...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className='w-4 h-4 mr-1' />
+                              Générer
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   <div className='space-y-3'>
-                    <textarea
-                      value={emailMessage}
-                      onChange={(e) => setEmailMessage(e.target.value)}
-                      placeholder={patientName}
-                      className='w-full min-h-[80px] p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary/50'
-                    />
+                    <div className='relative'>
+                      <textarea
+                        value={emailMessage}
+                        onChange={(e) => setEmailMessage(e.target.value)}
+                        placeholder={`Message pour ${patientName}...`}
+                        className='w-full min-h-[120px] p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary/50'
+                      />
+                      {emailMessage && (
+                        <div className='absolute top-2 right-2 flex gap-1'>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(emailMessage);
+                              showSuccess('Message copié !');
+                            }}
+                            className='p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded'
+                            title='Copier'
+                          >
+                            <Copy className='w-4 h-4' />
+                          </button>
+                          <button
+                            onClick={() => setEmailMessage('')}
+                            className='p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded'
+                            title='Effacer'
+                          >
+                            <RotateCcw className='w-4 h-4' />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                     <div className='flex items-center justify-between'>
                       <a
                         href={`mailto:${patient.email}`}
@@ -850,7 +1093,9 @@ const PatientDetailsSheet = ({
                       >
                         {sendingEmail ? (
                           <Loader2 className='w-4 h-4 animate-spin mr-1' />
-                        ) : null}
+                        ) : (
+                          <Send className='w-4 h-4 mr-1' />
+                        )}
                         Envoyer
                       </Button>
                     </div>
