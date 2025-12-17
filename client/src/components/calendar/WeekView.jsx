@@ -10,6 +10,10 @@ import {
   ChevronsRight,
   Calendar,
   CalendarCheck,
+  MapPin,
+  Eye,
+  Rabbit,
+  X,
 } from 'lucide-react';
 
 const WeekView = ({
@@ -417,6 +421,43 @@ const WeekView = ({
                           );
                           const isCancelled =
                             appointment.status === 'CANCELLED';
+
+                          // Get status icon based on appointment status
+                          const getStatusIcon = (status) => {
+                            switch (status) {
+                              case 'SCHEDULED':
+                                return (
+                                  <div className='bg-purple-500 rounded-full p-0.5 flex items-center justify-center'>
+                                    <MapPin className='w-2 h-2 text-white' />
+                                  </div>
+                                );
+                              case 'COMPLETED':
+                                return (
+                                  <div className='bg-green-500 rounded-full p-0.5 flex items-center justify-center'>
+                                    <Eye className='w-2 h-2 text-white' />
+                                  </div>
+                                );
+                              case 'ABSENT':
+                                return (
+                                  <div
+                                    className='rounded-full p-0.5 flex items-center justify-center'
+                                    style={{ backgroundColor: '#f9516a' }}
+                                  >
+                                    <Rabbit className='w-2 h-2 text-white' />
+                                  </div>
+                                );
+                              case 'CANCELLED':
+                                return (
+                                  <div className='bg-gray-500 rounded-full p-0.5 flex items-center justify-center'>
+                                    <X className='w-2 h-2 text-white' />
+                                  </div>
+                                );
+                              default:
+                                return null;
+                            }
+                          };
+                          const statusIcon = getStatusIcon(appointment.status);
+
                           return (
                             <div
                               key={appointment.id}
@@ -439,9 +480,10 @@ const WeekView = ({
                             >
                               {/* Time Badge */}
                               <div
-                                className={`${colorClasses.bgColor} text-white px-2 py-1 font-bold whitespace-nowrap flex-shrink-0 rounded-l-lg`}
+                                className={`${colorClasses.bgColor} text-white px-2 py-1 font-bold whitespace-nowrap flex-shrink-0 rounded-l-lg flex items-center gap-1`}
                               >
-                                {startTime}
+                                <span>{startTime}</span>
+                                {statusIcon && <span>{statusIcon}</span>}
                               </div>
 
                               {/* Appointment Info */}
@@ -452,6 +494,12 @@ const WeekView = ({
                                   }`}
                                 >
                                   {getAppointmentPatientsDisplay(appointment)}
+                                  {!isCancelled &&
+                                    appointment.absenceCount > 0 && (
+                                      <span className='ml-1 text-gray-500'>
+                                        {appointment.absenceCount} abs.
+                                      </span>
+                                    )}
                                 </div>
                                 {isCancelled && (
                                   <div className='text-xs text-red-600 font-semibold'>

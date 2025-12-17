@@ -28,6 +28,9 @@ import {
   Unlock,
   Plus,
   ArrowLeftRight,
+  Rabbit,
+  Eye,
+  MessageCircle,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -85,6 +88,9 @@ const AppointmentDetails = ({
   const [documentBlockSettings, setDocumentBlockSettings] = useState({}); // Track block/share settings per document {documentId: {blockClientDownload: bool, shareUntilDate: string}}
   const [openDatePickerId, setOpenDatePickerId] = useState(null); // Track which document's date picker is open
   const [isSwitchingLocation, setIsSwitchingLocation] = useState(false); // Track location switch in progress
+  const [showAbsenceBanner, setShowAbsenceBanner] = useState(false); // Track if absence notification banner is visible
+  const [isSendingAbsenceNotification, setIsSendingAbsenceNotification] =
+    useState(false); // Track if sending absence notification
 
   // When inline mode is true, show content if appointment exists, regardless of isOpen
   // When inline mode is false (modal/overlay), require both isOpen and appointment
@@ -227,6 +233,13 @@ const AppointmentDetails = ({
     const previousChip = selectedStatusChip;
     setSelectedStatusChip(chipName);
 
+    // Show absence banner when marking patient as absent
+    if (chipName === 'absent') {
+      setShowAbsenceBanner(true);
+    } else {
+      setShowAbsenceBanner(false);
+    }
+
     if (!onStatusChange) return;
 
     try {
@@ -236,9 +249,27 @@ const AppointmentDetails = ({
       loadHistory();
     } catch (error) {
       setSelectedStatusChip(previousChip);
+      setShowAbsenceBanner(false);
     } finally {
       setIsStatusUpdating(false);
     }
+  };
+
+  // Handle sending absence notification to patient
+  const handleSendAbsenceNotification = async (send) => {
+    if (send && appointment?.id) {
+      setIsSendingAbsenceNotification(true);
+      try {
+        await appointmentAPI.sendAbsenceNotification(appointment.id);
+        showSuccess("Message d'absence envoyé au patient");
+      } catch (error) {
+        console.error('Error sending absence notification:', error);
+        showError("Erreur lors de l'envoi du message");
+      } finally {
+        setIsSendingAbsenceNotification(false);
+      }
+    }
+    setShowAbsenceBanner(false);
   };
 
   // Get consultation badge color and icon based on consultation type location
@@ -539,21 +570,21 @@ const AppointmentDetails = ({
         </div>
 
         {/* Status chips (view-only buttons) */}
-        <div className='px-4 flex flex-wrap gap-3'>
+        <div className='px-4 flex flex-wrap gap-3 justify-center'>
           <button
             onClick={() => handleStatusChipClick('waiting')}
             disabled={isStatusUpdating}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
+            className={`cursor-pointer px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
               selectedStatusChip === 'waiting'
-                ? 'bg-blue-500 text-white'
-                : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                ? 'bg-purple-500 text-white'
+                : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
             }`}
           >
-            <Clock
+            <MapPin
               className={`w-4 h-4 ${
                 selectedStatusChip === 'waiting'
                   ? 'text-white'
-                  : 'text-blue-500'
+                  : 'text-purple-500'
               }`}
             />
             En salle d'attente
@@ -561,13 +592,13 @@ const AppointmentDetails = ({
           <button
             onClick={() => handleStatusChipClick('seen')}
             disabled={isStatusUpdating}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
+            className={`cursor-pointer px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
               selectedStatusChip === 'seen'
                 ? 'bg-green-500 text-white'
                 : 'bg-green-50 text-green-700 hover:bg-green-100'
             }`}
           >
-            <CheckCircle
+            <Eye
               className={`w-4 h-4 ${
                 selectedStatusChip === 'seen' ? 'text-white' : 'text-green-500'
               }`}
@@ -577,23 +608,29 @@ const AppointmentDetails = ({
           <button
             onClick={() => handleStatusChipClick('absent')}
             disabled={isStatusUpdating}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
+            className={`cursor-pointer px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
               selectedStatusChip === 'absent'
-                ? 'bg-red-500 text-white'
-                : 'bg-red-50 text-red-700 hover:bg-red-100'
+                ? 'text-white'
+                : 'hover:opacity-80'
             }`}
+            style={{
+              backgroundColor:
+                selectedStatusChip === 'absent' ? '#f9516a' : '#fef2f2',
+              color: selectedStatusChip === 'absent' ? 'white' : '#f9516a',
+            }}
           >
-            <XCircle
-              className={`w-4 h-4 ${
-                selectedStatusChip === 'absent' ? 'text-white' : 'text-red-500'
-              }`}
+            <Rabbit
+              className='w-4 h-4'
+              style={{
+                color: selectedStatusChip === 'absent' ? 'white' : '#f9516a',
+              }}
             />
             Patient absent
           </button>
-          <button
+          {/* <button
             onClick={() => handleStatusChipClick('cancelled')}
             disabled={isStatusUpdating}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
+            className={`cursor-pointer px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
               selectedStatusChip === 'cancelled'
                 ? 'bg-gray-500 text-white'
                 : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
@@ -607,8 +644,69 @@ const AppointmentDetails = ({
               }`}
             />
             Annulé
-          </button>
+          </button> */}
         </div>
+
+        {/* Absence Notification Banner */}
+        {showAbsenceBanner && (
+          <div
+            className='mx-4 mt-4 rounded-xl overflow-hidden'
+            style={{
+              background: 'linear-gradient(135deg, #f9516a 0%, #e8435a 100%)',
+            }}
+          >
+            <div className='flex items-center justify-between p-6'>
+              <div className='flex-1'>
+                <h3 className='text-white text-lg font-bold mb-2'>
+                  Signaler une absence
+                </h3>
+                <p className='text-white/90 text-sm mb-4'>
+                  Envoyer un message au patient ?
+                </p>
+                <div className='flex gap-3'>
+                  <button
+                    onClick={() => handleSendAbsenceNotification(true)}
+                    disabled={isSendingAbsenceNotification}
+                    className='px-6 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                  >
+                    {isSendingAbsenceNotification ? 'Envoi...' : 'Oui'}
+                  </button>
+                  <button
+                    onClick={() => handleSendAbsenceNotification(false)}
+                    disabled={isSendingAbsenceNotification}
+                    className='px-6 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                  >
+                    Non
+                  </button>
+                </div>
+              </div>
+              {/* Illustration */}
+              <div className='flex-shrink-0 ml-4'>
+                <div className='w-24 h-24 relative'>
+                  <svg viewBox='0 0 100 100' className='w-full h-full'>
+                    {/* Simple doctor illustration */}
+                    <circle cx='50' cy='30' r='18' fill='#f5d6c6' />
+                    <ellipse cx='50' cy='75' rx='25' ry='20' fill='white' />
+                    {/* Alert icon */}
+                    <circle cx='75' cy='25' r='15' fill='#FCD34D' />
+                    <text
+                      x='75'
+                      y='32'
+                      textAnchor='middle'
+                      fontSize='20'
+                      fontWeight='bold'
+                      fill='#78350F'
+                    >
+                      !
+                    </text>
+                    {/* Hair */}
+                    <path d='M32 30 Q35 10 50 12 Q65 10 68 30' fill='#4A3728' />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Consultation type badge with duration and action icons */}
         <div className='px-4 flex items-center justify-between'>

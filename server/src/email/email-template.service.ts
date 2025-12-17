@@ -412,7 +412,7 @@ export class EmailTemplateService {
             <div class="logo">CureHub</div>
           </div>
           
-          <p>Bonjour ${patientName},</p>
+          <p>Bonjour ${patientName.replace('!SP!', '')},</p>
           
           <div class="message-container">
             ${message.replace(/\n/g, '<br>')}
@@ -439,6 +439,145 @@ export class EmailTemplateService {
       ---
       Envoyé par: ${doctorName}
       via CureHub
+    `;
+
+    return { subject, html, text };
+  }
+
+  /**
+   * Generate absence notification email for patient
+   */
+  generateAbsenceNotificationEmail(data: {
+    patientName: string;
+    doctorName: string;
+    appointmentDate: string;
+    appointmentTime: string;
+  }): EmailTemplate {
+    const { patientName, doctorName, appointmentDate, appointmentTime } = data;
+
+    const subject = `Absence signalée - Rendez-vous du ${appointmentDate}`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="fr">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${subject}</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9fafb;
+          }
+          .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 40px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+          }
+          .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2563eb;
+            margin-bottom: 10px;
+          }
+          .alert-banner {
+            background: linear-gradient(135deg, #f9516a 0%, #e8435a 100%);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+          }
+          .alert-banner h2 {
+            color: white;
+            margin: 0 0 10px 0;
+            font-size: 20px;
+          }
+          .alert-banner p {
+            color: rgba(255, 255, 255, 0.9);
+            margin: 0;
+          }
+          .appointment-details {
+            background-color: #f8fafc;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+          }
+          .appointment-details p {
+            margin: 5px 0;
+          }
+          .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 14px;
+            color: #6b7280;
+            text-align: center;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">CureHub</div>
+          </div>
+          
+          <p>Bonjour ${patientName},</p>
+          
+          <div class="alert-banner">
+            <h2>Absence signalée</h2>
+            <p>Votre absence à votre rendez-vous a été enregistrée.</p>
+          </div>
+          
+          <div class="appointment-details">
+            <p><strong>Date:</strong> ${appointmentDate}</p>
+            <p><strong>Heure:</strong> ${appointmentTime}</p>
+            <p><strong>Médecin:</strong> ${doctorName}</p>
+          </div>
+          
+          <p>Si vous pensez qu'il s'agit d'une erreur ou si vous souhaitez reprogrammer votre rendez-vous, veuillez contacter notre cabinet.</p>
+          
+          <p>Nous vous rappelons l'importance de prévenir en cas d'empêchement afin de permettre à d'autres patients de bénéficier de ce créneau.</p>
+          
+          <div class="footer">
+            <p>Cordialement,<br><strong>${doctorName}</strong></p>
+            <p style="margin-top: 15px; font-size: 12px;">Ce message a été envoyé via CureHub.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `
+      Bonjour ${patientName},
+      
+      ABSENCE SIGNALÉE
+      
+      Votre absence à votre rendez-vous a été enregistrée.
+      
+      Détails du rendez-vous:
+      - Date: ${appointmentDate}
+      - Heure: ${appointmentTime}
+      - Médecin: ${doctorName}
+      
+      Si vous pensez qu'il s'agit d'une erreur ou si vous souhaitez reprogrammer votre rendez-vous, veuillez contacter notre cabinet.
+      
+      Nous vous rappelons l'importance de prévenir en cas d'empêchement afin de permettre à d'autres patients de bénéficier de ce créneau.
+      
+      Cordialement,
+      ${doctorName}
+      
+      ---
+      Ce message a été envoyé via CureHub.
     `;
 
     return { subject, html, text };

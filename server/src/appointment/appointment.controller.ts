@@ -231,6 +231,23 @@ export class AppointmentController {
     return this.appointmentHistoryService.getAppointmentHistory(id);
   }
 
+  @Post(':id/notify-absence')
+  @ApiOperation({ summary: 'Send absence notification to patient' })
+  @ApiResponse({
+    status: 200,
+    description: 'Absence notification sent successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Appointment not found' })
+  @ApiResponse({
+    status: 400,
+    description: 'No patients with email addresses found',
+  })
+  @UseGuards(JwtAuthGuard)
+  async notifyAbsence(@Request() req, @Param('id') id: string) {
+    const doctorProfileId = this.getDoctorProfileId(req);
+    return this.appointmentService.sendAbsenceNotification(id, doctorProfileId);
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Delete an appointment' })
   @ApiResponse({ status: 200, description: 'Appointment deleted successfully' })

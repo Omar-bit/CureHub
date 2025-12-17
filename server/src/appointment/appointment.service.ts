@@ -8,6 +8,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AppointmentHistoryService } from './appointment-history.service';
 import { ImprevuService } from '../imprevu/imprevu.service';
 import { PTOService } from '../pto/pto.service';
+import { EmailService } from '../email/email.service';
+import { EmailTemplateService } from '../email/email-template.service';
 import {
   CreateAppointmentDto,
   UpdateAppointmentDto,
@@ -39,6 +41,8 @@ export class AppointmentService {
     private appointmentHistory: AppointmentHistoryService,
     private imprevuService: ImprevuService,
     private ptoService: PTOService,
+    private emailService: EmailService,
+    private emailTemplateService: EmailTemplateService,
   ) {}
 
   async create(
@@ -1074,5 +1078,116 @@ export class AppointmentService {
 
     // If no record exists, default to enabled
     return access ? access.isEnabled : true;
+  }
+
+  /**
+   * Send absence notification email to patient(s) for an appointment
+   */
+  async sendAbsenceNotification(
+    appointmentId: string,
+    doctorProfileId: string,
+  ): Promise<{ success: boolean; message: string }> {
+    // Get the appointment with patient and doctor info
+    const appointment = await this.prisma.appointment.findFirst({
+      where: {
+        id: appointmentId,
+        doctorId: doctorProfileId,
+      },
+      include: {
+        appointmentPatients: {
+          include: {
+            patient: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        doctor: {
+          include: {
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!appointment) {
+      throw new NotFoundException('Appointment not found');
+    }
+
+    // Get all patients with email addresses
+    const patientsWithEmail = appointment.appointmentPatients
+      .filter((ap) => ap.patient?.email)
+      .map((ap) => ap.patient!);
+
+    if (patientsWithEmail.length === 0) {
+      throw new BadRequestException('No patients with email addresses found');
+    }
+
+    // Format appointment date and time
+    const appointmentDate = new Date(appointment.startTime).toLocaleDateString(
+      'fr-FR',
+      {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      },
+    );
+
+    const appointmentTime = new Date(appointment.startTime).toLocaleTimeString(
+      'fr-FR',
+      {
+        hour: '2-digit',
+        minute: '2-digit',
+      },
+    );
+
+    // Get doctor name
+    const doctorUser = appointment.doctor?.user;
+    const doctorName = doctorUser
+      ? `Dr. ${doctorUser.firstName || ''} ${doctorUser.lastName || ''}`.trim()
+      : 'Votre médecin';
+
+    // Send email to each patient
+    const sendPromises = patientsWithEmail.map(async (patient) => {
+      try {
+        const emailTemplate =
+          this.emailTemplateService.generateAbsenceNotificationEmail({
+            patientName: patient.name || 'Patient',
+            doctorName,
+            appointmentDate,
+            appointmentTime,
+          });
+
+        await this.emailService.sendEmail({
+          to: patient.email!,
+          template: emailTemplate,
+        });
+
+        return { success: true, patientId: patient.id };
+      } catch (error) {
+        console.error(
+          `Failed to send absence notification to patient ${patient.id}:`,
+          error,
+        );
+        return { success: false, patientId: patient.id, error };
+      }
+    });
+
+    const results = await Promise.all(sendPromises);
+    const successCount = results.filter((r) => r.success).length;
+
+    return {
+      success: successCount > 0,
+      message: `Notification envoyée à ${successCount}/${patientsWithEmail.length} patient(s)`,
+    };
   }
 }

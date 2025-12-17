@@ -281,6 +281,10 @@ export const appointmentAPI = {
   // Get appointment history
   getHistory: (id) =>
     api.get(`/appointments/${id}/history`).then((res) => res.data),
+
+  // Send absence notification to patient
+  sendAbsenceNotification: (id) =>
+    api.post(`/appointments/${id}/notify-absence`).then((res) => res.data),
 };
 
 export const taskAPI = {

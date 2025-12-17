@@ -14,6 +14,9 @@ import {
   XCircle,
   X,
   Calendar,
+  MapPin,
+  Eye,
+  Rabbit,
 } from 'lucide-react';
 
 const DayView = ({
@@ -158,20 +161,23 @@ const DayView = ({
     switch (status) {
       case 'SCHEDULED':
         return (
-          <div className='bg-blue-500 rounded-full p-0.5 flex items-center justify-center'>
-            <Clock className='w-2.5 h-2.5 text-white' />
+          <div className='bg-purple-500 rounded-full p-0.5 flex items-center justify-center'>
+            <MapPin className='w-2.5 h-2.5 text-white' />
           </div>
         );
       case 'COMPLETED':
         return (
           <div className='bg-green-500 rounded-full p-0.5 flex items-center justify-center'>
-            <CheckCircle className='w-2.5 h-2.5 text-white' />
+            <Eye className='w-2.5 h-2.5 text-white' />
           </div>
         );
       case 'ABSENT':
         return (
-          <div className='bg-red-500 rounded-full p-0.5 flex items-center justify-center'>
-            <XCircle className='w-2.5 h-2.5 text-white' />
+          <div
+            className='rounded-full p-0.5 flex items-center justify-center'
+            style={{ backgroundColor: '#f9516a' }}
+          >
+            <Rabbit className='w-2.5 h-2.5 text-white' />
           </div>
         );
       case 'CANCELLED':
