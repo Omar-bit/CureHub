@@ -27,6 +27,7 @@ const AppointmentPanel = ({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [appointmentToDelete, setAppointmentToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [initialPatientsForForm, setInitialPatientsForForm] = useState(null); // Pre-selected patients for new appointment
 
   // Load initial data
   useEffect(() => {
@@ -203,6 +204,64 @@ const AppointmentPanel = ({
     }
   };
 
+  // Handle adding a new appointment with pre-selected patient(s)
+  const handleAddAppointmentWithPatient = (patientData) => {
+    // Store the patients to pre-fill in the form
+    setInitialPatientsForForm(patientData.patients);
+    // Clear currentAppointment since this is a new appointment
+    setCurrentAppointment(null);
+    setCurrentMode('create');
+  };
+
+  // Handle switching appointment location between ONSITE and ONLINE
+  const handleLocationSwitch = async (appointment, newLocation) => {
+    try {
+      // Find a consultation type with the same properties but different location
+      const currentConsultationType = appointment.consultationType;
+
+      if (!currentConsultationType) {
+        throw new Error('No consultation type found for this appointment');
+      }
+
+      // Find a matching consultation type with the new location
+      const matchingConsultationType = consultationTypes.find(
+        (ct) =>
+          ct.location === newLocation &&
+          ct.enabled &&
+          ct.duration === currentConsultationType.duration
+      );
+
+      // If no exact match, find any consultation type with the new location
+      const newConsultationType =
+        matchingConsultationType ||
+        consultationTypes.find(
+          (ct) => ct.location === newLocation && ct.enabled
+        );
+
+      if (!newConsultationType) {
+        throw new Error(
+          `No consultation type found with location ${newLocation}`
+        );
+      }
+
+      const updatedAppointment = await appointmentAPI.update(appointment.id, {
+        consultationTypeId: newConsultationType.id,
+      });
+
+      setCurrentAppointment(updatedAppointment);
+
+      // Notify parent component to refresh the calendar
+      if (onAppointmentUpdated) {
+        onAppointmentUpdated(updatedAppointment);
+      }
+
+      return updatedAppointment;
+    } catch (error) {
+      console.error('Error switching appointment location:', error);
+      throw error;
+    }
+  };
+
   const renderContent = () => {
     if (loading) {
       return (
@@ -237,6 +296,7 @@ const AppointmentPanel = ({
                   } else {
                     onClose?.();
                   }
+                  setInitialPatientsForForm(null);
                 }}
                 onSave={handleSaveAppointment}
                 onPatientCreated={handlePatientCreated}
@@ -244,6 +304,7 @@ const AppointmentPanel = ({
                 consultationTypes={consultationTypes}
                 selectedDate={selectedDateTime}
                 inline={true} // Add inline prop
+                initialPatients={initialPatientsForForm}
               />
             </div>
           </div>
@@ -314,6 +375,8 @@ const AppointmentPanel = ({
                 onEdit={handleEditAppointment}
                 onDelete={handleDeleteAppointment}
                 onStatusChange={handleStatusChange}
+                onAddAppointment={handleAddAppointmentWithPatient}
+                onLocationSwitch={handleLocationSwitch}
                 inline={true} // Add inline prop
               />
             </div>

@@ -43,6 +43,7 @@ const AppointmentForm = ({
   selectedDate = null,
   inline = false,
   onPatientCreated = null, // Callback when a new patient is created
+  initialPatients = null, // Pre-selected patients for new appointment
 }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -152,7 +153,12 @@ const AppointmentForm = ({
         date: format(selectedDate, 'yyyy-MM-dd'),
         startTime: timeFromSelectedDate,
       }));
-      setSelectedPatients([]);
+      // Use initialPatients if provided, otherwise reset
+      if (initialPatients && initialPatients.length > 0) {
+        setSelectedPatients(initialPatients);
+      } else {
+        setSelectedPatients([]);
+      }
       setManualTime(timeFromSelectedDate);
     } else {
       // Reset form
@@ -170,12 +176,32 @@ const AppointmentForm = ({
       setPatientSearch('');
       setManualTime('09:00');
       setPatientSearch('');
-      setSelectedPatients([]);
+      // Use initialPatients if provided, otherwise reset
+      if (initialPatients && initialPatients.length > 0) {
+        setSelectedPatients(initialPatients);
+      } else {
+        setSelectedPatients([]);
+      }
       setDurationPerPatient(20);
       setIsManualDuration(false);
     }
     setErrors({});
-  }, [appointment, selectedDate, isOpen, patients, consultationTypes]);
+  }, [
+    appointment,
+    selectedDate,
+    isOpen,
+    patients,
+    consultationTypes,
+    initialPatients,
+  ]);
+
+  // Handle initialPatients changes separately to ensure patients are set when the prop changes
+  useEffect(() => {
+    if (initialPatients && initialPatients.length > 0 && !appointment) {
+      setSelectedPatients(initialPatients);
+      setPatientSearch('');
+    }
+  }, [initialPatients, appointment]);
 
   // Fetch consultation type access for selected patients
   useEffect(() => {

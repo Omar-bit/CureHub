@@ -26,6 +26,8 @@ import {
   History,
   Lock,
   Unlock,
+  Plus,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -62,6 +64,8 @@ const AppointmentDetails = ({
   onEdit = null,
   onDelete,
   onStatusChange = null,
+  onAddAppointment = null,
+  onLocationSwitch = null,
   inline = true,
 }) => {
   const [activeTab, setActiveTab] = useState('motif'); // 'motif' | 'documents' | 'honoraires' | 'chronologie'
@@ -80,6 +84,7 @@ const AppointmentDetails = ({
   const [selectedPatientTab, setSelectedPatientTab] = useState('profil'); // Track which tab to show for patient details
   const [documentBlockSettings, setDocumentBlockSettings] = useState({}); // Track block/share settings per document {documentId: {blockClientDownload: bool, shareUntilDate: string}}
   const [openDatePickerId, setOpenDatePickerId] = useState(null); // Track which document's date picker is open
+  const [isSwitchingLocation, setIsSwitchingLocation] = useState(false); // Track location switch in progress
 
   // When inline mode is true, show content if appointment exists, regardless of isOpen
   // When inline mode is false (modal/overlay), require both isOpen and appointment
@@ -417,6 +422,46 @@ const AppointmentDetails = ({
     showError('Cannot delete patient from appointment view');
   };
 
+  // Handle switching appointment location between ONSITE and ONLINE
+  const handleSwitchLocation = async () => {
+    if (!onLocationSwitch) return;
+
+    const currentLocation = appointment.consultationType?.location || 'ONSITE';
+    const newLocation = currentLocation === 'ONSITE' ? 'ONLINE' : 'ONSITE';
+
+    setIsSwitchingLocation(true);
+    try {
+      await onLocationSwitch(appointment, newLocation);
+      showSuccess(
+        newLocation === 'ONLINE'
+          ? 'Rendez-vous converti en téléconsultation'
+          : 'Rendez-vous converti en consultation au cabinet'
+      );
+    } catch (error) {
+      console.error('Error switching location:', error);
+      showError('Erreur lors de la conversion du rendez-vous');
+    } finally {
+      setIsSwitchingLocation(false);
+    }
+  };
+
+  // Handle adding a new appointment with the same patient(s)
+  const handleAddAppointmentWithPatient = () => {
+    if (!onAddAppointment) return;
+
+    // Pass the patient data to the add appointment handler
+    const patientData = {
+      patients: patients,
+      primaryPatient: primaryPatient,
+    };
+
+    onAddAppointment(patientData);
+  };
+
+  // Check if appointment is ONSITE or ONLINE for switch button display
+  const isOnlineAppointment =
+    appointment.consultationType?.location === 'ONLINE';
+
   const content = (
     <>
       {/* Header - always show appointment date/time */}
@@ -587,26 +632,50 @@ const AppointmentDetails = ({
           </div>
 
           <div className='flex items-center gap-2'>
-            <button className='p-2 bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition-colors'>
-              <Stethoscope className='w-4 h-4 text-gray-600' />
-            </button>
+            {/* Switch location toggle - Toggle between Cabinet and Visio */}
             <button
-              onClick={() => setShowVideoCall(!showVideoCall)}
-              className={`p-2 rounded-full transition-colors ${
-                showVideoCall
-                  ? 'bg-purple-100 border border-purple-300'
-                  : 'bg-white border border-gray-200 hover:bg-gray-50'
+              onClick={handleSwitchLocation}
+              disabled={!onLocationSwitch || isSwitchingLocation}
+              className={`relative inline-flex items-center h-8 w-16 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                isOnlineAppointment ? 'bg-purple-500' : 'bg-green-500'
               }`}
+              title={
+                isOnlineAppointment
+                  ? 'Convertir en RDV Cabinet'
+                  : 'Convertir en RDV Visio'
+              }
             >
-              <VideoOn
-                className={`w-4 h-4 ${
-                  showVideoCall ? 'text-purple-600' : 'text-gray-600'
-                }`}
-              />
+              {/* Toggle knob with icon */}
+              <span
+                className={`inline-flex items-center justify-center w-6 h-6 bg-white rounded-full shadow-md transform transition-transform ${
+                  isOnlineAppointment ? 'translate-x-9' : 'translate-x-1'
+                } ${isSwitchingLocation ? 'animate-pulse' : ''}`}
+              >
+                {isOnlineAppointment ? (
+                  <VideoOn className='w-3.5 h-3.5 text-purple-600' />
+                ) : (
+                  <Building2 className='w-3.5 h-3.5 text-green-600' />
+                )}
+              </span>
+              {/* Background icons */}
+              <span className='absolute inset-0 flex items-center justify-between px-1.5'>
+                <Building2
+                  className={`w-3.5 h-3.5 ${
+                    isOnlineAppointment
+                      ? 'text-purple-200'
+                      : 'text-white opacity-0'
+                  }`}
+                />
+                <VideoOn
+                  className={`w-3.5 h-3.5 ${
+                    isOnlineAppointment
+                      ? 'text-white opacity-0'
+                      : 'text-green-200'
+                  }`}
+                />
+              </span>
             </button>
-            <button className='p-2 bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition-colors'>
-              <Phone className='w-4 h-4 text-gray-600' />
-            </button>
+            {/* Edit button */}
             <button
               onClick={() => onEdit && onEdit(appointment)}
               disabled={!onEdit}
@@ -615,9 +684,20 @@ const AppointmentDetails = ({
             >
               <Edit className='w-4 h-4 text-gray-600' />
             </button>
+            {/* Add appointment with same patient button */}
+            <button
+              onClick={handleAddAppointmentWithPatient}
+              disabled={!onAddAppointment}
+              className='p-2 bg-blue-50 border border-blue-200 rounded-full hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+              title='Ajouter un rendez-vous pour ce patient'
+            >
+              <Plus className='w-4 h-4 text-blue-600' />
+            </button>
+            {/* Delete button */}
             <button
               onClick={() => onDelete && onDelete(appointment)}
               className='p-2 bg-red-50 border border-red-200 rounded-full hover:bg-red-100 transition-colors'
+              title='Supprimer le rendez-vous'
             >
               <Trash2 className='w-4 h-4 text-red-600' />
             </button>
