@@ -245,8 +245,18 @@ const DayView = ({
     onDateChange(new Date());
   };
 
-  const handleTimeSlotClick = (timeSlot) => {
-    const [hour, minute] = timeSlot.split(':').map(Number);
+  const handleTimeSlotClick = (timeSlot, event) => {
+    const [hour] = timeSlot.split(':').map(Number);
+
+    // Get the click position relative to the time slot element
+    const rect = event.currentTarget.getBoundingClientRect();
+    const clickY = event.clientY - rect.top;
+    const slotHeight = rect.height;
+
+    // Calculate which 15-minute segment was clicked (0, 15, 30, or 45)
+    const segmentIndex = Math.floor((clickY / slotHeight) * 4);
+    const minute = Math.min(segmentIndex, 3) * 15; // Clamp to 0, 15, 30, or 45
+
     const slotDate = new Date(currentDate);
     slotDate.setHours(hour, minute, 0, 0);
     onTimeSlotClick?.(slotDate);
@@ -431,7 +441,7 @@ const DayView = ({
                 <div
                   className='flex-1 border-t border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors'
                   style={{ height: `${60 * verticalZoom}px` }}
-                  onClick={() => handleTimeSlotClick(timeSlot)}
+                  onClick={(e) => handleTimeSlotClick(timeSlot, e)}
                 >
                   <div className='h-full w-full relative'>
                     {/* 15-minute mark */}
