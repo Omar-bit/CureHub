@@ -109,6 +109,7 @@ const PatientFormSheet = ({
   const [openSection, setOpenSection] = useState(null); // null = all closed, or section name
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(patient?.isBlocked || false);
 
   const toggleSection = (sectionName) => {
     setOpenSection(openSection === sectionName ? null : sectionName);
@@ -178,6 +179,7 @@ const PatientFormSheet = ({
     }
     setErrors({});
     setOpenSection(null); // Reset accordion state when sheet opens
+    setIsBlocked(patient?.isBlocked || false);
   }, [patient, isOpen]);
 
   const handleSubmit = async (e) => {
@@ -574,15 +576,13 @@ const PatientFormSheet = ({
                   type='button'
                   variant='outline'
                   className={`w-full ${
-                    patient?.isBlocked
+                    isBlocked
                       ? 'border-green-500 text-green-600 hover:bg-green-50'
                       : 'border-orange-500 text-orange-600 hover:bg-orange-50'
                   }`}
                   onClick={() => setShowBlockConfirm(true)}
                 >
-                  {patient?.isBlocked
-                    ? 'Débloquer le patient'
-                    : 'Bloquer le patient'}
+                  {isBlocked ? 'Débloquer le patient' : 'Bloquer le patient'}
                 </Button>
 
                 <Button
@@ -617,17 +617,20 @@ const PatientFormSheet = ({
       <ConfirmDialog
         isOpen={showBlockConfirm}
         onClose={() => setShowBlockConfirm(false)}
-        onConfirm={() => {
+        onConfirm={async () => {
           setShowBlockConfirm(false);
           if (onBlock) {
-            onBlock(patient);
+            try {
+              await onBlock(patient);
+              setIsBlocked(!isBlocked);
+            } catch (error) {
+              // Error handling done in parent
+            }
           }
         }}
-        title={
-          patient?.isBlocked ? 'Débloquer le patient' : 'Bloquer le patient'
-        }
+        title={isBlocked ? 'Débloquer le patient' : 'Bloquer le patient'}
         description={
-          patient?.isBlocked
+          isBlocked
             ? `Êtes-vous sûr de vouloir débloquer ${
                 getPatientDisplayName(patient) || 'ce patient'
               } ? Le patient pourra à nouveau prendre des rendez-vous.`
@@ -635,10 +638,10 @@ const PatientFormSheet = ({
                 getPatientDisplayName(patient) || 'ce patient'
               } ? Le patient ne pourra plus prendre de rendez-vous.`
         }
-        confirmText={patient?.isBlocked ? 'Débloquer' : 'Bloquer'}
+        confirmText={isBlocked ? 'Débloquer' : 'Bloquer'}
         cancelText='Annuler'
-        variant={patient?.isBlocked ? 'default' : 'warning'}
-        icon={patient?.isBlocked ? Unlock : Ban}
+        variant={isBlocked ? 'default' : 'warning'}
+        icon={isBlocked ? Unlock : Ban}
       />
 
       {/* Delete Confirmation Dialog */}
