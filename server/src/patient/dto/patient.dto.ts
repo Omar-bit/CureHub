@@ -34,7 +34,15 @@ export class CreatePatientDto {
 
   @IsOptional()
   @IsString()
+  mobilePhoneList?: string;
+
+  @IsOptional()
+  @IsString()
   landlinePhone?: string;
+
+  @IsOptional()
+  @IsString()
+  landlinePhoneList?: string;
 
   @IsOptional()
   @IsString()
@@ -90,7 +98,15 @@ export class UpdatePatientDto {
 
   @IsOptional()
   @IsString()
+  mobilePhoneList?: string;
+
+  @IsOptional()
+  @IsString()
   landlinePhone?: string;
+
+  @IsOptional()
+  @IsString()
+  landlinePhoneList?: string;
 
   @IsOptional()
   @IsString()

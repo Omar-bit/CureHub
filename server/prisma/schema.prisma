@@ -159,23 +159,25 @@ enum FamilyRelationship {
 
 // Patient model managed by doctors
 model Patient {
-  id            String   @id @default(cuid())
-  name          String
-  dateOfBirth   DateTime
-  profileImage  String?
-  gender        Gender
-  email         String?
-  password      String?
-  phoneNumber   String?
-  landlinePhone String?
-  address       String?  @db.Text
-  postalCode    String?
-  city          String?
-  dejaVu        Int      @default(0)
-  absenceCount  Int      @default(0)
-  divers        String?  @db.Text
-  isDeleted     Boolean  @default(false)
-  isBlocked     Boolean  @default(false) // Whether the patient is blocked from booking appointments
+  id                String   @id @default(cuid())
+  name              String
+  dateOfBirth       DateTime
+  profileImage      String?
+  gender            Gender
+  email             String?
+  password          String?
+  phoneNumber       String?
+  mobilePhoneList   String? // Phone list category: contact_24h, contact_priority, health_professionals, assisted_appointment, blocked_numbers
+  landlinePhone     String?
+  landlinePhoneList String? // Phone list category for landline
+  address           String?  @db.Text
+  postalCode        String?
+  city              String?
+  dejaVu            Int      @default(0)
+  absenceCount      Int      @default(0)
+  divers            String?  @db.Text
+  isDeleted         Boolean  @default(false)
+  isBlocked         Boolean  @default(false) // Whether the patient is blocked from booking appointments
 
   // Permissions for patient relatives
   canAddRelatives     Boolean @default(false) // Ajouter des proches

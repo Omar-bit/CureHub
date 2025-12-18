@@ -5,11 +5,29 @@ import { FormInput, FormSelect, FormTextarea } from './ui/form-field';
 import { Alert } from './ui/alert';
 import { ConfirmDialog } from './ui/confirm-dialog';
 import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuLabel,
+} from './ui/dropdown-menu';
+import {
   splitPatientName,
   buildPatientName,
   getPatientDisplayName,
 } from '../lib/patient';
 import { ChevronDown, ChevronRight, Ban, Trash2, Unlock } from 'lucide-react';
+
+// Phone list options
+const PHONE_LIST_OPTIONS = [
+  // { value: '', label: 'Aucune liste' },
+  { value: 'contact_24h', label: 'Contacter 24h/24' },
+  { value: 'contact_priority', label: 'Contacter Prioritaires' },
+  { value: 'health_professionals', label: 'Professionnels de santé' },
+  { value: 'assisted_appointment', label: 'RDV assistés' },
+  { value: 'blocked_numbers', label: 'Numéros bloqués' },
+];
 
 // Accordion Section Component
 const AccordionSection = ({
@@ -74,7 +92,9 @@ const PatientFormSheet = ({
     gender: 'MALE',
     email: '',
     mobilePhone: '',
+    mobilePhoneList: '',
     landlinePhone: '',
+    landlinePhoneList: '',
     address: '',
     postalCode: '',
     city: '',
@@ -112,7 +132,6 @@ const PatientFormSheet = ({
         firstName = patient.firstName || '';
         lastName = patient.lastName || '';
       }
-      console.log('zboub zebi:', patient);
 
       setFormData({
         lastName: lastName,
@@ -124,7 +143,9 @@ const PatientFormSheet = ({
         gender: (isFullPatient && patient.gender) || 'MALE',
         email: (isFullPatient && patient.email) || '',
         mobilePhone: (isFullPatient && patient.phoneNumber) || '',
+        mobilePhoneList: (isFullPatient && patient.mobilePhoneList) || '',
         landlinePhone: (isFullPatient && patient.landlinePhone) || '',
+        landlinePhoneList: (isFullPatient && patient.landlinePhoneList) || '',
         address: (isFullPatient && patient.address) || '',
         postalCode: (isFullPatient && patient.postalCode) || '',
         city: (isFullPatient && patient.city) || '',
@@ -142,7 +163,9 @@ const PatientFormSheet = ({
         gender: 'MALE',
         email: '',
         mobilePhone: '',
+        mobilePhoneList: '',
         landlinePhone: '',
+        landlinePhoneList: '',
         address: '',
         postalCode: '',
         city: '',
@@ -311,27 +334,108 @@ const PatientFormSheet = ({
             placeholder='Adresse email'
             error={errors.email}
           />
-
-          <FormInput
-            label='Tél. port.'
-            name='mobilePhone'
-            type='tel'
-            value={formData.mobilePhone}
-            onChange={handleChange}
-            placeholder='N° de tél. portable'
-            error={errors.mobilePhone}
-          />
-
-          <FormInput
-            label='Tél. fixe'
-            name='landlinePhone'
-            type='tel'
-            value={formData.landlinePhone}
-            onChange={handleChange}
-            placeholder='N° de tél. fixe'
-            error={errors.landlinePhone}
-          />
-
+          {/* Mobile Phone with List Dropdown */}
+          <div className='flex items-start gap-2'>
+            <div className='flex-1'>
+              <FormInput
+                label='Tél. port.'
+                name='mobilePhone'
+                type='tel'
+                value={formData.mobilePhone}
+                onChange={handleChange}
+                placeholder='N° de tél. portable'
+                error={errors.mobilePhone}
+              />
+            </div>
+            <div className='pt-6'>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type='button'
+                    variant='outline'
+                    className='h-10 px-3 text-sm whitespace-nowrap'
+                  >
+                    {PHONE_LIST_OPTIONS.find(
+                      (o) => o.value === formData.mobilePhoneList
+                    )?.label || 'Ajouter à une liste'}
+                    <ChevronDown className='ml-2 h-4 w-4' />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='end' className='w-56'>
+                  <DropdownMenuLabel>Liste</DropdownMenuLabel>
+                  <DropdownMenuRadioGroup
+                    value={formData.mobilePhoneList}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        mobilePhoneList: value,
+                      }))
+                    }
+                  >
+                    {PHONE_LIST_OPTIONS.map((option) => (
+                      <DropdownMenuRadioItem
+                        key={option.value}
+                        value={option.value}
+                      >
+                        {option.label}
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+          {/* Landline Phone with List Dropdown */}
+          <div className='flex items-start gap-2'>
+            <div className='flex-1'>
+              <FormInput
+                label='Tél. fixe'
+                name='landlinePhone'
+                type='tel'
+                value={formData.landlinePhone}
+                onChange={handleChange}
+                placeholder='N° de tél. fixe'
+                error={errors.landlinePhone}
+              />
+            </div>
+            <div className='pt-6'>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type='button'
+                    variant='outline'
+                    className='h-10 px-3 text-sm whitespace-nowrap'
+                  >
+                    {PHONE_LIST_OPTIONS.find(
+                      (o) => o.value === formData.landlinePhoneList
+                    )?.label || 'Ajouter à une liste'}
+                    <ChevronDown className='ml-2 h-4 w-4' />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='end' className='w-56'>
+                  <DropdownMenuLabel>Liste</DropdownMenuLabel>
+                  <DropdownMenuRadioGroup
+                    value={formData.landlinePhoneList}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        landlinePhoneList: value,
+                      }))
+                    }
+                  >
+                    {PHONE_LIST_OPTIONS.map((option) => (
+                      <DropdownMenuRadioItem
+                        key={option.value}
+                        value={option.value}
+                      >
+                        {option.label}
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
           <FormInput
             label='Adresse'
             name='address'
@@ -340,7 +444,6 @@ const PatientFormSheet = ({
             placeholder='Adresse'
             error={errors.address}
           />
-
           <div className='grid grid-cols-2 gap-3'>
             <FormInput
               label='Code postal'
@@ -360,7 +463,6 @@ const PatientFormSheet = ({
               error={errors.city}
             />
           </div>
-
           <FormTextarea
             label='Divers'
             name='divers'

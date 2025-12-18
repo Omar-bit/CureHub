@@ -782,10 +782,8 @@ const PatientDetailsSheet = ({
                   if (onPatientUpdated) {
                     onPatientUpdated();
                   }
-                  // Refresh the patient data
-                  if (onEdit) {
-                    onEdit(patient, true); // true indicates a refresh is needed
-                  }
+                  // Note: Don't call onEdit here as it opens a separate PatientFormSheet
+                  // The patient data will be refreshed via onPatientUpdated
                 } catch (error) {
                   showError(error.message || 'Erreur lors de la modification');
                   throw error;
@@ -807,9 +805,7 @@ const PatientDetailsSheet = ({
                   if (onPatientUpdated) {
                     onPatientUpdated();
                   }
-                  if (onEdit) {
-                    onEdit(patient, true);
-                  }
+                  // Note: Don't call onEdit here as it opens a separate PatientFormSheet
                 } catch (error) {
                   showError(
                     error.message || 'Erreur lors de la modification du statut'
