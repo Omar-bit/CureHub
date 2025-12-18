@@ -189,10 +189,21 @@ export class AppointmentService {
       limit = 50,
     } = query;
 
-    const skip = (page - 1) * limit;
+    const pageNum = Number(page) || 1;
+    const limitNum = Number(limit) || 50;
+    const skip = (pageNum - 1) * limitNum;
 
+    // Build where clause to support patientId filter for both primary and multi-patient appointments
     const where: Prisma.AppointmentWhereInput = {
       doctorId,
+      ...(patientId
+        ? {
+            OR: [
+              { patientId: patientId },
+              { appointmentPatients: { some: { patientId: patientId } } },
+            ],
+          }
+        : {}),
     };
 
     // Handle the date parameter (single day)
@@ -228,10 +239,6 @@ export class AppointmentService {
       where.status = status;
     }
 
-    if (patientId) {
-      where.patientId = patientId;
-    }
-
     if (consultationTypeId) {
       where.consultationTypeId = consultationTypeId;
     }
@@ -240,7 +247,7 @@ export class AppointmentService {
       this.prisma.appointment.findMany({
         where,
         skip,
-        take: limit,
+        take: limitNum,
         orderBy: {
           startTime: 'asc',
         },
@@ -265,8 +272,8 @@ export class AppointmentService {
     return {
       appointments,
       total,
-      page,
-      limit,
+      page: pageNum,
+      limit: limitNum,
     };
   }
 

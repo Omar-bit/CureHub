@@ -32,6 +32,7 @@ import {
 import { Button } from '../ui/button';
 import { patientAPI, appointmentAPI } from '../../services/api';
 import { splitPatientName } from '../../lib/patient';
+import { useDoctorProfile } from '../../hooks/useDoctorProfile';
 
 const AppointmentForm = ({
   appointment = null,
@@ -56,6 +57,9 @@ const AppointmentForm = ({
     status: 'SCHEDULED',
   });
 
+  // Get doctor profile for displaying doctor name in upcoming appointments
+  const { profile: doctorProfile } = useDoctorProfile();
+
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [patientSearch, setPatientSearch] = useState('');
@@ -75,6 +79,10 @@ const AppointmentForm = ({
   const [manualTime, setManualTime] = useState(''); // Manual time input
   const [showConflictDialog, setShowConflictDialog] = useState(false); // Show conflict confirmation dialog
   const [conflictDetails, setConflictDetails] = useState(null); // Details of the conflicting appointment
+  const [patientUpcomingAppointments, setPatientUpcomingAppointments] =
+    useState([]); // Upcoming appointments for selected patients
+  const [loadingUpcomingAppointments, setLoadingUpcomingAppointments] =
+    useState(false);
 
   useEffect(() => {
     if (appointment) {
@@ -234,6 +242,43 @@ const AppointmentForm = ({
       fetchPatientAccess();
     } else {
       setPatientConsultationAccess({});
+    }
+  }, [selectedPatients]);
+
+  // Fetch upcoming appointments for selected patients
+  useEffect(() => {
+    const fetchUpcomingAppointments = async () => {
+      // Get the first non-sansfiche patient
+      const realPatient = selectedPatients.find((p) => !p.isSansFiche);
+      if (!realPatient) {
+        setPatientUpcomingAppointments([]);
+        return;
+      }
+
+      setLoadingUpcomingAppointments(true);
+      try {
+        const today = new Date();
+        const result = await appointmentAPI.getByPatient(realPatient.id, {
+          startDate: today.toISOString(),
+          limit: 10,
+        });
+        // Filter to only show SCHEDULED or CONFIRMED appointments
+        const upcomingAppts = (result.appointments || []).filter(
+          (appt) => appt.status === 'SCHEDULED' || appt.status === 'CONFIRMED'
+        );
+        setPatientUpcomingAppointments(upcomingAppts);
+      } catch (error) {
+        console.error('Failed to fetch upcoming appointments:', error);
+        setPatientUpcomingAppointments([]);
+      } finally {
+        setLoadingUpcomingAppointments(false);
+      }
+    };
+
+    if (selectedPatients.length > 0) {
+      fetchUpcomingAppointments();
+    } else {
+      setPatientUpcomingAppointments([]);
     }
   }, [selectedPatients]);
 
@@ -872,6 +917,81 @@ const AppointmentForm = ({
                     </div>
                   </div>
                 ))}
+
+                {/* Upcoming Appointments Section */}
+                {patientUpcomingAppointments.length > 0 && (
+                  <div className='mt-3 p-3  rounded-lg'>
+                    <div className='text-xs font-semibold text-amber-700 mb-2'>
+                      {patientUpcomingAppointments.length} RDV À VENIR
+                    </div>
+                    <div className='flex flex-wrap gap-2'>
+                      {patientUpcomingAppointments.slice(0, 4).map((appt) => {
+                        const apptDate = new Date(appt.startTime);
+                        const monthName = format(apptDate, 'MMM').toUpperCase();
+                        const dayNumber = format(apptDate, 'd');
+                        const timeStr = format(apptDate, 'HH:mm');
+                        const typeName =
+                          appt.consultationType?.name || 'Consultation';
+                        const doctorFirstName =
+                          doctorProfile?.user?.firstName || '';
+                        const doctorDisplayName = `Dr ${
+                          doctorFirstName || ''
+                        }`.trim();
+                        const doctorInitial = doctorFirstName
+                          ? doctorFirstName.charAt(0)
+                          : 'D';
+
+                        return (
+                          <div
+                            key={appt.id}
+                            className='flex items-center bg-amber-50 rounded-lg p-2 min-w-[180px] border border-amber-100'
+                          >
+                            {/* Date tile */}
+                            <div className='flex-none w-14 h-14 bg-white rounded-lg overflow-hidden border border-amber-200 mr-3'>
+                              <div className='bg-rose-400 text-white text-[10px] font-bold text-center py-0.5'>
+                                {monthName}.
+                              </div>
+                              <div className='flex items-center justify-center '>
+                                <span className='text-lg font-bold text-gray-800 '>
+                                  {dayNumber}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Details */}
+                            <div className='flex-1 min-w-0'>
+                              <p className='text-sm text-gray-700 font-semibold truncate'>
+                                {timeStr} • {typeName}
+                              </p>
+                              <div className='flex items-center mt-2'>
+                                <div className='w-7 h-7 bg-amber-300 rounded-full flex items-center justify-center mr-2 text-xs font-bold text-white'>
+                                  {doctorInitial}
+                                </div>
+                                <div className='text-sm font-medium text-gray-800 truncate'>
+                                  {doctorDisplayName}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {patientUpcomingAppointments.length > 4 && (
+                      <p className='text-xs text-amber-600 mt-2'>
+                        +{patientUpcomingAppointments.length - 4} autres
+                        rendez-vous
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {loadingUpcomingAppointments && (
+                  <div className='mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg'>
+                    <div className='text-xs text-gray-500 animate-pulse'>
+                      Chargement des rendez-vous à venir...
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
