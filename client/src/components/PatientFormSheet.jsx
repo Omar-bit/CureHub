@@ -220,11 +220,31 @@ const PatientFormSheet = ({
     }
   };
 
+  // Format phone number as XX.XX.XX.XX.XX
+  const formatPhoneNumber = (value) => {
+    // Remove all non-digit characters
+    const digits = value.replace(/\D/g, '');
+    // Limit to 10 digits
+    const limitedDigits = digits.slice(0, 10);
+    // Format with dots every 2 digits
+    const formatted = limitedDigits.replace(/(\d{2})(?=\d)/g, '$1.');
+    return formatted;
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+    }));
+  };
+
+  const handlePhoneChange = (e) => {
+    const { name, value } = e.target;
+    const formattedValue = formatPhoneNumber(value);
+    setFormData((prev) => ({
+      ...prev,
+      [name]: formattedValue,
     }));
   };
 
@@ -342,8 +362,8 @@ const PatientFormSheet = ({
                 name='mobilePhone'
                 type='tel'
                 value={formData.mobilePhone}
-                onChange={handleChange}
-                placeholder='N° de tél. portable'
+                onChange={handlePhoneChange}
+                placeholder='06.12.34.56.78'
                 error={errors.mobilePhone}
               />
             </div>
@@ -393,8 +413,8 @@ const PatientFormSheet = ({
                 name='landlinePhone'
                 type='tel'
                 value={formData.landlinePhone}
-                onChange={handleChange}
-                placeholder='N° de tél. fixe'
+                onChange={handlePhoneChange}
+                placeholder='01.23.45.67.89'
                 error={errors.landlinePhone}
               />
             </div>
