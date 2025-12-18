@@ -51,14 +51,15 @@ import PatientDetailsSheet from '../PatientDetailsSheet';
 import DatePickerPopup from '../calendar/DatePickerPopup';
 
 const STATUS_CHIP_TO_APPOINTMENT_STATUS = {
-  waiting: 'SCHEDULED',
+  waiting: 'WAITING', // Updated to reflect correct status
   seen: 'COMPLETED',
   absent: 'ABSENT',
   cancelled: 'CANCELLED',
 };
 
 const APPOINTMENT_STATUS_TO_CHIP = {
-  SCHEDULED: 'waiting',
+  SCHEDULED: 'scheduled', // Default status when created
+  WAITING: 'waiting', // Updated to reflect correct status
   COMPLETED: 'seen',
   ABSENT: 'absent',
   CANCELLED: 'cancelled',
@@ -701,7 +702,7 @@ const AppointmentDetails = ({
             />
             Patient absent
           </button>
-          {/* <button
+          <button
             onClick={() => handleStatusChipClick('cancelled')}
             disabled={isStatusUpdating}
             className={`cursor-pointer px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
@@ -718,7 +719,7 @@ const AppointmentDetails = ({
               }`}
             />
             Annulé
-          </button> */}
+          </button>
         </div>
 
         {/* Absence Notification Banner */}

@@ -1530,7 +1530,7 @@ const AppointmentForm = ({
           </div>
 
           {/* Status (only for editing) */}
-          {appointment && (
+          {/* {appointment && (
             <div>
               <label className='block text-xs font-medium text-sky-500 mb-2'>
                 Status
@@ -1549,7 +1549,7 @@ const AppointmentForm = ({
                 <option value='ABSENT'>Absent</option>
               </select>
             </div>
-          )}
+          )} */}
 
           {/* Error Messages */}
           {errors.submit && (

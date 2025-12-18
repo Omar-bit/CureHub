@@ -321,6 +321,7 @@ model TimeSlotConsultationType {
 // Appointment status enum
 enum AppointmentStatus {
   SCHEDULED
+  WAITING
   CONFIRMED
   IN_PROGRESS
   COMPLETED
