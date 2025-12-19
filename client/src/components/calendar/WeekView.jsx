@@ -425,7 +425,7 @@ const WeekView = ({
                           // Get status icon based on appointment status
                           const getStatusIcon = (status) => {
                             switch (status) {
-                              case 'SCHEDULED':
+                              case 'WAITING':
                                 return (
                                   <div className='bg-purple-500 rounded-full p-0.5 flex items-center justify-center'>
                                     <MapPin className='w-2 h-2 text-white' />
