@@ -80,7 +80,7 @@ const AppointmentForm = ({
   const [showConflictDialog, setShowConflictDialog] = useState(false); // Show conflict confirmation dialog
   const [conflictDetails, setConflictDetails] = useState(null); // Details of the conflicting appointment
   const [patientUpcomingAppointments, setPatientUpcomingAppointments] =
-    useState([]); // Upcoming appointments for selected patients
+    useState({}); // Upcoming appointments grouped by patient ID
   const [loadingUpcomingAppointments, setLoadingUpcomingAppointments] =
     useState(false);
 
@@ -248,28 +248,43 @@ const AppointmentForm = ({
   // Fetch upcoming appointments for selected patients
   useEffect(() => {
     const fetchUpcomingAppointments = async () => {
-      // Get the first non-sansfiche patient
-      const realPatient = selectedPatients.find((p) => !p.isSansFiche);
-      if (!realPatient) {
-        setPatientUpcomingAppointments([]);
+      // Get all non-sans-fiche patients
+      const realPatients = selectedPatients.filter((p) => !p.isSansFiche);
+      if (realPatients.length === 0) {
+        setPatientUpcomingAppointments({});
         return;
       }
 
       setLoadingUpcomingAppointments(true);
       try {
         const today = new Date();
-        const result = await appointmentAPI.getByPatient(realPatient.id, {
-          startDate: today.toISOString(),
-          limit: 10,
-        });
-        // Filter to only show SCHEDULED or CONFIRMED appointments
-        const upcomingAppts = (result.appointments || []).filter(
-          (appt) => appt.status === 'SCHEDULED' || appt.status === 'CONFIRMED'
-        );
-        setPatientUpcomingAppointments(upcomingAppts);
+        const appointmentsByPatient = {};
+
+        // Fetch appointments for each patient
+        for (const patient of realPatients) {
+          try {
+            const result = await appointmentAPI.getByPatient(patient.id, {
+              startDate: today.toISOString(),
+              limit: 10,
+            });
+            // Filter to only show SCHEDULED, CONFIRMED, or WAITING appointments
+            const patientAppointments = (result.appointments || []).filter(
+              (appt) => appt.status === 'SCHEDULED' || appt.status === 'CONFIRMED' || appt.status === 'WAITING'
+            );
+            // Sort by start time
+            patientAppointments.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+            appointmentsByPatient[patient.id] = patientAppointments;
+          } catch (error) {
+            console.error(`Failed to fetch appointments for patient ${patient.id}:`, error);
+            appointmentsByPatient[patient.id] = [];
+            // Continue with other patients even if one fails
+          }
+        }
+
+        setPatientUpcomingAppointments(appointmentsByPatient);
       } catch (error) {
         console.error('Failed to fetch upcoming appointments:', error);
-        setPatientUpcomingAppointments([]);
+        setPatientUpcomingAppointments({});
       } finally {
         setLoadingUpcomingAppointments(false);
       }
@@ -278,7 +293,7 @@ const AppointmentForm = ({
     if (selectedPatients.length > 0) {
       fetchUpcomingAppointments();
     } else {
-      setPatientUpcomingAppointments([]);
+      setPatientUpcomingAppointments({});
     }
   }, [selectedPatients]);
 
@@ -859,131 +874,137 @@ const AppointmentForm = ({
                     Selected Patients ({selectedPatients.length})
                   </span>
                 </div>
-                {selectedPatients.map((patient) => (
-                  <div
-                    key={patient.id}
-                    className={`p-3 rounded-lg border ${
-                      patient.isSansFiche
-                        ? 'bg-blue-50 border-blue-200'
-                        : 'bg-gray-50 border-gray-200'
-                    }`}
-                  >
-                    <div className='flex items-center justify-between'>
-                      <div className='flex items-center space-x-3'>
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                            patient.isSansFiche ? 'bg-blue-200' : 'bg-gray-200'
-                          }`}
-                        >
-                          {patient.isSansFiche ? (
-                            <FileText className='h-4 w-4 text-blue-600' />
-                          ) : (
-                            <User className='h-4 w-4 text-gray-500' />
-                          )}
-                        </div>
-                        <div>
-                          <p
-                            className={`text-sm font-medium ${
-                              patient.isSansFiche
-                                ? 'text-blue-900'
-                                : 'text-gray-900'
+                {selectedPatients.map((patient) => {
+                  const appointments = !patient.isSansFiche 
+                    ? (patientUpcomingAppointments[patient.id] || [])
+                    : [];
+                  
+                  return (
+                    <div
+                      key={patient.id}
+                      className={`p-3 rounded-lg border ${
+                        patient.isSansFiche
+                          ? 'bg-blue-50 border-blue-200'
+                          : 'bg-gray-50 border-gray-200'
+                      }`}
+                    >
+                      <div className='flex items-center justify-between'>
+                        <div className='flex items-center space-x-3'>
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              patient.isSansFiche ? 'bg-blue-200' : 'bg-gray-200'
                             }`}
                           >
-                            {renderPatientLabel(patient)}
-                            {patient.isSansFiche && (
-                              <span className='ml-2 text-xs text-blue-600'>
-                                (Sans fiche)
-                              </span>
+                            {patient.isSansFiche ? (
+                              <FileText className='h-4 w-4 text-blue-600' />
+                            ) : (
+                              <User className='h-4 w-4 text-gray-500' />
                             )}
-                          </p>
-                          {patient.phoneNumber && !patient.isSansFiche && (
-                            <p className='text-xs text-gray-600'>
-                              {patient.phoneNumber}
+                          </div>
+                          <div>
+                            <p
+                              className={`text-sm font-medium ${
+                                patient.isSansFiche
+                                  ? 'text-blue-900'
+                                  : 'text-gray-900'
+                              }`}
+                            >
+                              {renderPatientLabel(patient)}
+                              {patient.isSansFiche && (
+                                <span className='ml-2 text-xs text-blue-600'>
+                                  (Sans fiche)
+                                </span>
+                              )}
+                            </p>
+                            {patient.phoneNumber && !patient.isSansFiche && (
+                              <p className='text-xs text-gray-600'>
+                                {patient.phoneNumber}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          type='button'
+                          onClick={() => handleRemovePatient(patient.id)}
+                          className={`transition-colors ${
+                            patient.isSansFiche
+                              ? 'text-blue-500 hover:text-blue-700'
+                              : 'text-red-500 hover:text-red-700'
+                          }`}
+                        >
+                          <X className='h-4 w-4' />
+                        </button>
+                      </div>
+                      
+                      {/* Upcoming Appointments for this patient */}
+                      {appointments.length > 0 && (
+                        <div className='mt-3 pt-3 border-t border-gray-200'>
+                          <div className='text-xs font-semibold text-amber-700 mb-2'>
+                            {appointments.length} RDV À VENIR
+                          </div>
+                          <div className='flex flex-wrap gap-2'>
+                            {appointments.slice(0, 4).map((appt) => {
+                              const apptDate = new Date(appt.startTime);
+                              const monthName = format(apptDate, 'MMM').toUpperCase();
+                              const dayNumber = format(apptDate, 'd');
+                              const timeStr = format(apptDate, 'HH:mm');
+                              const typeName =
+                                appt.consultationType?.name || 'Consultation';
+                              const doctorFirstName =
+                                doctorProfile?.user?.firstName || '';
+                              const doctorDisplayName = `Dr ${
+                                doctorFirstName || ''
+                              }`.trim();
+                              const doctorInitial = doctorFirstName
+                                ? doctorFirstName.charAt(0)
+                                : 'D';
+
+                              return (
+                                <div
+                                  key={appt.id}
+                                  className='flex items-center bg-amber-50 rounded-lg p-2 min-w-[180px] border border-amber-100'
+                                >
+                                  {/* Date tile */}
+                                  <div className='flex-none w-14 h-14 bg-white rounded-lg overflow-hidden border border-amber-200 mr-3'>
+                                    <div className='bg-rose-400 text-white text-[10px] font-bold text-center py-0.5'>
+                                      {monthName}.
+                                    </div>
+                                    <div className='flex items-center justify-center '>
+                                      <span className='text-lg font-bold text-gray-800 '>
+                                        {dayNumber}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Details */}
+                                  <div className='flex-1 min-w-0'>
+                                    <p className='text-sm text-gray-700 font-semibold truncate'>
+                                      {timeStr} • {typeName}
+                                    </p>
+                                    <div className='flex items-center mt-2'>
+                                      <div className='w-7 h-7 bg-amber-300 rounded-full flex items-center justify-center mr-2 text-xs font-bold text-white'>
+                                        {doctorInitial}
+                                      </div>
+                                      <div className='text-sm font-medium text-gray-800 truncate'>
+                                        {doctorDisplayName}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {appointments.length > 4 && (
+                            <p className='text-xs text-amber-600 mt-2'>
+                              +{appointments.length - 4} autres rendez-vous
                             </p>
                           )}
                         </div>
-                      </div>
-                      <button
-                        type='button'
-                        onClick={() => handleRemovePatient(patient.id)}
-                        className={`transition-colors ${
-                          patient.isSansFiche
-                            ? 'text-blue-500 hover:text-blue-700'
-                            : 'text-red-500 hover:text-red-700'
-                        }`}
-                      >
-                        <X className='h-4 w-4' />
-                      </button>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
 
-                {/* Upcoming Appointments Section */}
-                {patientUpcomingAppointments.length > 0 && (
-                  <div className='mt-3 p-3  rounded-lg'>
-                    <div className='text-xs font-semibold text-amber-700 mb-2'>
-                      {patientUpcomingAppointments.length} RDV À VENIR
-                    </div>
-                    <div className='flex flex-wrap gap-2'>
-                      {patientUpcomingAppointments.slice(0, 4).map((appt) => {
-                        const apptDate = new Date(appt.startTime);
-                        const monthName = format(apptDate, 'MMM').toUpperCase();
-                        const dayNumber = format(apptDate, 'd');
-                        const timeStr = format(apptDate, 'HH:mm');
-                        const typeName =
-                          appt.consultationType?.name || 'Consultation';
-                        const doctorFirstName =
-                          doctorProfile?.user?.firstName || '';
-                        const doctorDisplayName = `Dr ${
-                          doctorFirstName || ''
-                        }`.trim();
-                        const doctorInitial = doctorFirstName
-                          ? doctorFirstName.charAt(0)
-                          : 'D';
-
-                        return (
-                          <div
-                            key={appt.id}
-                            className='flex items-center bg-amber-50 rounded-lg p-2 min-w-[180px] border border-amber-100'
-                          >
-                            {/* Date tile */}
-                            <div className='flex-none w-14 h-14 bg-white rounded-lg overflow-hidden border border-amber-200 mr-3'>
-                              <div className='bg-rose-400 text-white text-[10px] font-bold text-center py-0.5'>
-                                {monthName}.
-                              </div>
-                              <div className='flex items-center justify-center '>
-                                <span className='text-lg font-bold text-gray-800 '>
-                                  {dayNumber}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Details */}
-                            <div className='flex-1 min-w-0'>
-                              <p className='text-sm text-gray-700 font-semibold truncate'>
-                                {timeStr} • {typeName}
-                              </p>
-                              <div className='flex items-center mt-2'>
-                                <div className='w-7 h-7 bg-amber-300 rounded-full flex items-center justify-center mr-2 text-xs font-bold text-white'>
-                                  {doctorInitial}
-                                </div>
-                                <div className='text-sm font-medium text-gray-800 truncate'>
-                                  {doctorDisplayName}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {patientUpcomingAppointments.length > 4 && (
-                      <p className='text-xs text-amber-600 mt-2'>
-                        +{patientUpcomingAppointments.length - 4} autres
-                        rendez-vous
-                      </p>
-                    )}
-                  </div>
-                )}
 
                 {loadingUpcomingAppointments && (
                   <div className='mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg'>
