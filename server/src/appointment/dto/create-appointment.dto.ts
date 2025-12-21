@@ -60,7 +60,7 @@ export class CreateAppointmentDto {
   notes?: string;
 
   @ApiProperty({
-    description: 'Patient ID (optional for "Sans fiche" appointments)',
+    description: 'Patient ID (optional for visitor appointments)',
     required: false,
   })
   @IsString()

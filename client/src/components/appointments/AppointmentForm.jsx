@@ -69,7 +69,7 @@ const AppointmentForm = ({
   const [selectedLocation, setSelectedLocation] = useState('ONSITE'); // Default to ONSITE (au cabinet)
   const [showPatientFormSheet, setShowPatientFormSheet] = useState(false);
   const [prefilledPatientName, setPrefilledPatientName] = useState(null);
-  const [selectedPatients, setSelectedPatients] = useState([]); // Array of selected patient objects (includes sans fiche patients)
+  const [selectedPatients, setSelectedPatients] = useState([]); // Array of selected patient objects (includes visitor patients)
   const [patientConsultationAccess, setPatientConsultationAccess] = useState(
     {}
   ); // Store consultation type access for each patient
@@ -115,14 +115,15 @@ const AppointmentForm = ({
         setSelectedPatients(loadedPatients);
         setPatientSearch(''); // Clear search when editing with multiple patients
       } else if (!appointment.patientId && appointment.title) {
-        // Check if this is a "Sans fiche" appointment
-        const sansFichePatient = {
-          id: 'sans-fiche-' + Date.now(),
-          name: appointment.title,
-          isSansFiche: true,
-        };
-        setSelectedPatients([sansFichePatient]);
-        setPatientSearch('');
+        // This case should not happen with visitor patients, but handle legacy data
+        // If appointment has title but no patientId, try to find a visitor patient
+        const visitorPatient = patients.find(
+          (p) => p.name === appointment.title && p.visitor
+        );
+        if (visitorPatient) {
+          setSelectedPatients([visitorPatient]);
+          setPatientSearch('');
+        }
       } else if (appointment.patientId) {
         // Set patient search if editing with single patient
         const patient = patients.find((p) => p.id === appointment.patientId);
@@ -216,7 +217,7 @@ const AppointmentForm = ({
     const fetchPatientAccess = async () => {
       const accessMap = {};
       for (const patient of selectedPatients) {
-        if (patient.id && !patient.isSansFiche) {
+        if (patient.id && !patient.visitor) {
           try {
             const access = await patientAPI.getConsultationTypeAccess(
               patient.id
@@ -248,8 +249,8 @@ const AppointmentForm = ({
   // Fetch upcoming appointments for selected patients
   useEffect(() => {
     const fetchUpcomingAppointments = async () => {
-      // Get all non-sans-fiche patients
-      const realPatients = selectedPatients.filter((p) => !p.isSansFiche);
+      // Get all non-visitor patients
+      const realPatients = selectedPatients.filter((p) => !p.visitor);
       if (realPatients.length === 0) {
         setPatientUpcomingAppointments({});
         return;
@@ -401,18 +402,17 @@ const AppointmentForm = ({
     setIsManualDuration(true);
   };
 
-  const handleSansFiche = () => {
-    // Create a "Sans fiche" patient object
-    const sansFicheName = patientSearch.trim() || 'Sans fiche';
-    const sansFichePatient = {
-      id: 'sans-fiche-' + Date.now(), // Unique temporary ID
-      name: sansFicheName,
-      isSansFiche: true, // Mark as sans fiche
-    };
+  const handleCreateVisitor = () => {
+    // Parse the search text to pre-fill first and last name
+    const searchText = patientSearch.trim() || 'Visiteur';
+    const nameParts = searchText.split(' ').filter((part) => part.length > 0);
 
-    // Add to selected patients
-    setSelectedPatients((prev) => [...prev, sansFichePatient]);
-    setPatientSearch(''); // Clear search
+    setPrefilledPatientName({
+      firstName: nameParts[0] || 'Visiteur',
+      lastName: nameParts.slice(1).join(' ') || '',
+      visitor: true, // Mark as visitor
+    });
+    setShowPatientFormSheet(true);
     setShowPatientDropdown(false);
   };
 
@@ -455,9 +455,15 @@ const AppointmentForm = ({
         // Select the newly created patient
         if (newPatient) {
           console.log('New patient created:', newPatient);
-          // Directly set the patient data instead of calling handlePatientSelect
-          setFormData((prev) => ({ ...prev, patientId: newPatient.id }));
-          setPatientSearch(newPatient.name);
+          // Add to selected patients list
+          setSelectedPatients((prev) => {
+            // Check if already selected
+            if (prev.find((p) => p.id === newPatient.id)) {
+              return prev;
+            }
+            return [...prev, newPatient];
+          });
+          setPatientSearch('');
         }
       }
 
@@ -490,17 +496,17 @@ const AppointmentForm = ({
 
   // Check if a consultation type is enabled for all selected patients
   const isConsultationTypeAvailable = (consultationTypeId) => {
-    // If no patients selected or all are "sans fiche", all consultation types are available
+    // If no patients selected or all are visitors, all consultation types are available
     if (
       selectedPatients.length === 0 ||
-      selectedPatients.every((p) => p.isSansFiche)
+      selectedPatients.every((p) => p.visitor)
     ) {
       return true;
     }
 
     // Check if the consultation type is enabled for all patients
     return selectedPatients.every((patient) => {
-      if (patient.isSansFiche) return true; // Sans fiche patients can access all types
+      if (patient.visitor) return true; // Visitor patients can access all types
       const access = patientConsultationAccess[patient.id];
       if (!access) return true; // If we don't have access data yet, assume enabled
       return access[consultationTypeId] !== false; // Enabled if not explicitly disabled
@@ -570,12 +576,8 @@ const AppointmentForm = ({
       const startDateTime = new Date(`${formData.date}T${timeToUse}`);
       const endDateTime = addMinutes(startDateTime, totalDuration);
 
-      // Separate regular patients from sans fiche patients
-      const regularPatients = selectedPatients.filter((p) => !p.isSansFiche);
-      const sansFichePatients = selectedPatients.filter((p) => p.isSansFiche);
-
-      // Get patient IDs array (only regular patients)
-      const patientIds = regularPatients.map((p) => p.id);
+      // Get patient IDs array (all patients including visitors)
+      const patientIds = selectedPatients.map((p) => p.id);
 
       // Create title from all patient names (rendered without separator)
       const allPatientNames = selectedPatients
@@ -586,8 +588,8 @@ const AppointmentForm = ({
         title: allPatientNames,
         startTime: startDateTime.toISOString(),
         endTime: endDateTime.toISOString(),
-        patientIds: patientIds.length > 0 ? patientIds : undefined, // Send array of patient IDs (only if there are regular patients)
-        patientId: patientIds.length === 0 ? null : undefined, // null if only sans fiche patients
+        patientIds: patientIds.length > 0 ? patientIds : undefined, // Send array of patient IDs
+        patientId: patientIds.length === 0 ? null : undefined, // null if no patients
         consultationTypeId: formData.consultationTypeId,
         description: formData.description.trim(),
         notes: formData.notes.trim(),
@@ -675,8 +677,7 @@ const AppointmentForm = ({
       const startDateTime = new Date(`${formData.date}T${timeToUse}`);
       const endDateTime = addMinutes(startDateTime, totalDuration);
 
-      const regularPatients = selectedPatients.filter((p) => !p.isSansFiche);
-      const patientIds = regularPatients.map((p) => p.id);
+      const patientIds = selectedPatients.map((p) => p.id);
       const allPatientNames = selectedPatients
         .map((p) => renderPatientLabel(p))
         .join(', ');
@@ -796,11 +797,11 @@ const AppointmentForm = ({
                     <div className='flex items-center space-x-2'>
                       <button
                         type='button'
-                        onClick={handleSansFiche}
+                        onClick={handleCreateVisitor}
                         className='flex items-center space-x-1 text-gray-600 hover:text-gray-700 text-sm font-medium transition-colors'
                       >
                         <FileText className='h-4 w-4' />
-                        <span>Sans fiche</span>
+                        <span>Visiteur</span>
                       </button>
                       <button
                         type='button'
@@ -875,7 +876,7 @@ const AppointmentForm = ({
                   </span>
                 </div>
                 {selectedPatients.map((patient) => {
-                  const appointments = !patient.isSansFiche 
+                  const appointments = !patient.visitor 
                     ? (patientUpcomingAppointments[patient.id] || [])
                     : [];
                   
@@ -883,7 +884,7 @@ const AppointmentForm = ({
                     <div
                       key={patient.id}
                       className={`p-3 rounded-lg border ${
-                        patient.isSansFiche
+                        patient.visitor
                           ? 'bg-blue-50 border-blue-200'
                           : 'bg-gray-50 border-gray-200'
                       }`}
@@ -892,10 +893,10 @@ const AppointmentForm = ({
                         <div className='flex items-center space-x-3'>
                           <div
                             className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                              patient.isSansFiche ? 'bg-blue-200' : 'bg-gray-200'
+                              patient.visitor ? 'bg-blue-200' : 'bg-gray-200'
                             }`}
                           >
-                            {patient.isSansFiche ? (
+                            {patient.visitor ? (
                               <FileText className='h-4 w-4 text-blue-600' />
                             ) : (
                               <User className='h-4 w-4 text-gray-500' />
@@ -904,19 +905,19 @@ const AppointmentForm = ({
                           <div>
                             <p
                               className={`text-sm font-medium ${
-                                patient.isSansFiche
+                                patient.visitor
                                   ? 'text-blue-900'
                                   : 'text-gray-900'
                               }`}
                             >
                               {renderPatientLabel(patient)}
-                              {patient.isSansFiche && (
+                              {patient.visitor && (
                                 <span className='ml-2 text-xs text-blue-600'>
-                                  (Sans fiche)
+                                  (Visiteur)
                                 </span>
                               )}
                             </p>
-                            {patient.phoneNumber && !patient.isSansFiche && (
+                            {patient.phoneNumber && !patient.visitor && (
                               <p className='text-xs text-gray-600'>
                                 {patient.phoneNumber}
                               </p>
@@ -927,7 +928,7 @@ const AppointmentForm = ({
                           type='button'
                           onClick={() => handleRemovePatient(patient.id)}
                           className={`transition-colors ${
-                            patient.isSansFiche
+                            patient.visitor
                               ? 'text-blue-500 hover:text-blue-700'
                               : 'text-red-500 hover:text-red-700'
                           }`}

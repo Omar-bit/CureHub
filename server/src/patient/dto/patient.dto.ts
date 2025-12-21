@@ -15,7 +15,8 @@ export class CreatePatientDto {
   name: string;
 
   @IsDateString()
-  dateOfBirth: string;
+  @IsOptional()
+  dateOfBirth?: string;
 
   @IsOptional()
   @IsString()
@@ -69,6 +70,10 @@ export class CreatePatientDto {
   @IsOptional()
   @IsString()
   divers?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  visitor?: boolean;
 }
 
 export class UpdatePatientDto {
@@ -137,6 +142,10 @@ export class UpdatePatientDto {
   @IsOptional()
   @IsBoolean()
   isBlocked?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  visitor?: boolean;
 }
 
 export class PatientQueryDto {

@@ -161,7 +161,7 @@ enum FamilyRelationship {
 model Patient {
   id                String   @id @default(cuid())
   name              String
-  dateOfBirth       DateTime
+  dateOfBirth       DateTime? // Optional for visitor patients
   profileImage      String?
   gender            Gender
   email             String?
@@ -178,6 +178,7 @@ model Patient {
   divers            String?  @db.Text
   isDeleted         Boolean  @default(false)
   isBlocked         Boolean  @default(false) // Whether the patient is blocked from booking appointments
+  visitor           Boolean  @default(false) // Whether this is a visitor patient (replaces "sans fiche")
 
   // Permissions for patient relatives
   canAddRelatives     Boolean @default(false) // Ajouter des proches

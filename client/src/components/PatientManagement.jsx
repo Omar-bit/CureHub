@@ -68,7 +68,6 @@ const PatientManagement = ({ onAppointmentCreated }) => {
   ];
 
   const [patients, setPatients] = useState([]);
-  const [visitors, setVisitors] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [consultationTypes, setConsultationTypes] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -95,14 +94,19 @@ const PatientManagement = ({ onAppointmentCreated }) => {
 
     // Apply status filter first
     if (statusFilter === 'visitors') {
-      // Show only visitors (passagers from appointments without patientId)
-      filtered = [...visitors];
+      // Show only visitors (patients where visitor = true)
+      filtered = patients.filter((patient) => patient.visitor === true);
     } else if (statusFilter === 'all') {
-      // Show both regular patients and visitors
-      filtered = [...patients, ...visitors];
+      // Show all patients (including visitors)
+      filtered = [...patients];
     } else {
-      // Filter regular patients only
+      // Filter regular patients only (exclude visitors)
       filtered = patients.filter((patient) => {
+        // Exclude visitors from other filters
+        if (patient.visitor === true) {
+          return false;
+        }
+        
         switch (statusFilter) {
           case 'new':
             // New patients have dejaVu = 0 (never been seen)
@@ -130,23 +134,11 @@ const PatientManagement = ({ onAppointmentCreated }) => {
       filtered = filtered.filter((patient) => {
         const query = searchQuery.toLowerCase();
 
-        // Handle visitors (simple name) vs regular patients (firstName!SP!lastName)
-        let firstName = '';
-        let lastName = '';
-        let fullName = '';
-
-        if (patient.isVisitor) {
-          // Visitors have simple name, no !SP! separator
-          fullName = (patient.name || '').toLowerCase();
-          firstName = fullName;
-          lastName = fullName;
-        } else {
-          // Parse name field: format is "firstName!SP!lastName"
-          const nameParts = patient.name?.split('!SP!') || [];
-          firstName = (nameParts[0] || '').toLowerCase();
-          lastName = (nameParts[1] || '').toLowerCase();
-          fullName = patient.name?.replace('!SP!', ' ').toLowerCase() || '';
-        }
+        // Parse name field: format is "firstName!SP!lastName" or just "name" for visitors
+        const nameParts = patient.name?.split('!SP!') || [];
+        const firstName = (nameParts[0] || '').toLowerCase();
+        const lastName = (nameParts[1] || '').toLowerCase();
+        const fullName = patient.name?.replace('!SP!', ' ').toLowerCase() || '';
 
         switch (searchCategory) {
           case 'fullName':
@@ -181,54 +173,17 @@ const PatientManagement = ({ onAppointmentCreated }) => {
     }
 
     setFilteredPatients(filtered);
-  }, [patients, visitors, searchQuery, searchCategory, statusFilter]);
+  }, [patients, searchQuery, searchCategory, statusFilter]);
 
   const loadPatients = async () => {
     try {
       setIsLoading(true);
-      const [
-        patientsResponse,
-        consultationTypesResponse,
-        appointmentsResponse,
-      ] = await Promise.all([
+      const [patientsResponse, consultationTypesResponse] = await Promise.all([
         patientAPI.getAll(),
         consultationTypesAPI.getAll(),
-        appointmentAPI.getAll(),
       ]);
       setPatients(patientsResponse);
       setConsultationTypes(consultationTypesResponse);
-
-      // Extract visitors (passagers) from appointments without patientId
-      const appointments = appointmentsResponse.appointments || [];
-      const visitorsFromAppointments = appointments
-        .filter((apt) => !apt.patientId && apt.title)
-        .flatMap((apt) => {
-          // Split title by comma to get individual visitor names
-          const names = apt.title
-            .split(',')
-            .map((n) => n.trim())
-            .filter(Boolean);
-          return names.map((name, index) => ({
-            id: `visitor-${apt.id}-${index}`,
-            name: name,
-            isVisitor: true,
-            appointmentId: apt.id,
-            appointmentDate: apt.startTime,
-          }));
-        });
-
-      // Remove duplicate visitor names
-      const uniqueVisitors = visitorsFromAppointments.reduce((acc, visitor) => {
-        const existingVisitor = acc.find(
-          (v) => v.name.toLowerCase() === visitor.name.toLowerCase()
-        );
-        if (!existingVisitor) {
-          acc.push(visitor);
-        }
-        return acc;
-      }, []);
-
-      setVisitors(uniqueVisitors);
       setError('');
     } catch (error) {
       const errorMessage = 'Failed to load patients';

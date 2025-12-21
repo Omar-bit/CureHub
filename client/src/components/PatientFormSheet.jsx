@@ -18,6 +18,7 @@ import {
   getPatientDisplayName,
 } from '../lib/patient';
 import { ChevronDown, ChevronRight, Ban, Trash2, Unlock } from 'lucide-react';
+import { Switch } from './ui/switch';
 
 // Phone list options
 const PHONE_LIST_OPTIONS = [
@@ -103,6 +104,7 @@ const PatientFormSheet = ({
     dejaVu: false,
     absenceCount: 0,
     divers: '',
+    visitor: false,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -122,16 +124,19 @@ const PatientFormSheet = ({
 
       let firstName = '';
       let lastName = '';
+      let visitor = false;
 
       if (isFullPatient) {
         // Full patient object -> use helper to parse
         const parsed = splitPatientName(patient.name);
         firstName = parsed.firstName || '';
         lastName = parsed.lastName || '';
+        visitor = patient.visitor || false;
       } else {
         // Pre-filled name object
         firstName = patient.firstName || '';
         lastName = patient.lastName || '';
+        visitor = patient.visitor || false;
       }
 
       setFormData({
@@ -155,6 +160,7 @@ const PatientFormSheet = ({
         dejaVu: (isFullPatient && patient.dejaVu > 0) || false,
         absenceCount: (isFullPatient && patient.absenceCount) || 0,
         divers: (isFullPatient && patient.divers) || '',
+        visitor: visitor,
       });
     } else {
       setFormData({
@@ -175,6 +181,7 @@ const PatientFormSheet = ({
         dejaVu: false,
         absenceCount: 0,
         divers: '',
+        visitor: false,
       });
     }
     setErrors({});
@@ -195,6 +202,8 @@ const PatientFormSheet = ({
         phoneNumber: formData.mobilePhone, // Map to existing backend field
         // Convert dejaVu boolean to integer (1 = seen, 0 = not seen)
         dejaVu: formData.dejaVu ? 1 : 0,
+        // Include visitor status
+        visitor: formData.visitor || false,
       };
 
       // Remove empty fields and form-specific fields
@@ -298,7 +307,7 @@ const PatientFormSheet = ({
             type='date'
             value={formData.dateOfBirth}
             onChange={handleChange}
-            required
+            required={!formData.visitor}
             placeholder='Date de nais. (JJ/MM/AAAA)'
             error={errors.dateOfBirth}
           />
@@ -536,6 +545,24 @@ const PatientFormSheet = ({
                 <span className='text-sm text-gray-700'>Non</span>
               </label>
             </div>
+          </div>
+
+          {/* Visitor Toggle */}
+          <div className='flex items-center justify-between p-4 bg-gray-50 rounded-lg'>
+            <div className='flex-1'>
+              <label className='text-sm font-medium text-gray-700'>
+                Visiteur
+              </label>
+              <p className='text-xs text-gray-500 mt-1'>
+                Marquer ce patient comme visiteur (date de naissance non requise)
+              </p>
+            </div>
+            <Switch
+              checked={formData.visitor}
+              onCheckedChange={(checked) =>
+                setFormData((prev) => ({ ...prev, visitor: checked }))
+              }
+            />
           </div>
 
           <FormInput
