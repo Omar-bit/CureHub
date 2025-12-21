@@ -16,7 +16,81 @@ import {
   ChevronDown,
   ChevronUp,
   UserX,
+  Sparkles,
+  Eye,
+  UserCog,
+  Ban,
+  UserPlus,
 } from 'lucide-react';
+
+// Helper function to determine patient status with enhanced styling
+const getPatientStatus = (patient) => {
+  const statuses = [];
+
+  // Check for blocked status (highest priority)
+  if (patient.isBlocked) {
+    statuses.push({
+      label: 'Bloqué',
+      bgColor: 'bg-red-50',
+      textColor: 'text-red-700',
+      borderColor: 'border-red-200',
+      icon: Ban,
+      iconColor: 'text-red-600',
+    });
+  }
+
+  // Check for visitor status
+  if (patient.visitor) {
+    statuses.push({
+      label: 'Visiteur',
+      bgColor: 'bg-orange-50',
+      textColor: 'text-orange-700',
+      borderColor: 'border-orange-200',
+      icon: UserPlus,
+      iconColor: 'text-orange-600',
+    });
+  }
+
+  // Check for relative status (proche)
+  const hasRelationships =
+    (patient.relatedPatients && patient.relatedPatients.length > 0) ||
+    (patient.relationshipsAsRelated &&
+      patient.relationshipsAsRelated.length > 0);
+  if (hasRelationships) {
+    statuses.push({
+      label: 'Proche',
+      bgColor: 'bg-purple-50',
+      textColor: 'text-purple-700',
+      borderColor: 'border-purple-200',
+      icon: Users,
+      iconColor: 'text-purple-600',
+    });
+  }
+
+  // Check for déjà vu status
+  if (patient.dejaVu > 0) {
+    statuses.push({
+      label: 'Déjà vu',
+      bgColor: 'bg-blue-50',
+      textColor: 'text-blue-700',
+      borderColor: 'border-blue-200',
+      icon: Eye,
+      iconColor: 'text-blue-600',
+    });
+  } else if (!patient.visitor) {
+    // Only show "Nouveau" if not a visitor
+    statuses.push({
+      label: 'Nouveau',
+      bgColor: 'bg-indigo-50',
+      textColor: 'text-indigo-700',
+      borderColor: 'border-indigo-200',
+      icon: Sparkles,
+      iconColor: 'text-indigo-600',
+    });
+  }
+
+  return statuses;
+};
 
 const PatientCard = ({
   patient,
@@ -32,25 +106,7 @@ const PatientCard = ({
     ? patient.name.split('!SP!').join(' ')
     : patient.name;
 
-  // If this is a visitor (passager), show simplified card
-  if (patient.isVisitor) {
-    return (
-      <div className='bg-gray-100 rounded-lg shadow-sm border border-gray-300 p-4 mb-4 hover:shadow-md transition-all duration-300'>
-        <div className='flex items-center justify-between'>
-          <div className='flex-1'>
-            <div className='flex items-center gap-2'>
-              <h3 className='text-lg font-semibold text-gray-900'>
-                {patientName}
-              </h3>
-              <span className='px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-700 rounded-full'>
-                Visiteur
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const statuses = getPatientStatus(patient);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -72,6 +128,94 @@ const PatientCard = ({
 
     return age;
   };
+
+  // If this is a visitor, show simplified card
+  if (patient.visitor) {
+    return (
+      <div className='bg-gray-100 rounded-lg shadow-sm border border-gray-300 p-4 mb-4 hover:shadow-md transition-all duration-300'>
+        <div className='flex items-center justify-between'>
+          <div className='flex-1'>
+            <div className='flex items-center gap-2 flex-wrap'>
+              <h3 className='text-lg font-semibold text-gray-900'>
+                {patientName || '- ABSENT'}
+              </h3>
+              {statuses.map((status, index) => {
+                const StatusIcon = status.icon;
+                return (
+                  <span
+                    key={index}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold ${status.bgColor} ${status.textColor} border ${status.borderColor} rounded-full shadow-sm transition-all duration-200 hover:shadow-md hover:scale-105`}
+                  >
+                    {StatusIcon && (
+                      <StatusIcon className={`w-3 h-3 ${status.iconColor}`} />
+                    )}
+                    {status.label}
+                  </span>
+                );
+              })}
+            </div>
+            {patient.dateOfBirth && (
+              <p className='text-sm text-gray-600 mt-1'>
+                Née le {formatDate(patient.dateOfBirth)} •{' '}
+                {calculateAge(patient.dateOfBirth)} ans
+              </p>
+            )}
+          </div>
+          {/* Expand/Collapse Button */}
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className='ml-4 p-2 rounded-full hover:bg-gray-200 transition-colors'
+          >
+            {isExpanded ? (
+              <ChevronUp className='w-5 h-5 text-gray-600' />
+            ) : (
+              <ChevronDown className='w-5 h-5 text-gray-600' />
+            )}
+          </button>
+        </div>
+
+        {/* Expanded Content for Visitors */}
+        {isExpanded && (
+          <div className='mt-4 space-y-4 animate-in slide-in-from-top-2 duration-300'>
+            {/* Contact Information */}
+            <div className='space-y-2'>
+              {patient.phoneNumber && (
+                <div className='flex items-center text-sm text-gray-600'>
+                  <Phone className='w-4 h-4 mr-2' />
+                  <span>{patient.phoneNumber}</span>
+                </div>
+              )}
+
+              {patient.email && (
+                <div className='flex items-center text-sm text-gray-600'>
+                  <Mail className='w-4 h-4 mr-2' />
+                  <span>{patient.email}</span>
+                </div>
+              )}
+
+              {patient.address && (
+                <div className='flex items-center text-sm text-gray-600'>
+                  <MapPin className='w-4 h-4 mr-2' />
+                  <span>{patient.address}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className='flex items-center justify-around gap-2 pt-2 border-t border-gray-300'>
+              <button
+                onClick={() => onView(patient, 'profil')}
+                className='relative flex flex-col items-center justify-center p-3 rounded-lg bg-gray-50 hover:bg-gray-200 transition-colors border border-gray-200'
+              >
+                <UserCheck className='w-5 h-5 text-gray-600 mb-1' />
+                <span className='text-xs text-gray-700 font-medium'>Profil</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   const actionButtons = [
     {
@@ -131,13 +275,32 @@ const PatientCard = ({
       {/* Collapsed Header Section */}
       <div className='flex items-center justify-between'>
         <div className='flex-1'>
-          <h3 className='text-lg font-semibold text-gray-900 mb-1'>
-            {patientName}
-          </h3>
-          <p className='text-sm text-gray-600 mb-2'>
-            Née le {formatDate(patient.dateOfBirth)} •{' '}
-            {calculateAge(patient.dateOfBirth)} ans
-          </p>
+          <div className='flex items-center gap-2 flex-wrap mb-1'>
+            <h3 className='text-lg font-semibold text-gray-900'>
+              {patientName}
+            </h3>
+            {/* Status Badges */}
+            {statuses.map((status, index) => {
+              const StatusIcon = status.icon;
+              return (
+                <span
+                  key={index}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold ${status.bgColor} ${status.textColor} border ${status.borderColor} rounded-full shadow-sm transition-all duration-200 hover:shadow-md hover:scale-105`}
+                >
+                  {StatusIcon && (
+                    <StatusIcon className={`w-3 h-3 ${status.iconColor}`} />
+                  )}
+                  {status.label}
+                </span>
+              );
+            })}
+          </div>
+          {patient.dateOfBirth && (
+            <p className='text-sm text-gray-600 mb-2'>
+              Née le {formatDate(patient.dateOfBirth)} •{' '}
+              {calculateAge(patient.dateOfBirth)} ans
+            </p>
+          )}
 
           {/* Essential contact info in collapsed state */}
           {!isExpanded && (
