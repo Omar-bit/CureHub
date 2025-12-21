@@ -197,6 +197,9 @@ const WeekView = ({
     );
     const height = CalendarUtils.getTimeSlotHeight(duration);
 
+    // Add small gap between adjacent appointments by reducing height slightly
+    const gapSize = 0.1; // pixels - creates visual spacing between appointments
+
     const leftOffset = 2;
     const rightOffset = 2;
     const availableWidth = `calc(100% - ${leftOffset + rightOffset}px)`;
@@ -212,7 +215,7 @@ const WeekView = ({
     return {
       position: 'absolute',
       top: `${position}px`,
-      height: `${height}px`,
+      height: `${Math.max(0, height - gapSize)}px`, // Reduce height to create gap between adjacent appointments
       left: leftPosition,
       width: columnWidth,
       zIndex: 10,
@@ -467,9 +470,9 @@ const WeekView = ({
                                 totalColumns
                               )}
                               className={`
-                              flex items-center gap-1.5 cursor-pointer
+                              flex items-start gap-0.5 cursor-pointer
                               ${
-                                colorClasses.hoverBg
+                                colorClasses.darkBg
                               } transition-all rounded-lg overflow-hidden text-xs
                               ${isCancelled ? 'opacity-60' : ''}
                             `}

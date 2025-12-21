@@ -17,7 +17,7 @@ export const getConsultationTypeStyles = (location) => {
         textColor: "text-blue-700",
         textColorLight: "text-blue-800",
         borderColor: "border-blue-500",
-        hoverBg: "hover:bg-blue-600",
+        darkBg: "bg-blue-600",
         badgeBg: "bg-blue-100",
         badgeText: "text-blue-700",
         label: "Téléconsultation",
@@ -30,7 +30,7 @@ export const getConsultationTypeStyles = (location) => {
         textColor: "text-red-700",
         textColorLight: "text-red-800",
         borderColor: "border-red-500",
-        hoverBg: "hover:bg-red-600",
+        darkBg: "bg-red-600",
         badgeBg: "bg-red-100",
         badgeText: "text-red-700",
         label: "Visite à domicile",
@@ -44,7 +44,7 @@ export const getConsultationTypeStyles = (location) => {
         textColor: "text-green-700",
         textColorLight: "text-green-800",
         borderColor: "border-green-500",
-        hoverBg: "hover:bg-green-600",
+        darkBg: "bg-green-600",
         badgeBg: "bg-green-100",
         badgeText: "text-green-700",
         label: "Cabinet",
@@ -69,7 +69,7 @@ export const getAppointmentColorClasses = (appointment) => {
       textColor: "text-white",
       bgColorLight: "bg-gray-200",
       textColorLight: "text-gray-600",
-      hoverBg: "hover:bg-gray-500",
+      darkBg: "bg-gray-500",
     };
   }
 
@@ -79,7 +79,7 @@ export const getAppointmentColorClasses = (appointment) => {
       textColor: "text-white",
       bgColorLight: "bg-green-100",
       textColorLight: "text-green-800",
-      hoverBg: "hover:bg-green-700",
+      darkBg: "bg-green-700",
     };
   }
 
@@ -88,6 +88,6 @@ export const getAppointmentColorClasses = (appointment) => {
     textColor: "text-white",
     bgColorLight: styles.bgColorLight,
     textColorLight: styles.textColorLight,
-    hoverBg: styles.hoverBg,
+    darkBg: styles.darkBg,
   };
 };

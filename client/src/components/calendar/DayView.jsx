@@ -280,9 +280,12 @@ const DayView = ({
     );
     const height = CalendarUtils.getTimeSlotHeight(duration);
 
+    // Add small gap between adjacent appointments by reducing height slightly
+    const gapSize = 0.3; // pixels - creates visual spacing between appointments
+
     // Apply vertical zoom to position and height
     const zoomedPosition = position * verticalZoom;
-    const zoomedHeight = height * verticalZoom;
+    const zoomedHeight = (height - gapSize) * verticalZoom; // Reduce height to create gap
 
     const leftOffset = 60; // Time label width
     const rightOffset = 10;
@@ -304,7 +307,7 @@ const DayView = ({
     return {
       position: 'absolute',
       top: `${zoomedPosition}px`,
-      height: `${zoomedHeight}px`,
+      height: `${Math.max(0, zoomedHeight)}px`, // Reduced height creates gap between adjacent appointments
       left: leftPosition,
       width: columnWidth,
       zIndex: 10,
@@ -505,9 +508,9 @@ const DayView = ({
                 key={appointment.id}
                 style={getAppointmentStyle(appointment, column, totalColumns)}
                 className={`
-                  flex items-center gap-2 cursor-pointer
+                  flex items-start gap-2 cursor-pointer
                   ${
-                    colorClasses.hoverBg
+                    colorClasses.darkBg
                   } transition-all rounded-lg overflow-hidden
                   ${isCancelled ? 'opacity-60' : ''}
                 `}
