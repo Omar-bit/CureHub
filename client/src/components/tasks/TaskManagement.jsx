@@ -274,13 +274,13 @@ const TaskManagement = () => {
             <Plus className='h-4 w-4' />
           </Button>
         </div>
-        <Button
+        {/* <Button
           variant='ghost'
           size='sm'
           className='text-orange-700 hover:text-orange-900'
         >
           <X className='h-4 w-4' />
-        </Button>
+        </Button> */}
       </div>
 
       {/* Search Bar */}
