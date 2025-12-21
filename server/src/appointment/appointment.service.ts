@@ -128,6 +128,15 @@ export class AppointmentService {
     const appointment = await this.prisma.appointment.create({
       data: {
         ...appointmentData,
+        ...(appointmentData.notifyConfirmation !== undefined && {
+          notifyConfirmation: appointmentData.notifyConfirmation,
+        }),
+        ...(appointmentData.notifyRappel !== undefined && {
+          notifyRappel: appointmentData.notifyRappel,
+        }),
+        ...(appointmentData.rappelMessage !== undefined && {
+          rappelMessage: appointmentData.rappelMessage,
+        }),
         startTime: new Date(startTime),
         endTime: new Date(endTime),
         doctorId,
@@ -584,6 +593,61 @@ export class AppointmentService {
 
       // Update dejaVu count for all patients in the appointment
       await this.updateDejaVuCounts(appointment, oldStatus, status);
+
+      // If appointment was confirmed and the appointment is configured to notify confirmations,
+      // send a confirmation email to all patients who have an email address.
+      if (
+        status === AppointmentStatus.CONFIRMED &&
+        updatedAppointment.notifyConfirmation
+      ) {
+        // Collect unique recipient emails
+        const recipients = new Set<string>();
+        if (updatedAppointment.patient && updatedAppointment.patient.email) {
+          recipients.add(updatedAppointment.patient.email);
+        }
+        if (
+          updatedAppointment.appointmentPatients &&
+          updatedAppointment.appointmentPatients.length > 0
+        ) {
+          for (const ap of updatedAppointment.appointmentPatients) {
+            if (ap.patient?.email) recipients.add(ap.patient.email);
+          }
+        }
+
+        // Build a simple confirmation message
+        const start = new Date(updatedAppointment.startTime);
+        const appointmentTime = `${start.toLocaleDateString()} ${start.toLocaleTimeString(
+          [],
+          {
+            hour: '2-digit',
+            minute: '2-digit',
+          },
+        )}`;
+
+        const doctorProfile = await this.prisma.doctorProfile.findUnique({
+          where: { id: updatedAppointment.doctorId },
+          include: { user: true },
+        });
+        const doctorName =
+          doctorProfile?.user?.firstName ||
+          doctorProfile?.title ||
+          'Votre médecin';
+
+        for (const email of Array.from(recipients)) {
+          try {
+            await this.emailService.sendCustomPatientEmail(
+              email,
+              updatedAppointment.patient?.name || 'Patient',
+              doctorName,
+              'Confirmation de rendez-vous',
+              `Votre rendez-vous prévu le ${appointmentTime} a été confirmé.`,
+            );
+          } catch (error) {
+            // Log and continue
+            console.error('Failed to send confirmation email to', email, error);
+          }
+        }
+      }
     }
 
     return updatedAppointment;

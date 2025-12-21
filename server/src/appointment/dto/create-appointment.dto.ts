@@ -90,4 +90,30 @@ export class CreateAppointmentDto {
   @IsBoolean()
   @IsOptional()
   skipConflictCheck?: boolean;
+
+  @ApiProperty({
+    description: 'Notify when patient confirms the appointment (default: true)',
+    required: false,
+    default: true,
+  })
+  @IsBoolean()
+  @IsOptional()
+  notifyConfirmation?: boolean;
+
+  @ApiProperty({
+    description: 'Send reminder when appointment is soon (default: true)',
+    required: false,
+    default: true,
+  })
+  @IsBoolean()
+  @IsOptional()
+  notifyRappel?: boolean;
+
+  @ApiProperty({
+    description: 'Reminder message to send to patients',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  rappelMessage?: string;
 }

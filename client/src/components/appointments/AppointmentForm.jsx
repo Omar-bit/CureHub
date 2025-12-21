@@ -629,6 +629,9 @@ const AppointmentForm = ({
         consultationTypeId: formData.consultationTypeId,
         description: formData.description.trim(),
         notes: formData.notes.trim(),
+        notifyConfirmation: formData.notifyConfirmation,
+        notifyRappel: formData.notifyRappel,
+        rappelMessage: formData.rappelMessage?.trim(),
         status: formData.status,
         skipConflictCheck: true, // Always skip backend conflict check, we handle it on frontend
       };
@@ -727,6 +730,9 @@ const AppointmentForm = ({
         consultationTypeId: formData.consultationTypeId,
         description: formData.description.trim(),
         notes: formData.notes.trim(),
+        notifyConfirmation: formData.notifyConfirmation,
+        notifyRappel: formData.notifyRappel,
+        rappelMessage: formData.rappelMessage?.trim(),
         status: formData.status,
         skipConflictCheck: true, // Skip backend conflict check since user confirmed
       };
@@ -1662,7 +1668,7 @@ const AppointmentForm = ({
                   Confirmation
                 </span>
                 <Switch
-                  className=' bg-purple-600 '
+                  className=' '
                   checked={formData.notifyConfirmation}
                   onCheckedChange={(checked) =>
                     setFormData((f) => ({
@@ -1677,7 +1683,7 @@ const AppointmentForm = ({
                   Rappel
                 </span>
                 <Switch
-                  className=' bg-purple-600 '
+                  className='  '
                   checked={formData.notifyRappel}
                   onCheckedChange={(checked) =>
                     setFormData((f) => ({

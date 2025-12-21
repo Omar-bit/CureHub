@@ -159,7 +159,7 @@ enum FamilyRelationship {
 
 // Patient model managed by doctors
 model Patient {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   name              String
   dateOfBirth       DateTime? // Optional for visitor patients
   profileImage      String?
@@ -170,15 +170,15 @@ model Patient {
   mobilePhoneList   String? // Phone list category: contact_24h, contact_priority, health_professionals, assisted_appointment, blocked_numbers
   landlinePhone     String?
   landlinePhoneList String? // Phone list category for landline
-  address           String?  @db.Text
+  address           String?   @db.Text
   postalCode        String?
   city              String?
-  dejaVu            Int      @default(0)
-  absenceCount      Int      @default(0)
-  divers            String?  @db.Text
-  isDeleted         Boolean  @default(false)
-  isBlocked         Boolean  @default(false) // Whether the patient is blocked from booking appointments
-  visitor           Boolean  @default(false) // Whether this is a visitor patient (replaces "sans fiche")
+  dejaVu            Int       @default(0)
+  absenceCount      Int       @default(0)
+  divers            String?   @db.Text
+  isDeleted         Boolean   @default(false)
+  isBlocked         Boolean   @default(false) // Whether the patient is blocked from booking appointments
+  visitor           Boolean   @default(false) // Whether this is a visitor patient (replaces "sans fiche")
 
   // Permissions for patient relatives
   canAddRelatives     Boolean @default(false) // Ajouter des proches
@@ -356,13 +356,17 @@ enum EventType {
 
 // Appointment model for doctor-patient meetings
 model Appointment {
-  id          String            @id @default(cuid())
-  title       String? // Optional appointment title
-  description String?           @db.Text // Optional notes or description
-  startTime   DateTime // Start date and time of the appointment
-  endTime     DateTime // End date and time of the appointment
-  status      AppointmentStatus @default(SCHEDULED)
-  notes       String?           @db.Text // Doctor's notes about the appointment
+  id                 String            @id @default(cuid())
+  title              String? // Optional appointment title
+  description        String?           @db.Text // Optional notes or description
+  startTime          DateTime // Start date and time of the appointment
+  endTime            DateTime // End date and time of the appointment
+  status             AppointmentStatus @default(SCHEDULED)
+  notes              String?           @db.Text // Doctor's notes about the appointment
+  notifyConfirmation Boolean           @default(true) // Notify when patient confirms
+  notifyRappel       Boolean           @default(true) // Send reminder when appointment is soon
+  rappelMessage      String?           @db.Text
+  rappelSentAt       DateTime?
 
   // Relations
   doctorId String
