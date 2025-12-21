@@ -83,6 +83,12 @@ const AppointmentForm = ({
     useState({}); // Upcoming appointments grouped by patient ID
   const [loadingUpcomingAppointments, setLoadingUpcomingAppointments] =
     useState(false);
+  const [expandedUpcomingAppointments, setExpandedUpcomingAppointments] =
+    useState({}); // Track which patient's upcoming appointments are expanded
+  const [expandedSelectedPatients, setExpandedSelectedPatients] =
+    useState(true); // Track if selected patients section is expanded (default: true)
+  const [expandedTimeSlots, setExpandedTimeSlots] =
+    useState(true); // Track if available time slots section is expanded (default: true)
 
   useEffect(() => {
     if (appointment) {
@@ -390,6 +396,13 @@ const AppointmentForm = ({
 
   const handleRemovePatient = (patientId) => {
     setSelectedPatients((prev) => prev.filter((p) => p.id !== patientId));
+  };
+
+  const toggleUpcomingAppointments = (patientId) => {
+    setExpandedUpcomingAppointments((prev) => ({
+      ...prev,
+      [patientId]: !prev[patientId],
+    }));
   };
 
   const handleIncreaseDuration = () => {
@@ -721,7 +734,7 @@ const AppointmentForm = ({
     <>
       {/* Header */}
       {!inline && (
-        <div className='flex items-center justify-between p-6 border-b border-gray-200'>
+        <div className='flex items-center justify-between p-4 border-b border-gray-200'>
           <h2 className='text-xl font-semibold text-gray-900'>
             {appointment ? 'Edit Appointment' : 'New Appointment'}
           </h2>
@@ -735,8 +748,8 @@ const AppointmentForm = ({
       )}
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className={inline ? 'space-y-6' : 'p-6'}>
-        <div className='space-y-6'>
+      <form onSubmit={handleSubmit} className={inline ? 'space-y-4 ' : 'p-4'}>
+        <div className='space-y-4'>
           {/* Title */}
           {/* <div>
             <label className='block text-sm font-medium text-gray-700 mb-2'>
@@ -870,12 +883,19 @@ const AppointmentForm = ({
             {/* Display selected patients */}
             {selectedPatients.length > 0 && (
               <div className='mt-2 space-y-2'>
-                <div className='flex items-center justify-between'>
-                  <span className='text-sm font-medium text-gray-700'>
-                    Selected Patients ({selectedPatients.length})
-                  </span>
-                </div>
-                {selectedPatients.map((patient) => {
+                <button
+                  type='button'
+                  onClick={() => setExpandedSelectedPatients(!expandedSelectedPatients)}
+                  className='flex items-center justify-between w-full text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors'
+                >
+                  <span>Selected Patients ({selectedPatients.length})</span>
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${
+                      expandedSelectedPatients ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+                {expandedSelectedPatients && selectedPatients.map((patient) => {
                   const appointments = !patient.visitor 
                     ? (patientUpcomingAppointments[patient.id] || [])
                     : [];
@@ -940,74 +960,86 @@ const AppointmentForm = ({
                       {/* Upcoming Appointments for this patient */}
                       {appointments.length > 0 && (
                         <div className='mt-3 pt-3 border-t border-gray-200'>
-                          <div className='text-xs font-semibold text-amber-700 mb-2'>
-                            {appointments.length} RDV À VENIR
-                          </div>
-                          <div className='flex flex-wrap gap-2'>
-                            {appointments.slice(0, 4).map((appt) => {
-                              const apptDate = new Date(appt.startTime);
-                              const monthName = format(apptDate, 'MMM').toUpperCase();
-                              const dayNumber = format(apptDate, 'd');
-                              const timeStr = format(apptDate, 'HH:mm');
-                              const typeName =
-                                appt.consultationType?.name || 'Consultation';
-                              const doctorFirstName =
-                                doctorProfile?.user?.firstName || '';
-                              const doctorDisplayName = `Dr ${
-                                doctorFirstName || ''
-                              }`.trim();
-                              const doctorInitial = doctorFirstName
-                                ? doctorFirstName.charAt(0)
-                                : 'D';
+                          <button
+                            type='button'
+                            onClick={() => toggleUpcomingAppointments(patient.id)}
+                            className='flex items-center justify-between w-full text-xs font-semibold text-amber-700 mb-2 hover:text-amber-800 transition-colors'
+                          >
+                            <span>{appointments.length} RDV À VENIR</span>
+                            <ChevronDown
+                              className={`h-4 w-4 transition-transform ${
+                                expandedUpcomingAppointments[patient.id]
+                                  ? 'rotate-180'
+                                  : ''
+                              }`}
+                            />
+                          </button>
+                          {expandedUpcomingAppointments[patient.id] && (
+                            <div className='flex flex-wrap gap-2'>
+                              {appointments.slice(0, 4).map((appt) => {
+                                const apptDate = new Date(appt.startTime);
+                                const monthName = format(apptDate, 'MMM').toUpperCase();
+                                const dayNumber = format(apptDate, 'd');
+                                const timeStr = format(apptDate, 'HH:mm');
+                                const typeName =
+                                  appt.consultationType?.name || 'Consultation';
+                                const doctorFirstName =
+                                  doctorProfile?.user?.firstName || '';
+                                const doctorDisplayName = `Dr ${
+                                  doctorFirstName || ''
+                                }`.trim();
+                                const doctorInitial = doctorFirstName
+                                  ? doctorFirstName.charAt(0)
+                                  : 'D';
 
-                              return (
-                                <div
-                                  key={appt.id}
-                                  className='flex items-center bg-amber-50 rounded-lg p-2 min-w-[180px] border border-amber-100'
-                                >
-                                  {/* Date tile */}
-                                  <div className='flex-none w-14 h-14 bg-white rounded-lg overflow-hidden border border-amber-200 mr-3'>
-                                    <div className='bg-rose-400 text-white text-[10px] font-bold text-center py-0.5'>
-                                      {monthName}.
-                                    </div>
-                                    <div className='flex items-center justify-center '>
-                                      <span className='text-lg font-bold text-gray-800 '>
-                                        {dayNumber}
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  {/* Details */}
-                                  <div className='flex-1 min-w-0'>
-                                    <p className='text-sm text-gray-700 font-semibold truncate'>
-                                      {timeStr} • {typeName}
-                                    </p>
-                                    <div className='flex items-center mt-2'>
-                                      <div className='w-7 h-7 bg-amber-300 rounded-full flex items-center justify-center mr-2 text-xs font-bold text-white'>
-                                        {doctorInitial}
+                                return (
+                                  <div
+                                    key={appt.id}
+                                    className='flex items-center bg-amber-50 rounded-lg p-2 min-w-[180px] border border-amber-100'
+                                  >
+                                    {/* Date tile */}
+                                    <div className='flex-none w-14 h-14 bg-white rounded-lg overflow-hidden border border-amber-200 mr-3'>
+                                      <div className='bg-rose-400 text-white text-[10px] font-bold text-center py-0.5'>
+                                        {monthName}.
                                       </div>
-                                      <div className='text-sm font-medium text-gray-800 truncate'>
-                                        {doctorDisplayName}
+                                      <div className='flex items-center justify-center '>
+                                        <span className='text-lg font-bold text-gray-800 '>
+                                          {dayNumber}
+                                        </span>
                                       </div>
                                     </div>
+
+                                    {/* Details */}
+                                    <div className='flex-1 min-w-0'>
+                                      <p className='text-sm text-gray-700 font-semibold truncate'>
+                                        {timeStr} • {typeName}
+                                      </p>
+                                      <div className='flex items-center mt-2'>
+                                        <div className='w-7 h-7 bg-amber-300 rounded-full flex items-center justify-center mr-2 text-xs font-bold text-white'>
+                                          {doctorInitial}
+                                        </div>
+                                        <div className='text-sm font-medium text-gray-800 truncate'>
+                                          {doctorDisplayName}
+                                        </div>
+                                      </div>
+                                    </div>
                                   </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                          {appointments.length > 4 && (
-                            <p className='text-xs text-amber-600 mt-2'>
-                              +{appointments.length - 4} autres rendez-vous
-                            </p>
+                                );
+                              })}
+                            </div>
                           )}
+                          {expandedUpcomingAppointments[patient.id] &&
+                            appointments.length > 4 && (
+                              <p className='text-xs text-amber-600 mt-2'>
+                                +{appointments.length - 4} autres rendez-vous
+                              </p>
+                            )}
                         </div>
                       )}
                     </div>
                   );
                 })}
-
-
-                {loadingUpcomingAppointments && (
+                {expandedSelectedPatients && loadingUpcomingAppointments && (
                   <div className='mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg'>
                     <div className='text-xs text-gray-500 animate-pulse'>
                       Chargement des rendez-vous à venir...
@@ -1493,62 +1525,76 @@ const AppointmentForm = ({
           {/* Time Selection - only show when date and consultation type are selected */}
           {formData.date && formData.consultationTypeId && (
             <div>
-              <label className='block text-xs font-medium text-cyan-800 mb-2'>
-                <Clock className='h-4 w-4 inline mr-2' />
-                Available Time Slots
-              </label>
-              <div className='border border-gray-300 rounded-lg p-4'>
-                <TimeSlotSelector
-                  selectedDate={formData.date}
-                  consultationTypeId={formData.consultationTypeId}
-                  consultationTypes={consultationTypes}
-                  value={manualTime}
-                  onChange={(time) => {
-                    setManualTime(time);
-                    handleChange({
-                      target: { name: 'startTime', value: time },
-                    });
-                  }}
-                  onDateChange={(newDate) =>
-                    handleChange({ target: { name: 'date', value: newDate } })
-                  }
-                  error={errors.startTime}
-                  totalDuration={
-                    durationPerPatient * Math.max(1, selectedPatients.length)
-                  }
+              <button
+                type='button'
+                onClick={() => setExpandedTimeSlots(!expandedTimeSlots)}
+                className='flex items-center justify-between w-full text-xs font-medium text-cyan-800 mb-2 hover:text-cyan-900 transition-colors'
+              >
+                <span className='flex items-center'>
+                  <Clock className='h-4 w-4 inline mr-2' />
+                  Available Time Slots
+                </span>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${
+                    expandedTimeSlots ? 'rotate-180' : ''
+                  }`}
                 />
-              </div>
+              </button>
+              {expandedTimeSlots && (
+                <div className='border border-gray-300 rounded-lg p-4'>
+                  <TimeSlotSelector
+                    selectedDate={formData.date}
+                    consultationTypeId={formData.consultationTypeId}
+                    consultationTypes={consultationTypes}
+                    value={manualTime}
+                    onChange={(time) => {
+                      setManualTime(time);
+                      handleChange({
+                        target: { name: 'startTime', value: time },
+                      });
+                    }}
+                    onDateChange={(newDate) =>
+                      handleChange({ target: { name: 'date', value: newDate } })
+                    }
+                    error={errors.startTime}
+                    totalDuration={
+                      durationPerPatient * Math.max(1, selectedPatients.length)
+                    }
+                  />
+                </div>
+              )}
             </div>
           )}
 
-          {/* Description */}
-          <div>
-            <label className='block text-xs font-medium text-cyan-800 mb-2'>
-              Motif de consultation
-            </label>
-            <textarea
-              name='description'
-              value={formData.description}
-              onChange={handleChange}
-              rows={4}
-              className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-              placeholder='Décrivez le motif de la consultation...'
-            />
-          </div>
+          {/* Description and Private Notes - Side by Side */}
+          <div className='grid grid-cols-2 gap-3'>
+            <div>
+              <label className='block text-xs font-medium text-cyan-800 mb-2'>
+                Motif de consultation
+              </label>
+              <textarea
+                name='description'
+                value={formData.description}
+                onChange={handleChange}
+                rows={3}
+                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                placeholder='Décrivez le motif de la consultation...'
+              />
+            </div>
 
-          {/* Private Notes */}
-          <div>
-            <label className='block text-xs font-medium text-red-600 mb-2'>
-              Note privée (invisible du patient)
-            </label>
-            <textarea
-              name='notes'
-              value={formData.notes}
-              onChange={handleChange}
-              rows={3}
-              className='w-full px-3 py-2 border border-pink-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-pink-50'
-              placeholder='Notes privées non visibles par le patient...'
-            />
+            <div>
+              <label className='block text-xs font-medium text-red-600 mb-2'>
+                Note privée (invisible du patient)
+              </label>
+              <textarea
+                name='notes'
+                value={formData.notes}
+                onChange={handleChange}
+                rows={3}
+                className='w-full px-3 py-2 border border-pink-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-pink-50'
+                placeholder='Notes privées non visibles par le patient...'
+              />
+            </div>
           </div>
 
           {/* Status (only for editing) */}
@@ -1720,7 +1766,7 @@ const AppointmentForm = ({
   return (
     <>
       <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
-        <div className='bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto'>
+        <div className='bg-white rounded-lg shadow-xl max-w-2xl w-full'>
           {content}
         </div>
       </div>
