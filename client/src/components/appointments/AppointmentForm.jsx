@@ -33,6 +33,7 @@ import { Button } from '../ui/button';
 import { patientAPI, appointmentAPI } from '../../services/api';
 import { splitPatientName } from '../../lib/patient';
 import { useDoctorProfile } from '../../hooks/useDoctorProfile';
+import { Switch } from '../ui/switch';
 
 const AppointmentForm = ({
   appointment = null,
@@ -55,6 +56,9 @@ const AppointmentForm = ({
     description: '',
     notes: '',
     status: 'SCHEDULED',
+    notifyConfirmation: true,
+    notifyRappel: true,
+    rappelMessage: '',
   });
 
   // Get doctor profile for displaying doctor name in upcoming appointments
@@ -87,8 +91,7 @@ const AppointmentForm = ({
     useState({}); // Track which patient's upcoming appointments are expanded
   const [expandedSelectedPatients, setExpandedSelectedPatients] =
     useState(true); // Track if selected patients section is expanded (default: true)
-  const [expandedTimeSlots, setExpandedTimeSlots] =
-    useState(true); // Track if available time slots section is expanded (default: true)
+  const [expandedTimeSlots, setExpandedTimeSlots] = useState(true); // Track if available time slots section is expanded (default: true)
 
   useEffect(() => {
     if (appointment) {
@@ -105,6 +108,15 @@ const AppointmentForm = ({
         description: appointment.description || '',
         notes: appointment.notes || '',
         status: appointment.status || 'SCHEDULED',
+        notifyConfirmation:
+          appointment.notifyConfirmation !== undefined
+            ? appointment.notifyConfirmation
+            : true,
+        notifyRappel:
+          appointment.notifyRappel !== undefined
+            ? appointment.notifyRappel
+            : true,
+        rappelMessage: appointment.rappelMessage || '',
       });
 
       // Set manual time when editing
@@ -187,6 +199,9 @@ const AppointmentForm = ({
         notes: '',
         location: '',
         status: 'SCHEDULED',
+        notifyConfirmation: true,
+        notifyRappel: true,
+        rappelMessage: '',
       });
       setPatientSearch('');
       setManualTime('09:00');
@@ -276,13 +291,21 @@ const AppointmentForm = ({
             });
             // Filter to only show SCHEDULED, CONFIRMED, or WAITING appointments
             const patientAppointments = (result.appointments || []).filter(
-              (appt) => appt.status === 'SCHEDULED' || appt.status === 'CONFIRMED' || appt.status === 'WAITING'
+              (appt) =>
+                appt.status === 'SCHEDULED' ||
+                appt.status === 'CONFIRMED' ||
+                appt.status === 'WAITING'
             );
             // Sort by start time
-            patientAppointments.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+            patientAppointments.sort(
+              (a, b) => new Date(a.startTime) - new Date(b.startTime)
+            );
             appointmentsByPatient[patient.id] = patientAppointments;
           } catch (error) {
-            console.error(`Failed to fetch appointments for patient ${patient.id}:`, error);
+            console.error(
+              `Failed to fetch appointments for patient ${patient.id}:`,
+              error
+            );
             appointmentsByPatient[patient.id] = [];
             // Continue with other patients even if one fails
           }
@@ -734,8 +757,8 @@ const AppointmentForm = ({
     <>
       {/* Header */}
       {!inline && (
-        <div className='flex items-center justify-between p-4 border-b border-gray-200'>
-          <h2 className='text-xl font-semibold text-gray-900'>
+        <div className='flex items-center justify-between  border-b border-gray-200'>
+          <h2 className='text-lg font-semibold text-gray-900'>
             {appointment ? 'Edit Appointment' : 'New Appointment'}
           </h2>
           <button
@@ -748,8 +771,8 @@ const AppointmentForm = ({
       )}
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className={inline ? 'space-y-4 ' : 'p-4'}>
-        <div className='space-y-4'>
+      <form onSubmit={handleSubmit} className={inline ? 'space-y-2 ' : 'p-2'}>
+        <div className='space-y-3'>
           {/* Title */}
           {/* <div>
             <label className='block text-sm font-medium text-gray-700 mb-2'>
@@ -885,7 +908,9 @@ const AppointmentForm = ({
               <div className='mt-2 space-y-2'>
                 <button
                   type='button'
-                  onClick={() => setExpandedSelectedPatients(!expandedSelectedPatients)}
+                  onClick={() =>
+                    setExpandedSelectedPatients(!expandedSelectedPatients)
+                  }
                   className='flex items-center justify-between w-full text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors'
                 >
                   <span>Selected Patients ({selectedPatients.length})</span>
@@ -895,150 +920,157 @@ const AppointmentForm = ({
                     }`}
                   />
                 </button>
-                {expandedSelectedPatients && selectedPatients.map((patient) => {
-                  const appointments = !patient.visitor 
-                    ? (patientUpcomingAppointments[patient.id] || [])
-                    : [];
-                  
-                  return (
-                    <div
-                      key={patient.id}
-                      className={`p-3 rounded-lg border ${
-                        patient.visitor
-                          ? 'bg-blue-50 border-blue-200'
-                          : 'bg-gray-50 border-gray-200'
-                      }`}
-                    >
-                      <div className='flex items-center justify-between'>
-                        <div className='flex items-center space-x-3'>
-                          <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                              patient.visitor ? 'bg-blue-200' : 'bg-gray-200'
-                            }`}
-                          >
-                            {patient.visitor ? (
-                              <FileText className='h-4 w-4 text-blue-600' />
-                            ) : (
-                              <User className='h-4 w-4 text-gray-500' />
-                            )}
-                          </div>
-                          <div>
-                            <p
-                              className={`text-sm font-medium ${
-                                patient.visitor
-                                  ? 'text-blue-900'
-                                  : 'text-gray-900'
+                {expandedSelectedPatients &&
+                  selectedPatients.map((patient) => {
+                    const appointments = !patient.visitor
+                      ? patientUpcomingAppointments[patient.id] || []
+                      : [];
+
+                    return (
+                      <div
+                        key={patient.id}
+                        className={`p-3 rounded-lg border ${
+                          patient.visitor
+                            ? 'bg-blue-50 border-blue-200'
+                            : 'bg-gray-50 border-gray-200'
+                        }`}
+                      >
+                        <div className='flex items-center justify-between'>
+                          <div className='flex items-center space-x-3'>
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                patient.visitor ? 'bg-blue-200' : 'bg-gray-200'
                               }`}
                             >
-                              {renderPatientLabel(patient)}
-                              {patient.visitor && (
-                                <span className='ml-2 text-xs text-blue-600'>
-                                  (Visiteur)
-                                </span>
+                              {patient.visitor ? (
+                                <FileText className='h-4 w-4 text-blue-600' />
+                              ) : (
+                                <User className='h-4 w-4 text-gray-500' />
                               )}
-                            </p>
-                            {patient.phoneNumber && !patient.visitor && (
-                              <p className='text-xs text-gray-600'>
-                                {patient.phoneNumber}
+                            </div>
+                            <div>
+                              <p
+                                className={`text-sm font-medium ${
+                                  patient.visitor
+                                    ? 'text-blue-900'
+                                    : 'text-gray-900'
+                                }`}
+                              >
+                                {renderPatientLabel(patient)}
+                                {patient.visitor && (
+                                  <span className='ml-2 text-xs text-blue-600'>
+                                    (Visiteur)
+                                  </span>
+                                )}
                               </p>
-                            )}
+                              {patient.phoneNumber && !patient.visitor && (
+                                <p className='text-xs text-gray-600'>
+                                  {patient.phoneNumber}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <button
-                          type='button'
-                          onClick={() => handleRemovePatient(patient.id)}
-                          className={`transition-colors ${
-                            patient.visitor
-                              ? 'text-blue-500 hover:text-blue-700'
-                              : 'text-red-500 hover:text-red-700'
-                          }`}
-                        >
-                          <X className='h-4 w-4' />
-                        </button>
-                      </div>
-                      
-                      {/* Upcoming Appointments for this patient */}
-                      {appointments.length > 0 && (
-                        <div className='mt-3 pt-3 border-t border-gray-200'>
                           <button
                             type='button'
-                            onClick={() => toggleUpcomingAppointments(patient.id)}
-                            className='flex items-center justify-between w-full text-xs font-semibold text-amber-700 mb-2 hover:text-amber-800 transition-colors'
+                            onClick={() => handleRemovePatient(patient.id)}
+                            className={`transition-colors ${
+                              patient.visitor
+                                ? 'text-blue-500 hover:text-blue-700'
+                                : 'text-red-500 hover:text-red-700'
+                            }`}
                           >
-                            <span>{appointments.length} RDV À VENIR</span>
-                            <ChevronDown
-                              className={`h-4 w-4 transition-transform ${
-                                expandedUpcomingAppointments[patient.id]
-                                  ? 'rotate-180'
-                                  : ''
-                              }`}
-                            />
+                            <X className='h-4 w-4' />
                           </button>
-                          {expandedUpcomingAppointments[patient.id] && (
-                            <div className='flex flex-wrap gap-2'>
-                              {appointments.slice(0, 4).map((appt) => {
-                                const apptDate = new Date(appt.startTime);
-                                const monthName = format(apptDate, 'MMM').toUpperCase();
-                                const dayNumber = format(apptDate, 'd');
-                                const timeStr = format(apptDate, 'HH:mm');
-                                const typeName =
-                                  appt.consultationType?.name || 'Consultation';
-                                const doctorFirstName =
-                                  doctorProfile?.user?.firstName || '';
-                                const doctorDisplayName = `Dr ${
-                                  doctorFirstName || ''
-                                }`.trim();
-                                const doctorInitial = doctorFirstName
-                                  ? doctorFirstName.charAt(0)
-                                  : 'D';
-
-                                return (
-                                  <div
-                                    key={appt.id}
-                                    className='flex items-center bg-amber-50 rounded-lg p-2 min-w-[180px] border border-amber-100'
-                                  >
-                                    {/* Date tile */}
-                                    <div className='flex-none w-14 h-14 bg-white rounded-lg overflow-hidden border border-amber-200 mr-3'>
-                                      <div className='bg-rose-400 text-white text-[10px] font-bold text-center py-0.5'>
-                                        {monthName}.
-                                      </div>
-                                      <div className='flex items-center justify-center '>
-                                        <span className='text-lg font-bold text-gray-800 '>
-                                          {dayNumber}
-                                        </span>
-                                      </div>
-                                    </div>
-
-                                    {/* Details */}
-                                    <div className='flex-1 min-w-0'>
-                                      <p className='text-sm text-gray-700 font-semibold truncate'>
-                                        {timeStr} • {typeName}
-                                      </p>
-                                      <div className='flex items-center mt-2'>
-                                        <div className='w-7 h-7 bg-amber-300 rounded-full flex items-center justify-center mr-2 text-xs font-bold text-white'>
-                                          {doctorInitial}
-                                        </div>
-                                        <div className='text-sm font-medium text-gray-800 truncate'>
-                                          {doctorDisplayName}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                          {expandedUpcomingAppointments[patient.id] &&
-                            appointments.length > 4 && (
-                              <p className='text-xs text-amber-600 mt-2'>
-                                +{appointments.length - 4} autres rendez-vous
-                              </p>
-                            )}
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
+
+                        {/* Upcoming Appointments for this patient */}
+                        {appointments.length > 0 && (
+                          <div className='mt-3 pt-3 border-t border-gray-200'>
+                            <button
+                              type='button'
+                              onClick={() =>
+                                toggleUpcomingAppointments(patient.id)
+                              }
+                              className='flex items-center justify-between w-full text-xs font-semibold text-amber-700 mb-2 hover:text-amber-800 transition-colors'
+                            >
+                              <span>{appointments.length} RDV À VENIR</span>
+                              <ChevronDown
+                                className={`h-4 w-4 transition-transform ${
+                                  expandedUpcomingAppointments[patient.id]
+                                    ? 'rotate-180'
+                                    : ''
+                                }`}
+                              />
+                            </button>
+                            {expandedUpcomingAppointments[patient.id] && (
+                              <div className='flex flex-wrap gap-2'>
+                                {appointments.slice(0, 4).map((appt) => {
+                                  const apptDate = new Date(appt.startTime);
+                                  const monthName = format(
+                                    apptDate,
+                                    'MMM'
+                                  ).toUpperCase();
+                                  const dayNumber = format(apptDate, 'd');
+                                  const timeStr = format(apptDate, 'HH:mm');
+                                  const typeName =
+                                    appt.consultationType?.name ||
+                                    'Consultation';
+                                  const doctorFirstName =
+                                    doctorProfile?.user?.firstName || '';
+                                  const doctorDisplayName = `Dr ${
+                                    doctorFirstName || ''
+                                  }`.trim();
+                                  const doctorInitial = doctorFirstName
+                                    ? doctorFirstName.charAt(0)
+                                    : 'D';
+
+                                  return (
+                                    <div
+                                      key={appt.id}
+                                      className='flex items-center bg-amber-50 rounded-lg p-2 min-w-[180px] border border-amber-100'
+                                    >
+                                      {/* Date tile */}
+                                      <div className='flex-none w-14 h-14 bg-white rounded-lg overflow-hidden border border-amber-200 mr-3'>
+                                        <div className='bg-rose-400 text-white text-[10px] font-bold text-center py-0.5'>
+                                          {monthName}.
+                                        </div>
+                                        <div className='flex items-center justify-center '>
+                                          <span className='text-lg font-bold text-gray-800 '>
+                                            {dayNumber}
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      {/* Details */}
+                                      <div className='flex-1 min-w-0'>
+                                        <p className='text-sm text-gray-700 font-semibold truncate'>
+                                          {timeStr} • {typeName}
+                                        </p>
+                                        <div className='flex items-center mt-2'>
+                                          <div className='w-7 h-7 bg-amber-300 rounded-full flex items-center justify-center mr-2 text-xs font-bold text-white'>
+                                            {doctorInitial}
+                                          </div>
+                                          <div className='text-sm font-medium text-gray-800 truncate'>
+                                            {doctorDisplayName}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                            {expandedUpcomingAppointments[patient.id] &&
+                              appointments.length > 4 && (
+                                <p className='text-xs text-amber-600 mt-2'>
+                                  +{appointments.length - 4} autres rendez-vous
+                                </p>
+                              )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 {expandedSelectedPatients && loadingUpcomingAppointments && (
                   <div className='mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg'>
                     <div className='text-xs text-gray-500 animate-pulse'>
@@ -1567,7 +1599,7 @@ const AppointmentForm = ({
           )}
 
           {/* Description and Private Notes - Side by Side */}
-          <div className='grid grid-cols-2 gap-3'>
+          <div className='grid grid-cols-2 gap-2'>
             <div>
               <label className='block text-xs font-medium text-cyan-800 mb-2'>
                 Motif de consultation
@@ -1576,7 +1608,7 @@ const AppointmentForm = ({
                 name='description'
                 value={formData.description}
                 onChange={handleChange}
-                rows={3}
+                rows={2}
                 className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
                 placeholder='Décrivez le motif de la consultation...'
               />
@@ -1590,7 +1622,7 @@ const AppointmentForm = ({
                 name='notes'
                 value={formData.notes}
                 onChange={handleChange}
-                rows={3}
+                rows={2}
                 className='w-full px-3 py-2 border border-pink-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-pink-50'
                 placeholder='Notes privées non visibles par le patient...'
               />
@@ -1619,6 +1651,55 @@ const AppointmentForm = ({
             </div>
           )} */}
 
+          {/* Notification Section */}
+          <div className=''>
+            <label className='block text-xs font-semibold text-cyan-800 mb-2 tracking-wide'>
+              Notifications
+            </label>
+            <div className='flex items-center justify-between rounded-lg p-2 mb-1 border border-gray-200 gap-5'>
+              <div className='w-full flex justify-between space-x-2'>
+                <span className='text-sm font-medium text-gray-700 block'>
+                  Confirmation
+                </span>
+                <Switch
+                  className=' bg-purple-600 '
+                  checked={formData.notifyConfirmation}
+                  onCheckedChange={(checked) =>
+                    setFormData((f) => ({
+                      ...f,
+                      notifyConfirmation: checked,
+                    }))
+                  }
+                />
+              </div>
+              <div className='w-full flex justify-between space-x-2'>
+                <span className='text-sm font-medium text-gray-700'>
+                  Rappel
+                </span>
+                <Switch
+                  className=' bg-purple-600 '
+                  checked={formData.notifyRappel}
+                  onCheckedChange={(checked) =>
+                    setFormData((f) => ({
+                      ...f,
+                      notifyRappel: checked,
+                    }))
+                  }
+                />
+              </div>
+            </div>
+            <textarea
+              name='rappelMessage'
+              value={formData.rappelMessage}
+              onChange={(e) =>
+                setFormData((f) => ({ ...f, rappelMessage: e.target.value }))
+              }
+              rows={1}
+              className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+              placeholder='Compléter le message de rappel'
+            />
+          </div>
+
           {/* Error Messages */}
           {errors.submit && (
             <div className='p-3 bg-red-50 border border-red-200 rounded-lg'>
@@ -1627,7 +1708,7 @@ const AppointmentForm = ({
           )}
 
           {/* Actions */}
-          <div className='flex justify-end space-x-3 pt-4 border-t border-gray-200'>
+          <div className='flex justify-end space-x-3 pt-1 border-t border-gray-200'>
             {!inline && (
               <button
                 type='button'
@@ -1765,7 +1846,7 @@ const AppointmentForm = ({
 
   return (
     <>
-      <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
+      <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 z-50'>
         <div className='bg-white rounded-lg shadow-xl max-w-2xl w-full'>
           {content}
         </div>

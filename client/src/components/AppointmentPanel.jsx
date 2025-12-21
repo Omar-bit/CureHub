@@ -279,7 +279,7 @@ const AppointmentPanel = ({
       case 'edit':
         return (
           <div className='h-full bg-white overflow-y-auto'>
-            <div className='p-6 border-b border-gray-200'>
+            <div className='p-3 px-5 border-b border-gray-200'>
               <h2 className='text-xl font-semibold text-gray-900'>
                 {currentMode === 'edit'
                   ? 'Edit Appointment'
