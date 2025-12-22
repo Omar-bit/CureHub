@@ -46,10 +46,20 @@ const ImprevuFormSheet = ({ imprevu, isOpen, onClose, onSave }) => {
     if (imprevu) {
       setFormData({
         startDate: imprevu.startDate
-          ? new Date(imprevu.startDate).toISOString().split('T')[0]
+          ? new Date(
+              new Date(imprevu.startDate).getTime() -
+                new Date(imprevu.startDate).getTimezoneOffset() * 60000
+            )
+              .toISOString()
+              .slice(0, 16)
           : '',
         endDate: imprevu.endDate
-          ? new Date(imprevu.endDate).toISOString().split('T')[0]
+          ? new Date(
+              new Date(imprevu.endDate).getTime() -
+                new Date(imprevu.endDate).getTimezoneOffset() * 60000
+            )
+              .toISOString()
+              .slice(0, 16)
           : '',
         notifyPatients: imprevu.notifyPatients ?? true,
         blockTimeSlots: imprevu.blockTimeSlots ?? true,
@@ -138,6 +148,8 @@ const ImprevuFormSheet = ({ imprevu, isOpen, onClose, onSave }) => {
       // Always send appointmentIds array (empty array = cancel none, filled = cancel selected)
       const dataToSend = {
         ...formData,
+        startDate: new Date(formData.startDate).toISOString(),
+        endDate: new Date(formData.endDate).toISOString(),
         appointmentIds: formData.appointmentIds, // Send the array as-is
       };
 
