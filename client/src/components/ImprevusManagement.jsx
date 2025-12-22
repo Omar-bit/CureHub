@@ -301,7 +301,7 @@ const ImprevuFormSheet = ({ imprevu, isOpen, onClose, onSave }) => {
         {/* Step 1: Date Range Selection */}
         {currentStep === 1 && (
           <div className='space-y-4'>
-            <div className='bg-purple-50 border border-purple-200 rounded-lg p-4'>
+            {/* <div className='bg-purple-50 border border-purple-200 rounded-lg p-4'>
               <h3 className='text-lg font-semibold text-purple-900 mb-2'>
                 Select Time Period
               </h3>
@@ -309,7 +309,7 @@ const ImprevuFormSheet = ({ imprevu, isOpen, onClose, onSave }) => {
                 Choose the date range during which you want to block
                 appointments
               </p>
-            </div>
+            </div> */}
 
             {/* Objet Field */}
             <div>
@@ -580,8 +580,6 @@ const ImprevuFormSheet = ({ imprevu, isOpen, onClose, onSave }) => {
         {/* Step 3: Settings & Message */}
         {currentStep === 3 && (
           <div className='space-y-4'>
-           
-
             <div className='space-y-4'>
               <div className='flex items-center justify-between p-4 bg-gray-50 rounded-lg'>
                 <div className='flex-1'>
