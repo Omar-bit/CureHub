@@ -853,7 +853,7 @@ const PatientDetailsSheet = ({
                         <p className='font-medium text-foreground'>Par SMS</p>
                       </div>
                     </div>
-                    <Button
+                    {/* <Button
                       size='sm'
                       variant='ghost'
                       className='text-purple-600 hover:text-purple-700 hover:bg-purple-50'
@@ -861,7 +861,7 @@ const PatientDetailsSheet = ({
                     >
                       <Sparkles className='w-4 h-4 mr-1' />
                       {showSmsAiPanel ? 'Masquer IA' : 'Générer avec IA'}
-                    </Button>
+                    </Button> */}
                   </div>
 
                   {/* AI Generation Panel for SMS */}
@@ -973,7 +973,7 @@ const PatientDetailsSheet = ({
                         <p className='font-medium text-foreground'>Par email</p>
                       </div>
                     </div>
-                    <Button
+                    {/* <Button
                       size='sm'
                       variant='ghost'
                       className='text-purple-600 hover:text-purple-700 hover:bg-purple-50'
@@ -981,7 +981,7 @@ const PatientDetailsSheet = ({
                     >
                       <Sparkles className='w-4 h-4 mr-1' />
                       {showEmailAiPanel ? 'Masquer IA' : 'Générer avec IA'}
-                    </Button>
+                    </Button> */}
                   </div>
 
                   {/* AI Generation Panel for Email */}

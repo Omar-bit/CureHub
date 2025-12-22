@@ -22,6 +22,7 @@ import {
   Ban,
   UserPlus,
 } from 'lucide-react';
+import { formatPhoneNumber } from '../lib/phone';
 
 // Helper function to determine patient status with enhanced styling
 const getPatientStatus = (patient) => {
@@ -182,7 +183,7 @@ const PatientCard = ({
               {patient.phoneNumber && (
                 <div className='flex items-center text-sm text-gray-600'>
                   <Phone className='w-4 h-4 mr-2' />
-                  <span>{patient.phoneNumber}</span>
+                  <span>{formatPhoneNumber(patient.phoneNumber)}</span>
                 </div>
               )}
 

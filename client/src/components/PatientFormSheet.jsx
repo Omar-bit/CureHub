@@ -19,7 +19,7 @@ import {
 } from '../lib/patient';
 import { ChevronDown, ChevronRight, Ban, Trash2, Unlock } from 'lucide-react';
 import { Switch } from './ui/switch';
-
+import { formatPhoneNumber } from '../lib/phone';
 // Phone list options
 const PHONE_LIST_OPTIONS = [
   // { value: '', label: 'Aucune liste' },
@@ -232,15 +232,6 @@ const PatientFormSheet = ({
   };
 
   // Format phone number as XX.XX.XX.XX.XX
-  const formatPhoneNumber = (value) => {
-    // Remove all non-digit characters
-    const digits = value.replace(/\D/g, '');
-    // Limit to 10 digits
-    const limitedDigits = digits.slice(0, 10);
-    // Format with dots every 2 digits
-    const formatted = limitedDigits.replace(/(\d{2})(?=\d)/g, '$1.');
-    return formatted;
-  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
