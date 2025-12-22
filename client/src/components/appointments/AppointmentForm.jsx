@@ -20,6 +20,9 @@ import {
 import TimeSlotSelector from '../ui/TimeSlotSelector';
 import TimePickerInput from '../ui/TimePickerInput';
 import PatientFormSheet from '../PatientFormSheet';
+import PatientCard from '../PatientCard';
+import PatientDetailsSheet from '../PatientDetailsSheet';
+import AppointmentDetails from './AppointmentDetails';
 import { Sheet } from '../ui/sheet';
 import {
   Dialog,
@@ -92,6 +95,10 @@ const AppointmentForm = ({
   const [expandedSelectedPatients, setExpandedSelectedPatients] =
     useState(true); // Track if selected patients section is expanded (default: true)
   const [expandedTimeSlots, setExpandedTimeSlots] = useState(true); // Track if available time slots section is expanded (default: true)
+  const [selectedPatientForView, setSelectedPatientForView] = useState(null);
+  const [selectedPatientTab, setSelectedPatientTab] = useState('profil');
+  const [selectedAppointmentForView, setSelectedAppointmentForView] =
+    useState(null);
 
   useEffect(() => {
     if (appointment) {
@@ -463,6 +470,29 @@ const AppointmentForm = ({
     });
     setShowPatientFormSheet(true);
     setShowPatientDropdown(false);
+  };
+
+  const handlePatientView = (patient, tab = 'profil') => {
+    setSelectedPatientForView(patient);
+    setSelectedPatientTab(tab);
+  };
+
+  const handlePatientUpdatedFromDetails = async () => {
+    try {
+      if (!selectedPatientForView?.id) return;
+      const updatedPatient = await patientAPI.getById(
+        selectedPatientForView.id
+      );
+      setSelectedPatients((prev) =>
+        prev.map((p) => (p.id === updatedPatient.id ? updatedPatient : p))
+      );
+    } catch (error) {
+      console.error('Failed to refresh patient after update:', error);
+    }
+  };
+
+  const handleUpcomingAppointmentClick = (appointment) => {
+    setSelectedAppointmentForView(appointment);
   };
 
   const renderPatientLabel = (patient) => {
@@ -933,65 +963,25 @@ const AppointmentForm = ({
                       : [];
 
                     return (
-                      <div
-                        key={patient.id}
-                        className={`p-3 rounded-lg border ${
-                          patient.visitor
-                            ? 'bg-blue-50 border-blue-200'
-                            : 'bg-gray-50 border-gray-200'
-                        }`}
-                      >
-                        <div className='flex items-center justify-between'>
-                          <div className='flex items-center space-x-3'>
-                            <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                patient.visitor ? 'bg-blue-200' : 'bg-gray-200'
-                              }`}
-                            >
-                              {patient.visitor ? (
-                                <FileText className='h-4 w-4 text-blue-600' />
-                              ) : (
-                                <User className='h-4 w-4 text-gray-500' />
-                              )}
-                            </div>
-                            <div>
-                              <p
-                                className={`text-sm font-medium ${
-                                  patient.visitor
-                                    ? 'text-blue-900'
-                                    : 'text-gray-900'
-                                }`}
-                              >
-                                {renderPatientLabel(patient)}
-                                {patient.visitor && (
-                                  <span className='ml-2 text-xs text-blue-600'>
-                                    (Visiteur)
-                                  </span>
-                                )}
-                              </p>
-                              {patient.phoneNumber && !patient.visitor && (
-                                <p className='text-xs text-gray-600'>
-                                  {patient.phoneNumber}
-                                </p>
-                              )}
-                            </div>
-                          </div>
+                      <div key={patient.id} className='space-y-2'>
+                        <div className='relative'>
+                          <PatientCard
+                            patient={patient}
+                            onEdit={() => {}}
+                            onDelete={() => {}}
+                            onView={handlePatientView}
+                          />
                           <button
                             type='button'
                             onClick={() => handleRemovePatient(patient.id)}
-                            className={`transition-colors ${
-                              patient.visitor
-                                ? 'text-blue-500 hover:text-blue-700'
-                                : 'text-red-500 hover:text-red-700'
-                            }`}
+                            className='absolute top-2 right-2 rounded-full bg-white/80 hover:bg-white text-red-500 hover:text-red-700 shadow-sm p-1'
                           >
                             <X className='h-4 w-4' />
                           </button>
                         </div>
 
-                        {/* Upcoming Appointments for this patient */}
                         {appointments.length > 0 && (
-                          <div className='mt-3 pt-3 border-t border-gray-200'>
+                          <div className='mt-1 pt-3 border-t border-gray-200'>
                             <button
                               type='button'
                               onClick={() =>
@@ -1031,11 +1021,14 @@ const AppointmentForm = ({
                                     : 'D';
 
                                   return (
-                                    <div
+                                    <button
+                                      type='button'
                                       key={appt.id}
-                                      className='flex items-center bg-amber-50 rounded-lg p-2 min-w-[180px] border border-amber-100'
+                                      onClick={() =>
+                                        handleUpcomingAppointmentClick(appt)
+                                      }
+                                      className='flex items-center bg-amber-50 rounded-lg p-2 min-w-[180px] border border-amber-100 text-left hover:bg-amber-100 transition-colors'
                                     >
-                                      {/* Date tile */}
                                       <div className='flex-none w-14 h-14 bg-white rounded-lg overflow-hidden border border-amber-200 mr-3'>
                                         <div className='bg-rose-400 text-white text-[10px] font-bold text-center py-0.5'>
                                           {monthName}.
@@ -1047,7 +1040,6 @@ const AppointmentForm = ({
                                         </div>
                                       </div>
 
-                                      {/* Details */}
                                       <div className='flex-1 min-w-0'>
                                         <p className='text-sm text-gray-700 font-semibold truncate'>
                                           {timeStr} • {typeName}
@@ -1061,7 +1053,7 @@ const AppointmentForm = ({
                                           </div>
                                         </div>
                                       </div>
-                                    </div>
+                                    </button>
                                   );
                                 })}
                               </div>
@@ -1760,6 +1752,29 @@ const AppointmentForm = ({
           />
         )}
 
+        {selectedAppointmentForView && (
+          <AppointmentDetails
+            appointment={selectedAppointmentForView}
+            isOpen={!!selectedAppointmentForView}
+            onClose={() => setSelectedAppointmentForView(null)}
+            onDelete={() => {}}
+            inline={false}
+          />
+        )}
+
+        {selectedPatientForView && (
+          <PatientDetailsSheet
+            patient={selectedPatientForView}
+            isOpen={!!selectedPatientForView}
+            onClose={() => setSelectedPatientForView(null)}
+            onEdit={() => {}}
+            onDelete={() => {}}
+            initialTab={selectedPatientTab}
+            onView={handlePatientView}
+            onPatientUpdated={handlePatientUpdatedFromDetails}
+          />
+        )}
+
         {/* Conflict Confirmation Dialog */}
         <Dialog open={showConflictDialog} onOpenChange={setShowConflictDialog}>
           <DialogContent>
@@ -1957,6 +1972,29 @@ const AppointmentForm = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {selectedAppointmentForView && (
+        <AppointmentDetails
+          appointment={selectedAppointmentForView}
+          isOpen={!!selectedAppointmentForView}
+          onClose={() => setSelectedAppointmentForView(null)}
+          onDelete={() => {}}
+          inline={true}
+        />
+      )}
+
+      {selectedPatientForView && (
+        <PatientDetailsSheet
+          patient={selectedPatientForView}
+          isOpen={!!selectedPatientForView}
+          onClose={() => setSelectedPatientForView(null)}
+          onEdit={() => {}}
+          onDelete={() => {}}
+          initialTab={selectedPatientTab}
+          onView={handlePatientView}
+          onPatientUpdated={handlePatientUpdatedFromDetails}
+        />
+      )}
     </>
   );
 };

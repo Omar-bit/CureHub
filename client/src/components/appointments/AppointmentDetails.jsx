@@ -76,6 +76,7 @@ const AppointmentDetails = ({
   onLocationSwitch = null,
   inline = true,
 }) => {
+  console.log({ inline });
   const [activeTab, setActiveTab] = useState('motif'); // 'motif' | 'documents' | 'honoraires' | 'chronologie'
   const [selectedStatusChip, setSelectedStatusChip] = useState(null); // Track which status chip is active (visual state)
   const [isStatusUpdating, setIsStatusUpdating] = useState(false); // Track async state for chip actions
@@ -1593,8 +1594,8 @@ const AppointmentDetails = ({
 
   return (
     <>
-      <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
-        <div className='bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto'>
+      <div className='absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center  z-50'>
+        <div className='bg-white rounded-lg shadow-xl w-full max-h-[90vh] overflow-y-auto'>
           {content}
         </div>
       </div>
