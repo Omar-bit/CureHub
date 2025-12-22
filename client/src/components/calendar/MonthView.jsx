@@ -31,6 +31,12 @@ const MonthView = ({
     return CalendarUtils.getAppointmentsForDay(appointments, day);
   };
 
+  // Helper to truncate long text for display in the calendar
+  const truncateText = (text, n = 60) => {
+    if (!text) return null;
+    return text.length > n ? text.slice(0, n) + '…' : text;
+  };
+
   const renderDay = (day) => {
     const dayAppointments = getDayAppointments(day);
     const isCurrentMonth = CalendarUtils.isSameMonth(day, currentDate);
@@ -85,6 +91,16 @@ const MonthView = ({
                   <div className='text-xs font-medium text-gray-900 truncate'>
                     {getAppointmentPatientsDisplay(appointment)}
                   </div>
+
+                  {(appointment.description || appointment.notes) && (
+                    <div className='text-xs text-gray-600 truncate'>
+                      {truncateText(appointment.description)}
+                      {appointment.description && appointment.notes
+                        ? ' • '
+                        : ''}
+                      {truncateText(appointment.notes)}
+                    </div>
+                  )}
                 </div>
               </div>
             );

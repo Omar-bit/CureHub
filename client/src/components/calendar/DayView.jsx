@@ -95,6 +95,12 @@ const DayView = ({
     currentDate
   );
 
+  // Helper to truncate long text for display in the calendar
+  const truncateText = (text, n = 60) => {
+    if (!text) return null;
+    return text.length > n ? text.slice(0, n) + '…' : text;
+  };
+
   // Function to detect overlapping appointments and assign columns
   const calculateAppointmentLayout = (appointments) => {
     const sortedAppointments = [...appointments].sort(
@@ -541,6 +547,17 @@ const DayView = ({
                   {!isCancelled && appointment.absenceCount > 0 && (
                     <div className='text-xs text-gray-600'>
                       {appointment.absenceCount} abs
+                    </div>
+                  )}
+
+                  {/* Description & Notes (truncated) */}
+                  {(appointment.description || appointment.notes) && (
+                    <div className='text-xs text-white mt-0.5 truncate'>
+                      {truncateText(appointment.description)}
+                      {appointment.description && appointment.notes
+                        ? ' • '
+                        : ''}
+                      {truncateText(appointment.notes)}
                     </div>
                   )}
                 </div>

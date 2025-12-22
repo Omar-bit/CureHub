@@ -39,6 +39,12 @@ const WeekView = ({
     60
   );
 
+  // Helper to truncate long text for display in the calendar
+  const truncateText = (text, n = 60) => {
+    if (!text) return null;
+    return text.length > n ? text.slice(0, n) + '…' : text;
+  };
+
   // Calculate current time indicator position
   const getCurrentTimePosition = React.useCallback(() => {
     const now = new Date();
@@ -507,6 +513,19 @@ const WeekView = ({
                                 {isCancelled && (
                                   <div className='text-xs text-red-600 font-semibold'>
                                     Annulé
+                                  </div>
+                                )}
+
+                                {/* Description & Notes (truncated) */}
+                                {(appointment.description ||
+                                  appointment.notes) && (
+                                  <div className='text-xs text-white mt-0.5 truncate'>
+                                    {truncateText(appointment.description)}
+                                    {appointment.description &&
+                                    appointment.notes
+                                      ? ' • '
+                                      : ''}
+                                    {truncateText(appointment.notes)}
                                   </div>
                                 )}
                               </div>
