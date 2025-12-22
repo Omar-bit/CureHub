@@ -313,7 +313,7 @@ const DayView = ({
     return {
       position: 'absolute',
       top: `${zoomedPosition}px`,
-      height: `${Math.max(0, zoomedHeight)}px`, // Reduced height creates gap between adjacent appointments
+      height: `${Math.max(30, zoomedHeight)}px`, // Reduced height creates gap between adjacent appointments, with minimum height
       left: leftPosition,
       width: columnWidth,
       zIndex: 10,

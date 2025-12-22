@@ -221,7 +221,7 @@ const WeekView = ({
     return {
       position: 'absolute',
       top: `${position}px`,
-      height: `${Math.max(0, height - gapSize)}px`, // Reduce height to create gap between adjacent appointments
+      height: `${Math.max(35, height - gapSize)}px`, // Reduce height to create gap between adjacent appointments, with minimum height
       left: leftPosition,
       width: columnWidth,
       zIndex: 10,
