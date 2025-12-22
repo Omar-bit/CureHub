@@ -10,6 +10,10 @@ import {
   Phone,
   MapPin,
   Users,
+  Search,
+  FileText,
+  UserPlus,
+  X,
 } from 'lucide-react';
 import {
   api,
@@ -28,7 +32,6 @@ import { SheetContent } from './ui/sheet';
 import { ConfirmDialog } from './ui/confirm-dialog';
 import { EntityCard } from './ui/entity-card';
 import { FormInput, FormSelect, FormTextarea } from './ui/form-field';
-import { CategorizedSearchBar } from './ui/categorized-search-bar';
 import { Alert } from './ui/alert';
 import {
   Select,
@@ -82,6 +85,8 @@ const PatientManagement = ({ onAppointmentCreated }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState('');
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+  const [prefilledPatientName, setPrefilledPatientName] = useState(null);
 
   // Load patients
   useEffect(() => {
@@ -106,7 +111,7 @@ const PatientManagement = ({ onAppointmentCreated }) => {
         if (patient.visitor === true) {
           return false;
         }
-        
+
         switch (statusFilter) {
           case 'new':
             // New patients have dejaVu = 0 (never been seen)
@@ -197,7 +202,46 @@ const PatientManagement = ({ onAppointmentCreated }) => {
 
   const handleAddPatient = () => {
     setEditingPatient(null);
+    setPrefilledPatientName(null);
     setShowAddEdit(true);
+  };
+
+  const handleCreateVisitor = () => {
+    const searchText = searchQuery.trim() || 'Visiteur';
+    const nameParts = searchText.split(' ').filter((part) => part.length > 0);
+    setPrefilledPatientName({
+      firstName: nameParts[0] || 'Visiteur',
+      lastName: nameParts.slice(1).join(' ') || '',
+      visitor: true,
+    });
+    setEditingPatient(null);
+    setShowAddEdit(true);
+    setShowPatientDropdown(false);
+  };
+
+  const handleCreateNewPatient = () => {
+    const searchText = searchQuery.trim();
+    const nameParts = searchText.split(' ').filter((part) => part.length > 0);
+    setPrefilledPatientName({
+      firstName: nameParts[0] || '',
+      lastName: nameParts.slice(1).join(' ') || '',
+    });
+    setEditingPatient(null);
+    setShowAddEdit(true);
+    setShowPatientDropdown(false);
+  };
+
+  const handlePatientSearch = (e) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    setShowPatientDropdown(true);
+  };
+
+  const handlePatientSelect = (patient) => {
+    setSelectedPatient(patient);
+    setSelectedTab('profil');
+    setShowDetails(true);
+    setShowPatientDropdown(false);
   };
 
   const handleEditPatient = (patient) => {
@@ -281,15 +325,109 @@ const PatientManagement = ({ onAppointmentCreated }) => {
 
         {/* Search Bar with Categories and Status Filter */}
         <div className='flex gap-2 items-center'>
-          <div className='flex-1'>
-            <CategorizedSearchBar
-              value={searchQuery}
-              selectedCategory={searchCategory}
-              categories={searchCategories}
-              onChange={handleSearchChange}
-              onClear={handleSearchClear}
-              onCategoryChange={handleCategoryChange}
-            />
+          <div className='flex-1 relative'>
+            {/* Patient Search Input */}
+
+            <div className='relative flex'>
+              <Select value={searchCategory} onValueChange={setSearchCategory}>
+                <SelectTrigger className='w-[120px] rounded-r-none'>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {searchCategories.map((category) => (
+                    <SelectItem key={category.value} value={category.value}>
+                      {category.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className='relative flex-1'>
+                <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
+                  <Search className='h-4 w-4 text-gray-400' />
+                </div>
+                <input
+                  type='text'
+                  value={searchQuery}
+                  onChange={handlePatientSearch}
+                  onFocus={() => setShowPatientDropdown(true)}
+                  className='w-full pl-10 pr-4 py-2 border border-l-0 rounded-l-none rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                  placeholder='Rechercher des patients...'
+                />
+              </div>
+            </div>
+            {/* Patient Dropdown */}
+            {showPatientDropdown && filteredPatients.length === 0 && (
+              <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto'>
+                {/* Header */}
+                <div className='p-3 border-b border-gray-200 bg-gray-50'>
+                  <div className='flex items-center justify-between'>
+                    <span className='text-sm font-medium text-gray-600'>
+                      PATIENT
+                    </span>
+                    <div className='flex items-center space-x-2'>
+                      <button
+                        type='button'
+                        onClick={handleCreateVisitor}
+                        className='flex items-center space-x-1 text-gray-600 hover:text-gray-700 text-sm font-medium transition-colors'
+                      >
+                        <FileText className='h-4 w-4' />
+                        <span>Visiteur</span>
+                      </button>
+                      <button
+                        type='button'
+                        onClick={handleCreateNewPatient}
+                        className='flex items-center space-x-1 text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors'
+                      >
+                        <UserPlus className='h-4 w-4' />
+                        <span>Nouveau patient</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Patient List */}
+                {/* <div className='max-h-48 overflow-y-auto'>
+                  {filteredPatients.length > 0 ? (
+                    filteredPatients.map((patient) => (
+                      <div
+                        key={patient.id}
+                        onClick={() => handlePatientSelect(patient)}
+                        className='p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0'
+                      >
+                        <div className='flex items-center space-x-3'>
+                          <div className='w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center'>
+                            <User className='h-5 w-5 text-gray-500' />
+                          </div>
+                          <div className='flex-1'>
+                            <h4 className='font-medium text-gray-900'>
+                              {getPatientDisplayName(patient)}
+                            </h4>
+                            <p className='text-sm text-gray-500'>
+                              {patient.dateOfBirth &&
+                                `Née le ${new Date(
+                                  patient.dateOfBirth
+                                ).toLocaleDateString()}`}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className='p-4 text-center text-gray-500'>
+                      <p>Aucun patient trouvé</p>
+                    </div>
+                  )}
+                </div> */}
+              </div>
+            )}
+
+            {/* Click outside handler */}
+            {showPatientDropdown && (
+              <div
+                className='fixed inset-0 z-0'
+                onClick={() => setShowPatientDropdown(false)}
+              />
+            )}
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className='w-[140px]'>
@@ -377,10 +515,17 @@ const PatientManagement = ({ onAppointmentCreated }) => {
 
       {showAddEdit && (
         <PatientFormSheet
-          patient={editingPatient}
+          patient={editingPatient || prefilledPatientName}
           isOpen={showAddEdit}
-          onClose={() => setShowAddEdit(false)}
-          onSave={handleSavePatient}
+          onClose={() => {
+            setShowAddEdit(false);
+            setPrefilledPatientName(null);
+          }}
+          onSave={async (patientData) => {
+            await handleSavePatient(patientData);
+            setShowAddEdit(false);
+            setPrefilledPatientName(null);
+          }}
           onDelete={(patient) => {
             setShowAddEdit(false);
             handleDeletePatient(patient);
