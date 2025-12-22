@@ -345,6 +345,25 @@ const PatientFormSheet = ({
               <p className='text-sm text-red-600'>{errors.gender}</p>
             )}
           </div>
+
+          {/* Visitor Toggle */}
+          <div className='flex items-center justify-between p-4 bg-gray-50 rounded-lg'>
+            <div className='flex-1'>
+              <label className='text-sm font-medium text-gray-700'>
+                Visiteur
+              </label>
+              <p className='text-xs text-gray-500 mt-1'>
+                Marquer ce patient comme visiteur (date de naissance non
+                requise)
+              </p>
+            </div>
+            <Switch
+              checked={formData.visitor}
+              onCheckedChange={(checked) =>
+                setFormData((prev) => ({ ...prev, visitor: checked }))
+              }
+            />
+          </div>
         </AccordionSection>
 
         {/* Coordinates Section */}
@@ -545,24 +564,6 @@ const PatientFormSheet = ({
                 <span className='text-sm text-gray-700'>Non</span>
               </label>
             </div>
-          </div>
-
-          {/* Visitor Toggle */}
-          <div className='flex items-center justify-between p-4 bg-gray-50 rounded-lg'>
-            <div className='flex-1'>
-              <label className='text-sm font-medium text-gray-700'>
-                Visiteur
-              </label>
-              <p className='text-xs text-gray-500 mt-1'>
-                Marquer ce patient comme visiteur (date de naissance non requise)
-              </p>
-            </div>
-            <Switch
-              checked={formData.visitor}
-              onCheckedChange={(checked) =>
-                setFormData((prev) => ({ ...prev, visitor: checked }))
-              }
-            />
           </div>
 
           <FormInput
