@@ -208,7 +208,9 @@ const PatientCard = ({
                 className='relative flex flex-col items-center justify-center p-3 rounded-lg bg-gray-50 hover:bg-gray-200 transition-colors border border-gray-200'
               >
                 <UserCheck className='w-5 h-5 text-gray-600 mb-1' />
-                <span className='text-xs text-gray-700 font-medium'>Profil</span>
+                <span className='text-xs text-gray-700 font-medium'>
+                  Profil
+                </span>
               </button>
             </div>
           </div>

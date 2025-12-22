@@ -151,7 +151,10 @@ const AppointmentDetails = ({
     return patients;
   };
 
-  const patients = getAllPatients();
+  const [localPatients, setLocalPatients] = useState(null);
+  const patientsFromAppointment = getAllPatients();
+  // Use local override when available to reflect optimistic updates (dejaVu increments, etc.)
+  const patients = localPatients || patientsFromAppointment;
   const primaryPatient = patients[0]; // For displaying age, contact info, etc.
 
   useEffect(() => {
@@ -173,7 +176,25 @@ const AppointmentDetails = ({
     // Load absence counts for all patients
     const allPatients = getAllPatients();
     loadAbsenceCounts(allPatients);
-  }, [appointment?.status, appointment?.id, appointment?.updatedAt]);
+
+    // Initialize localPatients for optimistic UI updates, but avoid overwriting optimistic changes
+    const currentIds = allPatients
+      .map((p) => p.id || '')
+      .sort()
+      .join(',');
+    const localIds = (localPatients || [])
+      .map((p) => p.id || '')
+      .sort()
+      .join(',');
+    if (!localPatients || currentIds !== localIds) {
+      setLocalPatients(allPatients);
+    }
+  }, [
+    appointment?.status,
+    appointment?.id,
+    appointment?.updatedAt,
+    localPatients,
+  ]);
 
   // Load documents from server
   const loadDocuments = async () => {
@@ -310,6 +331,46 @@ const AppointmentDetails = ({
             } catch (error) {
               console.error(
                 'Error decrementing absence count for patient:',
+                patient.id,
+                error
+              );
+            }
+          }
+        }
+      }
+
+      // If appointment marked as seen, increment patient's dejaVu (so 'Nouveau' badge is replaced immediately)
+      if (chipName === 'seen') {
+        for (const patient of allPatients) {
+          if (patient?.id) {
+            try {
+              // Increment dejaVu count on the server
+              await patientAPI.update(patient.id, {
+                dejaVu: (patient.dejaVu || 0) + 1,
+              });
+
+              // Fetch fresh patient record to avoid shape/serialization issues
+              const freshPatient = await patientAPI.getById(patient.id);
+
+              // Update local patient cache for immediate UI feedback
+              setLocalPatients((prev) => {
+                const base = prev || allPatients;
+                return base.map((p) =>
+                  p.id === freshPatient.id ? freshPatient : p
+                );
+              });
+
+              // Broadcast a lightweight event for other parts of the app to react if they need to
+              try {
+                window.dispatchEvent(
+                  new CustomEvent('patient:updated', { detail: freshPatient })
+                );
+              } catch (e) {
+                /* ignore on older browsers */
+              }
+            } catch (error) {
+              console.error(
+                'Error updating dejaVu for patient:',
                 patient.id,
                 error
               );
