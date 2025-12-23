@@ -19,6 +19,7 @@ import {
 const WeekView = ({
   currentDate,
   appointments = [],
+  imprevus = [],
   onDateChange,
   onAppointmentClick,
   onTimeSlotClick,
@@ -238,6 +239,81 @@ const WeekView = ({
     return calculateAppointmentLayout(dayAppointments);
   };
 
+  const getBlockingImprevuSegmentsForDay = React.useCallback(
+    (day) => {
+      if (!imprevus || imprevus.length === 0) {
+        return [];
+      }
+      const dayStart = new Date(day);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(day);
+      dayEnd.setHours(23, 59, 59, 999);
+      const windowStart = new Date(day);
+      windowStart.setHours(workingHours.start, 0, 0, 0);
+      const windowEnd = new Date(day);
+      windowEnd.setHours(workingHours.end, 0, 0, 0);
+
+      const segments = [];
+
+      imprevus.forEach((imprevu) => {
+        if (imprevu.blockTimeSlots === false) {
+          return;
+        }
+        const start = new Date(imprevu.startDate);
+        const end = new Date(imprevu.endDate);
+        if (end <= dayStart || start >= dayEnd) {
+          return;
+        }
+
+        const segmentStart = new Date(
+          Math.max(start.getTime(), windowStart.getTime())
+        );
+        const segmentEnd = new Date(
+          Math.min(end.getTime(), windowEnd.getTime())
+        );
+        if (segmentEnd <= segmentStart) {
+          return;
+        }
+
+        const startMinutes =
+          (segmentStart.getHours() - workingHours.start) * 60 +
+          segmentStart.getMinutes();
+        const endMinutes =
+          (segmentEnd.getHours() - workingHours.start) * 60 +
+          segmentEnd.getMinutes();
+
+        const top = startMinutes;
+        const height = endMinutes - startMinutes;
+
+        if (height > 0) {
+          segments.push({ top, height });
+        }
+      });
+
+      return segments;
+    },
+    [imprevus, workingHours.start, workingHours.end]
+  );
+
+  const hasBlockingImprevuForDay = React.useCallback(
+    (day) => {
+      if (!imprevus || imprevus.length === 0) {
+        return false;
+      }
+      const dayStart = new Date(day);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(day);
+      dayEnd.setHours(23, 59, 59, 999);
+      return imprevus.some((imprevu) => {
+        const start = new Date(imprevu.startDate);
+        const end = new Date(imprevu.endDate);
+        const blocks = imprevu.blockTimeSlots !== false;
+        return blocks && end > dayStart && start < dayEnd;
+      });
+    },
+    [imprevus]
+  );
+
   return (
     <div className='h-full flex flex-col bg-white'>
       {/* Header */}
@@ -382,161 +458,192 @@ const WeekView = ({
                 {timeSlot}
               </div>
               {/* Day columns */}
-              {weekDays.map((day, dayIndex) => (
-                <div
-                  key={dayIndex}
-                  className='flex-1 border-r border-gray-100 last:border-r-0 hover:bg-gray-50 cursor-pointer transition-colors relative'
-                  style={{ height: '60px' }}
-                  onClick={() => handleTimeSlotClick(day, timeSlot)}
-                >
-                  {timeIndex === 0 && (
-                    <div
-                      className='absolute inset-0'
-                      style={{
-                        top: 0,
-                        height: `${
-                          (workingHours.end - workingHours.start) * 60
-                        }px`,
-                      }}
-                    >
-                      {/* Current Time Indicator */}
-                      {currentTimePosition !== null &&
-                        CalendarUtils.isToday(day) && (
-                          <div
-                            className='absolute left-0 right-0 z-20 pointer-events-none'
-                            style={{ top: `${currentTimePosition}px` }}
-                          >
-                            <div className='relative flex items-center'>
-                              {/* Circle */}
-                              <div
-                                className='w-2.5 h-2.5 rounded-full border-2 border-white shadow-lg'
-                                style={{ backgroundColor: mainColor }}
-                              />
-                              {/* Line */}
-                              <div
-                                className='flex-1 h-0.5 shadow-sm'
-                                style={{ backgroundColor: mainColor }}
-                              />
+              {weekDays.map((day, dayIndex) => {
+                const blockingSegments = getBlockingImprevuSegmentsForDay(day);
+                const isBlockedDay =
+                  blockingSegments.length > 0 || hasBlockingImprevuForDay(day);
+                return (
+                  <div
+                    key={dayIndex}
+                    className='flex-1 border-r border-gray-100 last:border-r-0 hover:bg-gray-50 cursor-pointer transition-colors relative'
+                    style={{ height: '60px' }}
+                    onClick={() => handleTimeSlotClick(day, timeSlot)}
+                  >
+                    {timeIndex === 0 && (
+                      <div
+                        className='absolute inset-0'
+                        style={{
+                          top: 0,
+                          height: `${
+                            (workingHours.end - workingHours.start) * 60
+                          }px`,
+                        }}
+                      >
+                        {isBlockedDay && (
+                          <div className='absolute inset-0 pointer-events-none'>
+                            {blockingSegments.length > 0 ? (
+                              blockingSegments.map((segment, index) => (
+                                <div
+                                  key={index}
+                                  className='absolute left-0 right-0 bg-slate-100/80 backdrop-blur-[1px]'
+                                  style={{
+                                    top: `${segment.top}px`,
+                                    height: `${segment.height}px`,
+                                  }}
+                                />
+                              ))
+                            ) : (
+                              <div className='absolute inset-0 bg-slate-100/80 backdrop-blur-[1px]' />
+                            )}
+                            <div
+                              className='absolute left-2 right-2 flex justify-center'
+                              style={{
+                                top: `${
+                                  blockingSegments.length > 0
+                                    ? Math.max(blockingSegments[0].top, 8)
+                                    : 8
+                                }px`,
+                              }}
+                            >
+                              <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium text-slate-700 bg-slate-200/90 border border-slate-300/70 shadow-sm'>
+                                Jour fermé (imprévu)
+                              </span>
                             </div>
                           </div>
                         )}
-                      {/* Appointments for this day */}
-                      {getDayAppointmentLayouts(day).map(
-                        ({ appointment, column, totalColumns }) => {
-                          const colorClasses =
-                            getAppointmentColorClasses(appointment);
-                          const startTime = CalendarUtils.formatTime(
-                            new Date(appointment.startTime)
-                          );
-                          const isCancelled =
-                            appointment.status === 'CANCELLED';
-
-                          // Get status icon based on appointment status
-                          const getStatusIcon = (status) => {
-                            switch (status) {
-                              case 'WAITING':
-                                return (
-                                  <div className='bg-purple-500 rounded-full p-0.5 flex items-center justify-center'>
-                                    <MapPin className='w-2 h-2 text-white' />
-                                  </div>
-                                );
-                              case 'COMPLETED':
-                                return (
-                                  <div className='bg-green-500 rounded-full p-0.5 flex items-center justify-center'>
-                                    <Eye className='w-2 h-2 text-white' />
-                                  </div>
-                                );
-                              case 'ABSENT':
-                                return (
-                                  <div
-                                    className='rounded-full p-0.5 flex items-center justify-center'
-                                    style={{ backgroundColor: '#f9516a' }}
-                                  >
-                                    <Rabbit className='w-2 h-2 text-white' />
-                                  </div>
-                                );
-                              case 'CANCELLED':
-                                return (
-                                  <div className='bg-gray-500 rounded-full p-0.5 flex items-center justify-center'>
-                                    <X className='w-2 h-2 text-white' />
-                                  </div>
-                                );
-                              default:
-                                return null;
-                            }
-                          };
-                          const statusIcon = getStatusIcon(appointment.status);
-
-                          return (
+                        {currentTimePosition !== null &&
+                          CalendarUtils.isToday(day) && (
                             <div
-                              key={appointment.id}
-                              style={getAppointmentStyle(
-                                appointment,
-                                column,
-                                totalColumns
-                              )}
-                              className={`
-                              flex items-start gap-0.5 cursor-pointer
-                              ${
-                                colorClasses.darkBg
-                              } transition-all rounded-lg overflow-hidden text-xs
-                              ${isCancelled ? 'opacity-60' : ''}
-                            `}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onAppointmentClick?.(appointment);
-                              }}
+                              className='absolute left-0 right-0 z-20 pointer-events-none'
+                              style={{ top: `${currentTimePosition}px` }}
                             >
-                              {/* Time Badge */}
-                              <div
-                                className={`${colorClasses.bgColor} text-white px-2 py-1 font-bold whitespace-nowrap flex-shrink-0 rounded-l-lg flex items-center gap-1`}
-                              >
-                                <span>{startTime}</span>
-                                {statusIcon && <span>{statusIcon}</span>}
-                              </div>
-
-                              {/* Appointment Info */}
-                              <div className='flex-1 min-w-0 px-1 py-0.5'>
+                              <div className='relative flex items-center'>
                                 <div
-                                  className={`text-xs font-medium text-gray-900 truncate ${
-                                    isCancelled ? 'line-through' : ''
-                                  }`}
-                                >
-                                  {getAppointmentPatientsDisplay(appointment)}
-                                  {!isCancelled &&
-                                    appointment.absenceCount > 0 && (
-                                      <span className='ml-1 text-gray-500'>
-                                        {appointment.absenceCount} abs.
-                                      </span>
-                                    )}
-                                </div>
-                                {isCancelled && (
-                                  <div className='text-xs text-red-600 font-semibold'>
-                                    Annulé
-                                  </div>
-                                )}
-
-                                {/* Description & Notes (truncated) */}
-                                {(appointment.description ||
-                                  appointment.notes) && (
-                                  <div className='text-xs text-white mt-0.5 truncate'>
-                                    {truncateText(appointment.description)}
-                                    {appointment.description &&
-                                    appointment.notes
-                                      ? ' • '
-                                      : ''}
-                                    {truncateText(appointment.notes)}
-                                  </div>
-                                )}
+                                  className='w-2.5 h-2.5 rounded-full border-2 border-white shadow-lg'
+                                  style={{ backgroundColor: mainColor }}
+                                />
+                                <div
+                                  className='flex-1 h-0.5 shadow-sm'
+                                  style={{ backgroundColor: mainColor }}
+                                />
                               </div>
                             </div>
-                          );
-                        }
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
+                          )}
+                        {getDayAppointmentLayouts(day).map(
+                          ({ appointment, column, totalColumns }) => {
+                            const colorClasses =
+                              getAppointmentColorClasses(appointment);
+                            const startTime = CalendarUtils.formatTime(
+                              new Date(appointment.startTime)
+                            );
+                            const isCancelled =
+                              appointment.status === 'CANCELLED';
+
+                            const getStatusIcon = (status) => {
+                              switch (status) {
+                                case 'WAITING':
+                                  return (
+                                    <div className='bg-purple-500 rounded-full p-0.5 flex items-center justify-center'>
+                                      <MapPin className='w-2 h-2 text-white' />
+                                    </div>
+                                  );
+                                case 'COMPLETED':
+                                  return (
+                                    <div className='bg-green-500 rounded-full p-0.5 flex items-center justify-center'>
+                                      <Eye className='w-2 h-2 text-white' />
+                                    </div>
+                                  );
+                                case 'ABSENT':
+                                  return (
+                                    <div
+                                      className='rounded-full p-0.5 flex items-center justify-center'
+                                      style={{ backgroundColor: '#f9516a' }}
+                                    >
+                                      <Rabbit className='w-2 h-2 text-white' />
+                                    </div>
+                                  );
+                                case 'CANCELLED':
+                                  return (
+                                    <div className='bg-gray-500 rounded-full p-0.5 flex items-center justify-center'>
+                                      <X className='w-2 h-2 text-white' />
+                                    </div>
+                                  );
+                                default:
+                                  return null;
+                              }
+                            };
+                            const statusIcon = getStatusIcon(
+                              appointment.status
+                            );
+
+                            return (
+                              <div
+                                key={appointment.id}
+                                style={getAppointmentStyle(
+                                  appointment,
+                                  column,
+                                  totalColumns
+                                )}
+                                className={`
+                                flex items-start gap-0.5 cursor-pointer
+                                ${
+                                  colorClasses.darkBg
+                                } transition-all rounded-lg overflow-hidden text-xs
+                                ${isCancelled ? 'opacity-60' : ''}
+                              `}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onAppointmentClick?.(appointment);
+                                }}
+                              >
+                                <div
+                                  className={`${colorClasses.bgColor} text-white px-2 py-1 font-bold whitespace-nowrap flex-shrink-0 rounded-l-lg flex items-center gap-1`}
+                                >
+                                  <span>{startTime}</span>
+                                  {statusIcon && <span>{statusIcon}</span>}
+                                </div>
+
+                                <div className='flex-1 min-w-0 px-1 py-0.5'>
+                                  <div
+                                    className={`text-xs font-medium text-gray-900 truncate ${
+                                      isCancelled ? 'line-through' : ''
+                                    }`}
+                                  >
+                                    {getAppointmentPatientsDisplay(appointment)}
+                                    {!isCancelled &&
+                                      appointment.absenceCount > 0 && (
+                                        <span className='ml-1 text-gray-500'>
+                                          {appointment.absenceCount} abs.
+                                        </span>
+                                      )}
+                                  </div>
+                                  {isCancelled && (
+                                    <div className='text-xs text-red-600 font-semibold'>
+                                      Annulé
+                                    </div>
+                                  )}
+
+                                  {(appointment.description ||
+                                    appointment.notes) && (
+                                    <div className='text-xs text-white mt-0.5 truncate'>
+                                      {truncateText(appointment.description)}
+                                      {appointment.description &&
+                                      appointment.notes
+                                        ? ' • '
+                                        : ''}
+                                      {truncateText(appointment.notes)}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          }
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>

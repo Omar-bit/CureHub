@@ -14,6 +14,7 @@ const CalendarView = forwardRef(
   (
     {
       appointments = [],
+      imprevus = [],
       onAppointmentClick,
       onTimeSlotClick,
       workingHours = { start: 8, end: 20 },
@@ -78,6 +79,7 @@ const CalendarView = forwardRef(
       const commonProps = {
         currentDate,
         appointments,
+        imprevus,
         onDateChange: handleDateChange,
         onAppointmentClick,
         onTimeSlotClick,

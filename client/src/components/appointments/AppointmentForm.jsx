@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { format, parse, addMinutes } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import {
   Calendar,
   Clock,
@@ -33,7 +34,8 @@ import {
   DialogFooter,
 } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { patientAPI, appointmentAPI } from '../../services/api';
+import { ConfirmDialog } from '../ui/confirm-dialog';
+import { patientAPI, appointmentAPI, imprevuAPI } from '../../services/api';
 import { splitPatientName } from '../../lib/patient';
 import { useDoctorProfile } from '../../hooks/useDoctorProfile';
 import { Switch } from '../ui/switch';
@@ -99,6 +101,9 @@ const AppointmentForm = ({
   const [selectedPatientTab, setSelectedPatientTab] = useState('profil');
   const [selectedAppointmentForView, setSelectedAppointmentForView] =
     useState(null);
+  const [imprevuDialogOpen, setImprevuDialogOpen] = useState(false);
+  const [pendingImprevu, setPendingImprevu] = useState(null);
+  const [pendingAppointmentData, setPendingAppointmentData] = useState(null);
 
   useEffect(() => {
     if (appointment) {
@@ -609,6 +614,48 @@ const AppointmentForm = ({
     return Object.keys(newErrors).length === 0;
   };
 
+  const checkImprevuForAppointment = async (appointmentData) => {
+    try {
+      const data = await imprevuAPI.getAll({
+        startDate: appointmentData.startTime,
+        endDate: appointmentData.endTime,
+        limit: '50',
+      });
+      const imprevus = data.imprevus || data || [];
+      if (!imprevus || imprevus.length === 0) {
+        return null;
+      }
+      return (
+        imprevus.find((imprevu) => imprevu.blockTimeSlots !== false) || null
+      );
+    } catch (error) {
+      console.error('Error checking imprevus:', error);
+      return null;
+    }
+  };
+
+  const getImprevuLabel = (imprevu) => {
+    if (!imprevu) {
+      return '';
+    }
+    if (imprevu.reason && imprevu.reason.trim().length > 0) {
+      return imprevu.reason.trim();
+    }
+    const start = new Date(imprevu.startDate);
+    const end = new Date(imprevu.endDate);
+    const sameDay =
+      start.toDateString() === end.toDateString() ||
+      format(start, 'yyyy-MM-dd') === format(end, 'yyyy-MM-dd');
+    if (sameDay) {
+      return format(start, 'd MMMM yyyy', { locale: fr });
+    }
+    return `${format(start, 'd MMMM yyyy', { locale: fr })} – ${format(
+      end,
+      'd MMMM yyyy',
+      { locale: fr }
+    )}`;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -618,7 +665,6 @@ const AppointmentForm = ({
 
     setLoading(true);
     try {
-      // Get consultation type to calculate duration
       const selectedType = consultationTypes.find(
         (type) =>
           type.id === parseInt(formData.consultationTypeId) ||
@@ -631,21 +677,16 @@ const AppointmentForm = ({
         );
       }
 
-      // Calculate total duration based on number of patients and duration per patient
       const numberOfPatients = Math.max(1, selectedPatients.length);
       const totalDuration = durationPerPatient * numberOfPatients;
 
-      // Always use manualTime since we removed the toggle
       const timeToUse = manualTime || formData.startTime;
 
-      // Combine date and time into ISO strings
       const startDateTime = new Date(`${formData.date}T${timeToUse}`);
       const endDateTime = addMinutes(startDateTime, totalDuration);
 
-      // Get patient IDs array (all patients including visitors)
       const patientIds = selectedPatients.map((p) => p.id);
 
-      // Create title from all patient names (rendered without separator)
       const allPatientNames = selectedPatients
         .map((p) => renderPatientLabel(p))
         .join(', ');
@@ -663,11 +704,21 @@ const AppointmentForm = ({
         notifyRappel: formData.notifyRappel,
         rappelMessage: formData.rappelMessage?.trim(),
         status: formData.status,
-        skipConflictCheck: true, // Always skip backend conflict check, we handle it on frontend
+        skipConflictCheck: true,
       };
 
-      // Check for conflicts on frontend before saving
       if (!appointment) {
+        const blockingImprevu = await checkImprevuForAppointment(
+          appointmentData
+        );
+        if (blockingImprevu) {
+          setPendingImprevu(blockingImprevu);
+          setPendingAppointmentData(appointmentData);
+          setImprevuDialogOpen(true);
+          setLoading(false);
+          return;
+        }
+
         const conflict = await checkForConflicts(appointmentData);
         if (conflict && conflict.hasConflict) {
           setConflictDetails(conflict);
@@ -764,7 +815,7 @@ const AppointmentForm = ({
         notifyRappel: formData.notifyRappel,
         rappelMessage: formData.rappelMessage?.trim(),
         status: formData.status,
-        skipConflictCheck: true, // Skip backend conflict check since user confirmed
+        skipConflictCheck: true,
       };
 
       await onSave(appointmentData);
@@ -777,6 +828,46 @@ const AppointmentForm = ({
       setErrors({ submit: 'Failed to save appointment. Please try again.' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleImprevuDialogClose = () => {
+    if (loading) {
+      return;
+    }
+    setImprevuDialogOpen(false);
+    setPendingImprevu(null);
+    setPendingAppointmentData(null);
+  };
+
+  const handleImprevuForceConfirm = async () => {
+    if (!pendingAppointmentData) {
+      setImprevuDialogOpen(false);
+      return;
+    }
+    setImprevuDialogOpen(false);
+    setLoading(true);
+    try {
+      if (!appointment) {
+        const conflict = await checkForConflicts(pendingAppointmentData);
+        if (conflict && conflict.hasConflict) {
+          setConflictDetails(conflict);
+          setShowConflictDialog(true);
+          setLoading(false);
+          return;
+        }
+      }
+      await onSave(pendingAppointmentData);
+      if (!inline) {
+        onClose();
+      }
+    } catch (error) {
+      console.error('Error saving appointment:', error);
+      setErrors({ submit: 'Failed to save appointment. Please try again.' });
+    } finally {
+      setLoading(false);
+      setPendingImprevu(null);
+      setPendingAppointmentData(null);
     }
   };
 
@@ -1861,6 +1952,23 @@ const AppointmentForm = ({
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        <ConfirmDialog
+          isOpen={imprevuDialogOpen}
+          onClose={handleImprevuDialogClose}
+          onConfirm={handleImprevuForceConfirm}
+          title='Forcer un rendez-vous sur un jour fermé ?'
+          description={
+            pendingImprevu
+              ? `Ce jour est déclaré comme non travaillé en raison de l’imprévu « ${getImprevuLabel(
+                  pendingImprevu
+                )} ». Voulez-vous vraiment forcer la création de ce rendez-vous à cette date ?`
+              : 'Ce jour est déclaré comme non travaillé en raison d’un imprévu. Voulez-vous vraiment forcer la création de ce rendez-vous à cette date ?'
+          }
+          confirmText='Forcer le rendez-vous'
+          cancelText='Annuler'
+          variant='destructive'
+          isLoading={loading}
+        />
       </>
     );
   }
@@ -1972,6 +2080,23 @@ const AppointmentForm = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ConfirmDialog
+        isOpen={imprevuDialogOpen}
+        onClose={handleImprevuDialogClose}
+        onConfirm={handleImprevuForceConfirm}
+        title='Forcer un rendez-vous sur un jour fermé ?'
+        description={
+          pendingImprevu
+            ? `Ce jour est déclaré comme non travaillé en raison de l’imprévu « ${getImprevuLabel(
+                pendingImprevu
+              )} ». Voulez-vous vraiment forcer la création de ce rendez-vous à cette date ?`
+            : 'Ce jour est déclaré comme non travaillé en raison d’un imprévu. Voulez-vous vraiment forcer la création de ce rendez-vous à cette date ?'
+        }
+        confirmText='Forcer le rendez-vous'
+        cancelText='Annuler'
+        variant='destructive'
+        isLoading={loading}
+      />
 
       {selectedAppointmentForView && (
         <AppointmentDetails

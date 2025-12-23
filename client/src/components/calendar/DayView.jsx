@@ -22,6 +22,7 @@ import {
 const DayView = ({
   currentDate,
   appointments = [],
+  imprevus = [],
   onDateChange,
   onAppointmentClick,
   onTimeSlotClick,
@@ -94,6 +95,78 @@ const DayView = ({
     appointments,
     currentDate
   );
+
+  const blockingImprevuSegments = React.useMemo(() => {
+    if (!imprevus || imprevus.length === 0) {
+      return [];
+    }
+    const dayStart = new Date(currentDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(currentDate);
+    dayEnd.setHours(23, 59, 59, 999);
+    const windowStart = new Date(currentDate);
+    windowStart.setHours(workingHours.start, 0, 0, 0);
+    const windowEnd = new Date(currentDate);
+    windowEnd.setHours(workingHours.end, 0, 0, 0);
+
+    const segments = [];
+
+    imprevus.forEach((imprevu) => {
+      if (imprevu.blockTimeSlots === false) {
+        return;
+      }
+      const start = new Date(imprevu.startDate);
+      const end = new Date(imprevu.endDate);
+      if (end <= dayStart || start >= dayEnd) {
+        return;
+      }
+      const segmentStart = new Date(
+        Math.max(start.getTime(), windowStart.getTime())
+      );
+      const segmentEnd = new Date(Math.min(end.getTime(), windowEnd.getTime()));
+      if (segmentEnd <= segmentStart) {
+        return;
+      }
+
+      const startMinutes =
+        (segmentStart.getHours() - workingHours.start) * 60 +
+        segmentStart.getMinutes();
+      const endMinutes =
+        (segmentEnd.getHours() - workingHours.start) * 60 +
+        segmentEnd.getMinutes();
+
+      const top = startMinutes * verticalZoom;
+      const height = (endMinutes - startMinutes) * verticalZoom;
+
+      if (height > 0) {
+        segments.push({ top, height });
+      }
+    });
+
+    return segments;
+  }, [
+    imprevus,
+    currentDate,
+    workingHours.start,
+    workingHours.end,
+    verticalZoom,
+  ]);
+
+  const hasBlockingImprevu = React.useMemo(() => {
+    if (!imprevus || imprevus.length === 0) {
+      return false;
+    }
+    const dayStart = new Date(currentDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(currentDate);
+    dayEnd.setHours(23, 59, 59, 999);
+    return imprevus.some((imprevu) => {
+      const start = new Date(imprevu.startDate);
+      const end = new Date(imprevu.endDate);
+      const blocks = imprevu.blockTimeSlots !== false;
+      return blocks && end > dayStart && start < dayEnd;
+    });
+  }, [imprevus, currentDate]);
 
   // Helper to truncate long text for display in the calendar
   const truncateText = (text, n = 60) => {
@@ -444,6 +517,41 @@ const DayView = ({
             }px`,
           }}
         >
+          {(blockingImprevuSegments.length > 0 || hasBlockingImprevu) && (
+            <div
+              className='absolute inset-y-0 right-0 pointer-events-none'
+              style={{ left: '3rem' }}
+            >
+              {blockingImprevuSegments.length > 0 ? (
+                blockingImprevuSegments.map((segment, index) => (
+                  <div
+                    key={index}
+                    className='absolute left-0 right-0 bg-slate-100/80 backdrop-blur-[1px]'
+                    style={{
+                      top: `${segment.top}px`,
+                      height: `${segment.height}px`,
+                    }}
+                  />
+                ))
+              ) : (
+                <div className='absolute inset-0 bg-slate-100/80 backdrop-blur-[1px]' />
+              )}
+              <div
+                className='absolute left-8'
+                style={{
+                  top: `${
+                    blockingImprevuSegments.length > 0
+                      ? Math.max(blockingImprevuSegments[0].top, 8)
+                      : 8
+                  }px`,
+                }}
+              >
+                <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium text-slate-700 bg-slate-200/90 border border-slate-300/70 shadow-sm'>
+                  Jour fermé (imprévu)
+                </span>
+              </div>
+            </div>
+          )}
           {/* Time labels and slots */}
           {timeSlots.map((timeSlot) => (
             <div key={timeSlot} className='relative'>

@@ -7,9 +7,16 @@ import React, {
 } from 'react';
 import { CalendarView } from './calendar';
 import { CalendarUtils } from './calendar/CalendarUtils';
-import { appointmentAPI, agendaPreferencesAPI } from '../services/api';
+import {
+  appointmentAPI,
+  agendaPreferencesAPI,
+  imprevuAPI,
+} from '../services/api';
 import { showError } from '../lib/toast';
 import { Loader2 } from 'lucide-react';
+import { ConfirmDialog } from './ui/confirm-dialog';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 const CalendarSection = forwardRef(
   (
@@ -23,8 +30,10 @@ const CalendarSection = forwardRef(
     ref
   ) => {
     const [appointments, setAppointments] = useState([]);
+    const [imprevus, setImprevus] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentView, setCurrentView] = useState('day');
+    const [currentDate, setCurrentDate] = useState(new Date());
     const [preferences, setPreferences] = useState({
       mainColor: '#FFA500',
       startHour: 8,
@@ -33,8 +42,10 @@ const CalendarSection = forwardRef(
       schoolVacationZone: 'C',
     });
     const calendarRef = useRef();
+    const [forceDialogOpen, setForceDialogOpen] = useState(false);
+    const [pendingSlotDate, setPendingSlotDate] = useState(null);
+    const [pendingImprevu, setPendingImprevu] = useState(null);
 
-    // Load appointments
     const loadAppointments = async ({ showLoader = true } = {}) => {
       try {
         if (showLoader) {
@@ -55,7 +66,6 @@ const CalendarSection = forwardRef(
       }
     };
 
-    // Load preferences
     const loadPreferences = async () => {
       try {
         const data = await agendaPreferencesAPI.get();
@@ -73,7 +83,25 @@ const CalendarSection = forwardRef(
       }
     };
 
-    // Expose methods to parent components
+    const loadImprevus = async (date) => {
+      try {
+        const targetDate =
+          date instanceof Date ? date : new Date(date || Date.now());
+        const weekStart = CalendarUtils.getWeekStart(targetDate);
+        const weekEnd = CalendarUtils.getWeekEnd(targetDate);
+        const data = await imprevuAPI.getAll({
+          startDate: weekStart.toISOString(),
+          endDate: weekEnd.toISOString(),
+          limit: '200',
+        });
+        const loadedImprevus = data.imprevus || data || [];
+        setImprevus(loadedImprevus);
+        return loadedImprevus;
+      } catch (error) {
+        console.error('Error loading imprevus:', error);
+      }
+    };
+
     useImperativeHandle(ref, () => ({
       navigateToDate: (date) => {
         if (calendarRef.current) {
@@ -92,10 +120,10 @@ const CalendarSection = forwardRef(
       getAllAppointments: () => appointments,
     }));
 
-    // Load appointments
     useEffect(() => {
       loadAppointments();
       loadPreferences();
+      loadImprevus(currentDate);
     }, []);
 
     // Listen for preference updates
@@ -116,6 +144,80 @@ const CalendarSection = forwardRef(
       };
     }, []);
 
+    useEffect(() => {
+      loadImprevus(currentDate);
+    }, [currentDate]);
+
+    const handleDateChange = (date) => {
+      const targetDate = date instanceof Date ? date : new Date(date);
+      setCurrentDate(targetDate);
+      onDateChange?.(targetDate);
+    };
+
+    const findBlockingImprevuForDateTime = (dateTime) => {
+      if (!imprevus || imprevus.length === 0) {
+        return null;
+      }
+      const target = dateTime instanceof Date ? dateTime : new Date(dateTime);
+      return (
+        imprevus.find((imprevu) => {
+          if (imprevu.blockTimeSlots === false) {
+            return false;
+          }
+          const start = new Date(imprevu.startDate);
+          const end = new Date(imprevu.endDate);
+          return target >= start && target < end;
+        }) || null
+      );
+    };
+
+    const handleTimeSlotClickWithImprevuCheck = (dateTime) => {
+      const slotDate = dateTime instanceof Date ? dateTime : new Date(dateTime);
+      const blockingImprevu = findBlockingImprevuForDateTime(slotDate);
+      if (blockingImprevu) {
+        setPendingSlotDate(slotDate);
+        setPendingImprevu(blockingImprevu);
+        setForceDialogOpen(true);
+        return;
+      }
+      onTimeSlotClick?.(slotDate);
+    };
+
+    const handleForceDialogClose = () => {
+      setForceDialogOpen(false);
+      setPendingSlotDate(null);
+      setPendingImprevu(null);
+    };
+
+    const handleForceDialogConfirm = () => {
+      if (pendingSlotDate) {
+        onTimeSlotClick?.(pendingSlotDate);
+      }
+      handleForceDialogClose();
+    };
+
+    const getImprevuLabel = (imprevu) => {
+      if (!imprevu) {
+        return '';
+      }
+      if (imprevu.reason && imprevu.reason.trim().length > 0) {
+        return imprevu.reason.trim();
+      }
+      const start = new Date(imprevu.startDate);
+      const end = new Date(imprevu.endDate);
+      const sameDay =
+        start.toDateString() === end.toDateString() ||
+        format(start, 'yyyy-MM-dd') === format(end, 'yyyy-MM-dd');
+      if (sameDay) {
+        return format(start, 'd MMMM yyyy', { locale: fr });
+      }
+      return `${format(start, 'd MMMM yyyy', { locale: fr })} – ${format(
+        end,
+        'd MMMM yyyy',
+        { locale: fr }
+      )}`;
+    };
+
     if (loading) {
       return (
         <div className='h-full bg-white lg:border-r border-gray-200 flex items-center justify-center'>
@@ -134,8 +236,9 @@ const CalendarSection = forwardRef(
           <CalendarView
             ref={calendarRef}
             appointments={appointments}
+            imprevus={imprevus}
             onAppointmentClick={onAppointmentClick}
-            onTimeSlotClick={onTimeSlotClick}
+            onTimeSlotClick={handleTimeSlotClickWithImprevuCheck}
             workingHours={{
               start: preferences.startHour,
               end: preferences.endHour,
@@ -144,9 +247,25 @@ const CalendarSection = forwardRef(
             mainColor={preferences.mainColor}
             defaultView={currentView}
             isTabOpen={isTabOpen}
-            onDateChange={onDateChange}
+            onDateChange={handleDateChange}
           />
         </div>
+        <ConfirmDialog
+          isOpen={forceDialogOpen}
+          onClose={handleForceDialogClose}
+          onConfirm={handleForceDialogConfirm}
+          title='Forcer un rendez-vous sur un jour fermé ?'
+          description={
+            pendingImprevu
+              ? `Ce jour est déclaré comme non travaillé en raison de l’imprévu « ${getImprevuLabel(
+                  pendingImprevu
+                )} ». Voulez-vous vraiment forcer la création de ce rendez-vous à cette date ?`
+              : 'Ce jour est déclaré comme non travaillé en raison d’un imprévu. Voulez-vous vraiment forcer la création de ce rendez-vous à cette date ?'
+          }
+          confirmText='Forcer le rendez-vous'
+          cancelText='Annuler'
+          variant='destructive'
+        />
       </div>
     );
   }
