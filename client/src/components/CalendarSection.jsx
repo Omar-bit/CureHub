@@ -109,6 +109,13 @@ const CalendarSection = forwardRef(
         }
       },
       refreshAppointments: () => loadAppointments({ showLoader: false }),
+      refreshImprevus: () => loadImprevus(currentDate),
+      refreshAll: async () => {
+        await Promise.all([
+          loadAppointments({ showLoader: false }),
+          loadImprevus(currentDate),
+        ]);
+      },
       getCurrentDate: () =>
         calendarRef.current?.getCurrentDate
           ? calendarRef.current.getCurrentDate()

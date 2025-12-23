@@ -364,7 +364,11 @@ const AgendaPage = () => {
   const handleImprevuChanged = async () => {
     if (calendarRef.current) {
       setIsAppointmentsReady(false);
-      await calendarRef.current.refreshAppointments();
+      if (calendarRef.current.refreshAll) {
+        await calendarRef.current.refreshAll();
+      } else {
+        await calendarRef.current.refreshAppointments();
+      }
     }
   };
 
