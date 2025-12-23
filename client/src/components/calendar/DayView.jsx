@@ -128,15 +128,21 @@ const DayView = ({
         return;
       }
 
-      const startMinutes =
-        (segmentStart.getHours() - workingHours.start) * 60 +
-        segmentStart.getMinutes();
-      const endMinutes =
-        (segmentEnd.getHours() - workingHours.start) * 60 +
-        segmentEnd.getMinutes();
+      const startTimeStr = CalendarUtils.formatTime(segmentStart);
+      const duration = CalendarUtils.getAppointmentDuration(
+        segmentStart,
+        segmentEnd
+      );
 
-      const top = startMinutes * verticalZoom;
-      const height = (endMinutes - startMinutes) * verticalZoom;
+      const top = CalendarUtils.getTimeSlotPosition(
+        startTimeStr,
+        workingHours.start,
+        60 * verticalZoom
+      );
+      const height = CalendarUtils.getTimeSlotHeight(
+        duration,
+        60 * verticalZoom
+      );
 
       if (height > 0) {
         segments.push({ top, height });

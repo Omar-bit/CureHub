@@ -275,15 +275,19 @@ const WeekView = ({
           return;
         }
 
-        const startMinutes =
-          (segmentStart.getHours() - workingHours.start) * 60 +
-          segmentStart.getMinutes();
-        const endMinutes =
-          (segmentEnd.getHours() - workingHours.start) * 60 +
-          segmentEnd.getMinutes();
+        const startTimeStr = CalendarUtils.formatTime(segmentStart);
+        const duration = CalendarUtils.getAppointmentDuration(
+          segmentStart,
+          segmentEnd
+        );
 
-        const top = startMinutes;
-        const height = endMinutes - startMinutes;
+        // WeekView uses standard 60px height per hour (no verticalZoom)
+        const top = CalendarUtils.getTimeSlotPosition(
+          startTimeStr,
+          workingHours.start,
+          60
+        );
+        const height = CalendarUtils.getTimeSlotHeight(duration, 60);
 
         if (height > 0) {
           segments.push({ top, height });
