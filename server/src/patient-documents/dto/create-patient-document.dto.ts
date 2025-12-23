@@ -12,4 +12,8 @@ export class CreatePatientDocumentDto {
   @IsString()
   @IsOptional()
   description?: string;
+
+  @IsString()
+  @IsOptional()
+  originalName?: string;
 }

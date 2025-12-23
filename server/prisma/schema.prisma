@@ -498,6 +498,10 @@ model PatientDocument {
   mimeType     String // MIME type (e.g., "application/pdf", "image/jpeg")
   category     DocumentCategory @default(AUTRE)
   description  String? // Optional description
+  pinned       Boolean          @default(false)
+  locked       Boolean          @default(false)
+  paid         Boolean          @default(false)
+  senderId     String?
   uploadDate   DateTime         @default(now())
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt

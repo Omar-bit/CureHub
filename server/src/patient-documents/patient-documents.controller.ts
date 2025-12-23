@@ -37,10 +37,17 @@ export class PatientDocumentsController {
     @Body() createDocumentDto: CreatePatientDocumentDto,
     @CurrentUser() user: any,
   ) {
+    const senderId =
+      user?.doctorProfile?.id ||
+      user?.patientProfile?.id ||
+      user?.id ||
+      null;
+
     return this.patientDocumentsService.uploadDocument(
       file,
       createDocumentDto,
       user.doctorProfile?.id,
+      senderId,
     );
   }
 

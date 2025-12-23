@@ -21,6 +21,7 @@ export class PatientDocumentsService {
     file: any,
     createDocumentDto: CreatePatientDocumentDto,
     doctorId: string,
+    senderId: string | null,
   ) {
     // Validate doctorId
     if (!doctorId) {
@@ -41,7 +42,6 @@ export class PatientDocumentsService {
       );
     }
 
-    // Generate unique filename
     const fileExtension = path.extname(file.originalname);
     const fileName = `${uuidv4()}${fileExtension}`;
     const uploadDir = path.join(process.cwd(), 'uploads', 'documents');
@@ -55,16 +55,30 @@ export class PatientDocumentsService {
     // Save file to disk
     fs.writeFileSync(filePath, file.buffer);
 
-    // Save document record to database
+    const baseOriginalName = createDocumentDto.originalName
+      ? createDocumentDto.originalName.trim()
+      : '';
+    let finalOriginalName: string;
+
+    if (baseOriginalName) {
+      const providedExt = path.extname(baseOriginalName);
+      finalOriginalName = providedExt
+        ? baseOriginalName
+        : `${baseOriginalName}${fileExtension}`;
+    } else {
+      finalOriginalName = file.originalname;
+    }
+
     const document = await this.prisma.patientDocument.create({
       data: {
-        originalName: file.originalname,
+        originalName: finalOriginalName,
         fileName: fileName,
         filePath: filePath,
         fileSize: file.size,
         mimeType: file.mimetype,
         category: createDocumentDto.category || DocumentCategory.AUTRE,
         description: createDocumentDto.description,
+        senderId: senderId || doctorId || createDocumentDto.patientId,
         patient: {
           connect: {
             id: createDocumentDto.patientId,
@@ -246,9 +260,25 @@ export class PatientDocumentsService {
       throw new NotFoundException('Document not found');
     }
 
+    const nextData: any = { ...updateDocumentDto };
+
+    if (updateDocumentDto.originalName) {
+      const trimmedName = updateDocumentDto.originalName.trim();
+      const newExt = path.extname(trimmedName);
+
+      if (!newExt) {
+        const currentExt =
+          path.extname(document.originalName) ||
+          path.extname(document.fileName);
+        nextData.originalName = currentExt
+          ? `${trimmedName}${currentExt}`
+          : trimmedName;
+      }
+    }
+
     const updatedDocument = await this.prisma.patientDocument.update({
       where: { id: documentId },
-      data: updateDocumentDto,
+      data: nextData,
       include: {
         patient: {
           select: {

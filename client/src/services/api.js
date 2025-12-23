@@ -377,12 +377,13 @@ export const taskAPI = {
 // Patient Documents API
 export const documentsApi = {
   // Upload a document for a patient
-  upload: (file, patientId, category, description) => {
+  upload: (file, patientId, category, description, originalName) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('patientId', patientId);
     if (category) formData.append('category', category);
     if (description) formData.append('description', description);
+     if (originalName) formData.append('originalName', originalName);
 
     return api
       .post('/patient-documents/upload', formData, {
