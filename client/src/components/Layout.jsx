@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLocation } from 'react-router-dom';
 import Navigation from './Navigation'; // Landing page navigation
 import AuthenticatedHeader from './AuthenticatedHeader';
+import AgendaSidebar from './AgendaSidebar';
 
 // Layout wrapper that decides which layout to use
 const LayoutContent = ({ children }) => {
@@ -30,11 +31,14 @@ const LandingLayout = ({ children }) => {
 // Standard authenticated layout (header + content)
 const AuthenticatedLayout = ({ children }) => {
   return (
-    <div className='min-h-screen bg-background'>
+    <div className='h-screen bg-background flex flex-col overflow-hidden'>
       <AuthenticatedHeader />
-      <main className='flex-1 max-h-screen '>
-        <div className='h-full'>{children}</div>
-      </main>
+      <div className='flex flex-1 overflow-hidden relative'>
+        <AgendaSidebar />
+        <main className='flex-1 overflow-hidden relative w-full'>
+          <div className='h-full overflow-y-auto'>{children}</div>
+        </main>
+      </div>
     </div>
   );
 };

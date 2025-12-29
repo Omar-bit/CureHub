@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
+import { useAgenda } from '../contexts/AgendaContext';
 import PatientManagement from '../components/PatientManagement';
 import CalendarSection from '../components/CalendarSection';
 import AppointmentPanel from '../components/AppointmentPanel';
@@ -11,74 +12,7 @@ import AgendaPreferences from '../components/AgendaPreferences';
 import AgendaPrintTab from '../components/AgendaPrintTab';
 import { useDoctorProfile } from '../hooks/useDoctorProfile';
 import { appointmentAPI } from '../services/api';
-import {
-  Users,
-  Calendar,
-  ClipboardList,
-  Stethoscope,
-  CreditCard,
-  ChevronRight,
-  Menu,
-  X,
-  CalendarDays,
-  AlertTriangle,
-  Settings,
-  Printer,
-} from 'lucide-react';
-
-// Agenda sidebar navigation items
-const agendaSidebarItems = [
-  {
-    id: 'patients',
-    label: 'Patients',
-    icon: Users,
-    color: 'bg-blue-500',
-  },
-  {
-    id: 'meetings',
-    label: 'Meetings',
-    icon: Calendar,
-    color: 'bg-green-500',
-  },
-  {
-    id: 'events',
-    label: 'Events',
-    icon: CalendarDays,
-    color: 'bg-indigo-500',
-  },
-  {
-    id: 'tasks',
-    label: 'Tasks',
-    icon: ClipboardList,
-    color: 'bg-orange-500',
-  },
-  {
-    id: 'imprevus',
-    label: 'Imprevus',
-    icon: AlertTriangle,
-    color: 'bg-purple-500',
-  },
-  {
-    id: 'vue',
-    label: 'Vue',
-    icon: Settings,
-    color: 'bg-yellow-500',
-  },
-  {
-    id: 'imprimer',
-    label: 'Imprimer',
-    icon: Printer,
-    color: 'bg-black',
-  },
-  {
-    id: 'payments',
-    label: 'Payments',
-    icon: CreditCard,
-    color: 'bg-red-500',
-  },
-];
-
-// Tab Content Component
+import { Menu, X } from 'lucide-react';
 const TabContent = ({
   activeTab,
   appointmentPanelProps,
@@ -148,113 +82,13 @@ const TabContent = ({
   );
 };
 
-// Agenda Sidebar Component
-const AgendaSidebar = ({ activeTab, setActiveTab, isVisible, onClose }) => {
-  return (
-    <>
-      {/* Mobile overlay */}
-      {isVisible && (
-        <div
-          className='fixed inset-0 bg-black/50 z-40 lg:hidden'
-          onClick={onClose}
-        />
-      )}
-
-      {/* Desktop sidebar */}
-      <div className='hidden lg:block  bg-gray-50 border-r border-gray-200 h-full'>
-        <div className='p-2 pt-7'>
-          {/* <h3 className='text-sm font-medium text-gray-700 mb-4'>Navigation</h3> */}
-          <nav className='space-y-6'>
-            {agendaSidebarItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={` cursor-pointer
-                    p-2
-                    w-full flex flex-col gap-1  justify-center items-center text-sm font-medium rounded-md transition-colors
-                    ${
-                      isActive
-                        ? 'bg-white text-gray-900 shadow-lg'
-                        : 'text-gray-600 hover:bg-white hover:text-gray-900'
-                    }
-                  `}
-                >
-                  <Icon className='h-4 w-4 ' />
-                  <p className='text-xs'>{item.label}</p>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-      </div>
-
-      {/* Mobile sidebar */}
-      <div
-        className={`
-          fixed inset-y-0 left-0 z-50 w-80 bg-gray-50 border-r border-gray-200
-          transform transition-transform duration-300 ease-in-out lg:hidden
-          ${isVisible ? 'translate-x-0' : '-translate-x-full'}
-        `}
-      >
-        <div className='flex flex-col h-full'>
-          {/* Mobile header */}
-          <div className='flex items-center justify-between p-4 border-b border-gray-200'>
-            <h3 className='text-lg font-semibold text-gray-900'>Navigation</h3>
-            <button
-              onClick={onClose}
-              className='p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100'
-            >
-              <X className='h-5 w-5' />
-            </button>
-          </div>
-
-          {/* Mobile navigation */}
-          <nav className='flex-1 p-4 space-y-1'>
-            {agendaSidebarItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setActiveTab(item.id);
-                    onClose();
-                  }}
-                  className={`
-                    w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
-                    ${
-                      isActive
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-600 hover:bg-white hover:text-gray-900'
-                    }
-                  `}
-                >
-                  <Icon className='h-4 w-4 mr-3 flex-shrink-0' />
-                  {item.label}
-                  {isActive && <ChevronRight className='h-4 w-4 ml-auto' />}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-      </div>
-    </>
-  );
-};
-
 // Main Agenda Page Component
 const AgendaPage = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const { profile: doctorProfile, loading: doctorProfileLoading } =
     useDoctorProfile();
-  const [activeTab, setActiveTab] = useState(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { activeTab, setActiveTab, setIsSidebarOpen } = useAgenda();
   const calendarRef = useRef();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [dailyAppointments, setDailyAppointments] = useState([]);
@@ -372,16 +206,6 @@ const AgendaPage = () => {
     }
   };
 
-  // When meetings tab is clicked, show create form
-  const handleTabClick = (tabId) => {
-    if (tabId === 'meetings') {
-      setAppointmentPanelMode('create');
-      setSelectedAppointment(null);
-      setSelectedDateTime(null);
-    }
-    setActiveTab(tabId);
-  };
-
   const appointmentPanelProps = {
     mode: appointmentPanelMode,
     appointment: selectedAppointment,
@@ -411,6 +235,22 @@ const AgendaPage = () => {
     await calendarRef.current.refreshAppointments();
   }, []);
 
+  // Reset appointment panel state when switching away from meetings tab
+  useEffect(() => {
+    if (activeTab !== 'meetings') {
+      setAppointmentPanelMode('create');
+      setSelectedAppointment(null);
+      setSelectedDateTime(null);
+    }
+  }, [activeTab]);
+
+  // Set default tab on mount if none selected
+  useEffect(() => {
+    if (!activeTab) {
+      setActiveTab('patients');
+    }
+  }, []);
+
   useEffect(() => {
     if (activeTab === 'imprimer') {
       syncDailyAppointments();
@@ -427,15 +267,7 @@ const AgendaPage = () => {
   };
 
   return (
-    <div className='flex h-[calc(100vh-10vh)] overflow-hidden'>
-      {/* Left sidebar for agenda navigation */}
-      <AgendaSidebar
-        activeTab={activeTab}
-        setActiveTab={handleTabClick}
-        isVisible={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-      />
-
+    <div className='flex h-full overflow-hidden'>
       {/* Main content area */}
       <div className='flex-1 flex flex-col lg:flex-row max-h-screen overflow-hidden relative'>
         {/* Mobile header with navigation toggle */}

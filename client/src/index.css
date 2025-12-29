@@ -158,3 +158,29 @@
 .shadoww {
   box-shadow: -8px 0px 20px 3px #bbb;
 }
+
+.agenda-tools {
+  /* --sb-track-color: #232e33; */
+  --sb-thumb-color: #6baf8d;
+  --sb-size: 3px;
+}
+
+.agenda-tools::-webkit-scrollbar {
+  width: var(--sb-size);
+}
+
+.agenda-tools::-webkit-scrollbar-track {
+  background: var(--sb-track-color);
+  border-radius: 1px;
+}
+
+.agenda-tools::-webkit-scrollbar-thumb {
+  background: var(--sb-thumb-color);
+  border-radius: 1px;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  .agenda-tools {
+    scrollbar-color: var(--sb-thumb-color) var(--sb-track-color);
+  }
+}

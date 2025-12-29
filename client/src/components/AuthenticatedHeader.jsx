@@ -74,24 +74,24 @@ const AuthenticatedHeader = () => {
   };
 
   const navigationItems = [
-    {
-      id: 'agenda',
-      label: 'Agenda',
-      icon: Calendar,
-      path: '/agenda',
-    },
-    {
-      id: 'messagery',
-      label: 'Messagery',
-      icon: MessageCircle,
-      path: '/messagery',
-    },
-    {
-      id: 'settings',
-      label: 'Settings',
-      icon: Settings,
-      path: '/settings',
-    },
+    // {
+    //   id: 'agenda',
+    //   label: 'Agenda',
+    //   icon: Calendar,
+    //   path: '/agenda',
+    // },
+    // {
+    //   id: 'messagery',
+    //   label: 'Messagery',
+    //   icon: MessageCircle,
+    //   path: '/messagery',
+    // },
+    // {
+    //   id: 'settings',
+    //   label: 'Settings',
+    //   icon: Settings,
+    //   path: '/settings',
+    // },
   ];
 
   return (
@@ -140,6 +140,29 @@ const AuthenticatedHeader = () => {
                 })}
               </div>
             </div>
+          </div>
+          {/* Selected User */}
+          <div className='hidden md:flex items-center'>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant='outline'
+                  className='flex items-center space-x-2 px-20'
+                >
+                  <div className='h-6 w-6 bg-gray-300 rounded-full flex items-center justify-center'>
+                    <User className='h-4 w-4 text-gray-600' />
+                  </div>
+                  <span className='hidden lg:block'>
+                    {user?.firstName || user?.email}
+                  </span>
+                  <ChevronDown className='h-4 w-4' />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align='end'
+                className='w-56'
+              ></DropdownMenuContent>
+            </DropdownMenu>
           </div>
           {/* User Menu */}
           <div className='hidden md:flex items-center'>

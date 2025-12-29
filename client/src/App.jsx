@@ -25,6 +25,7 @@ import HeroSection from './components/HeroSection';
 import FeaturesSection from './components/FeaturesSection';
 import PricingSection from './components/PricingSection';
 import Footer from './components/Footer';
+import { AgendaProvider } from './contexts/AgendaContext';
 
 // Landing page component
 const LandingPage = () => (
@@ -40,107 +41,109 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <Layout>
-          <Routes>
-            {/* Public routes */}
-            <Route path='/' element={<LandingPage />} />
-            <Route path='/login' element={<LoginPage />} />
-            <Route path='/register' element={<RegisterPage />} />
-            <Route path='/verify-email' element={<EmailVerificationPage />} />
+        <AgendaProvider>
+          <Layout>
+            <Routes>
+              {/* Public routes */}
+              <Route path='/' element={<LandingPage />} />
+              <Route path='/login' element={<LoginPage />} />
+              <Route path='/register' element={<RegisterPage />} />
+              <Route path='/verify-email' element={<EmailVerificationPage />} />
 
-            {/* Protected routes */}
-            <Route
-              path='/dashboard'
-              element={
-                <ProtectedRoute>
-                  <DashboardPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path='/agenda'
-              element={
-                <ProtectedRoute>
-                  <AgendaPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path='/settings'
-              element={
-                <ProtectedRoute>
-                  <SettingsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path='/settings/profile'
-              element={
-                <ProtectedRoute>
-                  <ProfileSettingsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path='/settings/consultation-types'
-              element={
-                <ProtectedRoute>
-                  <ConsultationTypesPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path='/settings/timeplan'
-              element={
-                <ProtectedRoute>
-                  <TimeplanPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path='/settings/pto'
-              element={
-                <ProtectedRoute>
-                  <PTOPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path='/messagery'
-              element={
-                <ProtectedRoute>
-                  <MessagingPage />
-                </ProtectedRoute>
-              }
-            />
+              {/* Protected routes */}
+              <Route
+                path='/dashboard'
+                element={
+                  <ProtectedRoute>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path='/agenda'
+                element={
+                  <ProtectedRoute>
+                    <AgendaPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path='/settings'
+                element={
+                  <ProtectedRoute>
+                    <SettingsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path='/settings/profile'
+                element={
+                  <ProtectedRoute>
+                    <ProfileSettingsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path='/settings/consultation-types'
+                element={
+                  <ProtectedRoute>
+                    <ConsultationTypesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path='/settings/timeplan'
+                element={
+                  <ProtectedRoute>
+                    <TimeplanPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path='/settings/pto'
+                element={
+                  <ProtectedRoute>
+                    <PTOPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path='/messagery'
+                element={
+                  <ProtectedRoute>
+                    <MessagingPage />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Redirect unknown routes to home */}
-            <Route path='*' element={<Navigate to='/' replace />} />
-          </Routes>
-        </Layout>
-        <Toaster
-          position='top-right'
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: 'var(--background)',
-              color: 'var(--foreground)',
-              border: '1px solid var(--border)',
-            },
-            success: {
-              iconTheme: {
-                primary: 'var(--primary)',
-                secondary: 'var(--primary-foreground)',
+              {/* Redirect unknown routes to home */}
+              <Route path='*' element={<Navigate to='/' replace />} />
+            </Routes>
+          </Layout>
+          <Toaster
+            position='top-right'
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: 'var(--background)',
+                color: 'var(--foreground)',
+                border: '1px solid var(--border)',
               },
-            },
-            error: {
-              iconTheme: {
-                primary: 'var(--destructive)',
-                secondary: 'var(--destructive-foreground)',
+              success: {
+                iconTheme: {
+                  primary: 'var(--primary)',
+                  secondary: 'var(--primary-foreground)',
+                },
               },
-            },
-          }}
-        />
+              error: {
+                iconTheme: {
+                  primary: 'var(--destructive)',
+                  secondary: 'var(--destructive-foreground)',
+                },
+              },
+            }}
+          />
+        </AgendaProvider>
       </Router>
     </AuthProvider>
   );
