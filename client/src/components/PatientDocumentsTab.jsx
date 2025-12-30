@@ -13,8 +13,6 @@ import {
   Loader2,
   File,
   FileImage,
-  Grid,
-  List,
   MoreVertical,
   CloudUpload,
   Lock,
@@ -27,12 +25,6 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { FormSelect } from './ui/form-field';
 import { ConfirmDialog } from './ui/confirm-dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from './ui/dropdown-menu';
 import { documentsApi } from '../services/api';
 import { showSuccess, showError } from './../lib/toast';
 
@@ -41,7 +33,6 @@ const PatientDocumentsTab = ({ patient }) => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [searchTerm, setSearchTerm] = useState('');
   const [sortMode, setSortMode] = useState('category');
   const [editingDocument, setEditingDocument] = useState(null);
@@ -597,22 +588,6 @@ const PatientDocumentsTab = ({ patient }) => {
           >
             <Pin className='w-4 h-4' />
           </Button>
-          <div className='flex border rounded-md'>
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'ghost'}
-              size='sm'
-              onClick={() => setViewMode('grid')}
-            >
-              <Grid className='w-4 h-4' />
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'ghost'}
-              size='sm'
-              onClick={() => setViewMode('list')}
-            >
-              <List className='w-4 h-4' />
-            </Button>
-          </div>
         </div>
       </div>
 
@@ -633,206 +608,6 @@ const PatientDocumentsTab = ({ patient }) => {
             documents
           </p>
         </div>
-      ) : viewMode === 'grid' ? (
-        <div className='space-y-4'>
-          {groupedDocuments.map((group) => (
-            <div key={group.key} className='space-y-2'>
-              {group.label && (
-                <h3 className='font-semibold text-sm text-foreground'>
-                  {group.label}
-                </h3>
-              )}
-              <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4'>
-                {group.documents.map((document) => {
-                  const isPinned = !!document.pinned;
-                  const isLocked = !!document.locked;
-
-                  return (
-                    <div
-                      key={document.id}
-                      className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${editingDocument?.id === document.id
-                        ? 'ring-2 ring-primary'
-                        : ''
-                        }`}
-                    >
-                      {editingDocument?.id === document.id ? (
-                        <div className='space-y-3'>
-                          <div className='flex items-start justify-between mb-3'>
-                            {getFileIcon(document.mimeType)}
-                            <div className='flex gap-1'>
-                              <Button
-                                variant='ghost'
-                                size='sm'
-                                onClick={handleUpdateDocument}
-                              >
-                                <Edit3 className='w-3 h-3 text-green-600' />
-                              </Button>
-                              <Button
-                                variant='ghost'
-                                size='sm'
-                                onClick={handleCancelEdit}
-                              >
-                                <X className='w-3 h-3 text-red-600' />
-                              </Button>
-                            </div>
-                          </div>
-
-                          <div>
-                            <Label className='text-xs'>Nom du fichier</Label>
-                            <Input
-                              value={editingDocument.originalName}
-                              onChange={(e) =>
-                                setEditingDocument({
-                                  ...editingDocument,
-                                  originalName: e.target.value,
-                                })
-                              }
-                              className='text-xs h-8'
-                            />
-                          </div>
-
-                          <div>
-                            <Label className='text-xs'>Catégorie</Label>
-                            <FormSelect
-                              value={editingDocument.category}
-                              onChange={(e) =>
-                                setEditingDocument({
-                                  ...editingDocument,
-                                  category: e.target.value,
-                                })
-                              }
-                              options={categories}
-                              className='h-8 text-xs'
-                            />
-                          </div>
-
-                          <div className='space-y-1 text-xs text-muted-foreground'>
-                            <div className='flex justify-between'>
-                              <span>Taille:</span>
-                              <span>{formatFileSize(document.fileSize)}</span>
-                            </div>
-                            <div className='flex justify-between'>
-                              <span>Date:</span>
-                              <span>{formatDate(document.uploadDate)}</span>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className='flex items-start justify-between mb-3'>
-                            {getFileIcon(document.mimeType)}
-                            <div className='flex items-center gap-1'>
-                              <Button
-                                variant='ghost'
-                                size='sm'
-                                onClick={() => togglePin(document)}
-                              >
-                                <Pin
-                                  className={`w-4 h-4 ${isPinned
-                                    ? 'text-yellow-500'
-                                    : 'text-muted-foreground'
-                                    }`}
-                                />
-                              </Button>
-                              <Button
-                                variant='ghost'
-                                size='sm'
-                                onClick={() => toggleLock(document)}
-                              >
-                                <Lock
-                                  className={`w-4 h-4 ${isLocked
-                                    ? 'text-red-500'
-                                    : 'text-muted-foreground'
-                                    }`}
-                                />
-                              </Button>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant='ghost' size='sm'>
-                                    <MoreVertical className='w-4 h-4' />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align='end'>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      if (isLocked) return;
-                                      handleDownload(document);
-                                    }}
-                                    className={
-                                      isLocked
-                                        ? 'opacity-50 cursor-not-allowed'
-                                        : ''
-                                    }
-                                  >
-                                    <Download className='w-4 h-4 mr-2' />
-                                    Télécharger
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      if (isLocked) return;
-                                      handleEdit(document);
-                                    }}
-                                    className={
-                                      isLocked
-                                        ? 'opacity-50 cursor-not-allowed'
-                                        : ''
-                                    }
-                                  >
-                                    <Edit3 className='w-4 h-4 mr-2' />
-                                    Modifier
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      if (isLocked) return;
-                                      handleDelete(document.id);
-                                    }}
-                                    className={`text-red-600 ${isLocked
-                                      ? 'opacity-50 cursor-not-allowed'
-                                      : ''
-                                      }`}
-                                  >
-                                    <Trash2 className='w-4 h-4 mr-2' />
-                                    Supprimer
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </div>
-
-                          <h4 className='font-medium text-sm mb-2 line-clamp-2'>
-                            {document.originalName}
-                          </h4>
-
-                          <div className='space-y-1 text-xs text-muted-foreground'>
-                            <div className='flex justify-between'>
-                              <span>Taille:</span>
-                              <span>{formatFileSize(document.fileSize)}</span>
-                            </div>
-                            <div className='flex justify-between'>
-                              <span>Date:</span>
-                              <span>{formatDate(document.uploadDate)}</span>
-                            </div>
-                            <div className='flex justify-between items-center'>
-                              <span>Catégorie:</span>
-                              <span className='text-blue-600 text-xs px-2 py-1 bg-blue-50 rounded'>
-                                {getCategoryLabel(document.category)}
-                              </span>
-                            </div>
-                            {isLocked && (
-                              <div className='flex items-center justify-between text-xs text-red-600'>
-                                <span>Paiement requis</span>
-                              </div>
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
       ) : (
         <div className='space-y-4'>
           {groupedDocuments.map((group) => (
@@ -850,154 +625,109 @@ const PatientDocumentsTab = ({ patient }) => {
                   return (
                     <div
                       key={document.id}
-                      className={`border rounded-lg p-3 transition-colors ${editingDocument?.id === document.id
-                        ? 'ring-2 ring-primary bg-muted/20'
-                        : 'hover:bg-muted/50'
-                        }`}
+                      className='border rounded-lg p-3 hover:bg-muted/50 transition-colors'
                     >
-                      {editingDocument?.id === document.id ? (
-                        <div className='space-y-3'>
-                          <div className='flex items-center gap-3'>
-                            {getFileIcon(document.mimeType)}
-                            <div className='flex-1 grid grid-cols-1 md:grid-cols-3 gap-3'>
-                              <div>
-                                <Label className='text-xs'>
-                                  Nom du fichier
-                                </Label>
-                                <Input
-                                  value={editingDocument.originalName}
-                                  onChange={(e) =>
-                                    setEditingDocument({
-                                      ...editingDocument,
-                                      originalName: e.target.value,
-                                    })
-                                  }
-                                  className='text-sm h-8'
-                                />
-                              </div>
-                              <div>
-                                <Label className='text-xs'>Catégorie</Label>
-                                <FormSelect
-                                  value={editingDocument.category}
-                                  onChange={(e) =>
-                                    setEditingDocument({
-                                      ...editingDocument,
-                                      category: e.target.value,
-                                    })
-                                  }
-                                  options={categories}
-                                  className='h-8 text-sm'
-                                />
-                              </div>
-                            </div>
-                            <div className='flex gap-1 flex-shrink-0'>
-                              <Button
-                                variant='ghost'
-                                size='sm'
-                                onClick={handleUpdateDocument}
-                                className='text-green-600 hover:text-green-700'
-                              >
-                                <Edit3 className='w-4 h-4' />
-                              </Button>
-                              <Button
-                                variant='ghost'
-                                size='sm'
-                                onClick={handleCancelEdit}
-                                className='text-red-600 hover:text-red-700'
-                              >
-                                <X className='w-4 h-4' />
-                              </Button>
-                            </div>
-                          </div>
-                          <div className='flex items-center gap-4 text-xs text-muted-foreground pl-11'>
+                      <div className='flex items-center gap-3'>
+                        {getFileIcon(document.mimeType)}
+
+                        <div className='flex-1 min-w-0'>
+                          <h4 className='font-medium text-sm truncate'>
+                            {document.originalName}
+                          </h4>
+                          <div className='flex items-center gap-4 text-xs text-muted-foreground'>
                             <span>{formatFileSize(document.fileSize)}</span>
                             <span>{formatDate(document.uploadDate)}</span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className='flex items-center gap-3'>
-                          {getFileIcon(document.mimeType)}
-
-                          <div className='flex-1 min-w-0'>
-                            <h4 className='font-medium text-sm truncate'>
-                              {document.originalName}
-                            </h4>
-                            <div className='flex items-center gap-4 text-xs text-muted-foreground'>
-                              <span>{formatFileSize(document.fileSize)}</span>
-                              <span>{formatDate(document.uploadDate)}</span>
-                              <span className='text-blue-600 bg-blue-50 px-2 py-1 rounded'>
-                                {getCategoryLabel(document.category)}
+                            {isLocked && (
+                              <span className='text-red-600'>
+                                Paiement requis
                               </span>
-                              {isLocked && (
-                                <span className='text-red-600'>
-                                  Paiement requis
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className='flex gap-1 items-center'>
-                            <Button
-                              variant='ghost'
-                              size='sm'
-                              onClick={() => togglePin(document)}
-                            >
-                              <Pin
-                                className={`w-4 h-4 ${isPinned
-                                  ? 'text-yellow-500'
-                                  : 'text-muted-foreground'
-                                  }`}
-                              />
-                            </Button>
-                            <Button
-                              variant='ghost'
-                              size='sm'
-                              onClick={() => toggleLock(document)}
-                            >
-                              <Lock
-                                className={`w-4 h-4 ${isLocked
-                                  ? 'text-red-500'
-                                  : 'text-muted-foreground'
-                                  }`}
-                              />
-                            </Button>
-                            <Button
-                              variant='ghost'
-                              size='sm'
-                              onClick={() => {
-                                if (isLocked) return;
-                                handleDownload(document);
-                              }}
-                              disabled={isLocked}
-                            >
-                              <Download className='w-4 h-4' />
-                            </Button>
-                            <Button
-                              variant='ghost'
-                              size='sm'
-                              onClick={() => {
-                                if (isLocked) return;
-                                handleEdit(document);
-                              }}
-                              disabled={isLocked}
-                            >
-                              <Edit3 className='w-4 h-4' />
-                            </Button>
-                            <Button
-                              variant='ghost'
-                              size='sm'
-                              onClick={() => {
-                                if (isLocked) return;
-                                handleDelete(document.id);
-                              }}
-                              className='text-red-600 hover:text-red-700'
-                              disabled={isLocked}
-                            >
-                              <Trash2 className='w-4 h-4' />
-                            </Button>
+                            )}
                           </div>
                         </div>
-                      )}
+
+                        {/* Inline Category Selector */}
+                        <div className='w-48'>
+                          <FormSelect
+                            value={document.category || ''}
+                            onChange={async (e) => {
+                              try {
+                                await documentsApi.update(document.id, {
+                                  category: e.target.value,
+                                });
+                                showSuccess('Catégorie mise à jour');
+                                fetchDocuments();
+                              } catch (error) {
+                                console.error('Error updating category:', error);
+                                showError('Échec de la mise à jour');
+                              }
+                            }}
+                            options={categories}
+                            placeholder='Choisissez...'
+                            className='h-8 text-sm'
+                          />
+                        </div>
+
+                        <div className='flex gap-1 items-center'>
+                          <Button
+                            variant='ghost'
+                            size='sm'
+                            onClick={() => togglePin(document)}
+                          >
+                            <Pin
+                              className={`w-4 h-4 ${isPinned
+                                ? 'text-yellow-500'
+                                : 'text-muted-foreground'
+                                }`}
+                            />
+                          </Button>
+                          <Button
+                            variant='ghost'
+                            size='sm'
+                            onClick={() => toggleLock(document)}
+                          >
+                            <Lock
+                              className={`w-4 h-4 ${isLocked
+                                ? 'text-red-500'
+                                : 'text-muted-foreground'
+                                }`}
+                            />
+                          </Button>
+                          <Button
+                            variant='ghost'
+                            size='sm'
+                            onClick={() => {
+                              if (isLocked) return;
+                              handleDownload(document);
+                            }}
+                            disabled={isLocked}
+                          >
+                            <Download className='w-4 h-4' />
+                          </Button>
+                          <Button
+                            variant='ghost'
+                            size='sm'
+                            onClick={() => {
+                              if (isLocked) return;
+                              handleEdit(document);
+                            }}
+                            disabled={isLocked}
+                          >
+                            <Edit3 className='w-4 h-4' />
+                          </Button>
+                          <Button
+                            variant='ghost'
+                            size='sm'
+                            onClick={() => {
+                              if (isLocked) return;
+                              handleDelete(document.id);
+                            }}
+                            className='text-red-600 hover:text-red-700'
+                            disabled={isLocked}
+                          >
+                            <Trash2 className='w-4 h-4' />
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   );
                 })}
