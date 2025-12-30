@@ -10,6 +10,7 @@ import TaskForm from './TaskForm';
 import { taskAPI, patientAPI } from '../../services/api';
 import { showSuccess, showError } from '../../lib/toast';
 import { splitPatientName } from '../../lib/patient';
+import { useAgenda } from '../../contexts/AgendaContext';
 import {
   Plus,
   Filter,
@@ -23,6 +24,7 @@ import {
 } from 'lucide-react';
 
 const TaskManagement = () => {
+  const { updateIncompleteTaskCount } = useAgenda();
   const [tasks, setTasks] = useState([]);
   const [patients, setPatients] = useState([]);
   const [filteredTasks, setFilteredTasks] = useState([]);
@@ -64,8 +66,8 @@ const TaskManagement = () => {
       (task.patients && task.patients.length > 0
         ? task.patients
         : task.patient
-        ? [task.patient]
-        : []) || [];
+          ? [task.patient]
+          : []) || [];
 
     return patientList.some((patient) =>
       renderPatientLabel(patient).toLowerCase().includes(lowered)
@@ -142,6 +144,8 @@ const TaskManagement = () => {
     try {
       const data = await taskAPI.getStats();
       setStats(data);
+      // Update the context with the incomplete task count
+      updateIncompleteTaskCount(data.pendingTasks || 0);
     } catch (error) {
       console.error('Failed to load stats:', error);
     } finally {
@@ -299,11 +303,10 @@ const TaskManagement = () => {
           variant={completionFilter === '' ? 'default' : 'outline'}
           size='sm'
           onClick={() => setCompletionFilter('')}
-          className={`rounded-full ${
-            completionFilter === ''
+          className={`rounded-full ${completionFilter === ''
               ? 'bg-orange-500 hover:bg-orange-600 text-white'
               : 'border-orange-300 text-orange-700 hover:bg-orange-100'
-          }`}
+            }`}
         >
           À faire
         </Button>
@@ -312,11 +315,10 @@ const TaskManagement = () => {
           variant={completionFilter === 'false' ? 'default' : 'outline'}
           size='sm'
           onClick={() => setCompletionFilter('false')}
-          className={`rounded-full ${
-            completionFilter === 'false'
+          className={`rounded-full ${completionFilter === 'false'
               ? 'bg-orange-500 hover:bg-orange-600 text-white'
               : 'border-orange-300 text-orange-700 hover:bg-orange-100'
-          }`}
+            }`}
         >
           À venir
         </Button>
@@ -325,11 +327,10 @@ const TaskManagement = () => {
           variant={completionFilter === 'true' ? 'default' : 'outline'}
           size='sm'
           onClick={() => setCompletionFilter('true')}
-          className={`rounded-full ${
-            completionFilter === 'true'
+          className={`rounded-full ${completionFilter === 'true'
               ? 'bg-orange-500 hover:bg-orange-600 text-white'
               : 'border-orange-300 text-orange-700 hover:bg-orange-100'
-          }`}
+            }`}
         >
           Effectuées
         </Button>
@@ -372,7 +373,7 @@ const TaskManagement = () => {
                 onToggleCompletion={handleToggleCompletion}
                 onEdit={handleEditTask}
                 onDelete={handleDeleteTask}
-                onPatientClick={() => {}}
+                onPatientClick={() => { }}
               />
             ))}
           </div>

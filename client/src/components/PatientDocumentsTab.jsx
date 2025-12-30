@@ -174,7 +174,7 @@ const PatientDocumentsTab = ({ patient }) => {
       fetchDocuments();
     } catch (error) {
       console.error('Error updating document:', error);
-      showError('Failed to update document');
+      showError('Echec Enregistrement');
     }
   };
 
@@ -411,8 +411,8 @@ const PatientDocumentsTab = ({ patient }) => {
         {/* Drag and Drop Area */}
         <div
           className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${isDragOver
-              ? 'border-primary bg-primary/5'
-              : 'border-muted-foreground/25 hover:border-primary/50'
+            ? 'border-primary bg-primary/5'
+            : 'border-muted-foreground/25 hover:border-primary/50'
             }`}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
@@ -651,8 +651,8 @@ const PatientDocumentsTab = ({ patient }) => {
                     <div
                       key={document.id}
                       className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${editingDocument?.id === document.id
-                          ? 'ring-2 ring-primary'
-                          : ''
+                        ? 'ring-2 ring-primary'
+                        : ''
                         }`}
                     >
                       {editingDocument?.id === document.id ? (
@@ -729,8 +729,8 @@ const PatientDocumentsTab = ({ patient }) => {
                               >
                                 <Pin
                                   className={`w-4 h-4 ${isPinned
-                                      ? 'text-yellow-500'
-                                      : 'text-muted-foreground'
+                                    ? 'text-yellow-500'
+                                    : 'text-muted-foreground'
                                     }`}
                                 />
                               </Button>
@@ -741,8 +741,8 @@ const PatientDocumentsTab = ({ patient }) => {
                               >
                                 <Lock
                                   className={`w-4 h-4 ${isLocked
-                                      ? 'text-red-500'
-                                      : 'text-muted-foreground'
+                                    ? 'text-red-500'
+                                    : 'text-muted-foreground'
                                     }`}
                                 />
                               </Button>
@@ -787,8 +787,8 @@ const PatientDocumentsTab = ({ patient }) => {
                                       handleDelete(document.id);
                                     }}
                                     className={`text-red-600 ${isLocked
-                                        ? 'opacity-50 cursor-not-allowed'
-                                        : ''
+                                      ? 'opacity-50 cursor-not-allowed'
+                                      : ''
                                       }`}
                                   >
                                     <Trash2 className='w-4 h-4 mr-2' />
@@ -851,8 +851,8 @@ const PatientDocumentsTab = ({ patient }) => {
                     <div
                       key={document.id}
                       className={`border rounded-lg p-3 transition-colors ${editingDocument?.id === document.id
-                          ? 'ring-2 ring-primary bg-muted/20'
-                          : 'hover:bg-muted/50'
+                        ? 'ring-2 ring-primary bg-muted/20'
+                        : 'hover:bg-muted/50'
                         }`}
                     >
                       {editingDocument?.id === document.id ? (
@@ -944,8 +944,8 @@ const PatientDocumentsTab = ({ patient }) => {
                             >
                               <Pin
                                 className={`w-4 h-4 ${isPinned
-                                    ? 'text-yellow-500'
-                                    : 'text-muted-foreground'
+                                  ? 'text-yellow-500'
+                                  : 'text-muted-foreground'
                                   }`}
                               />
                             </Button>
@@ -956,8 +956,8 @@ const PatientDocumentsTab = ({ patient }) => {
                             >
                               <Lock
                                 className={`w-4 h-4 ${isLocked
-                                    ? 'text-red-500'
-                                    : 'text-muted-foreground'
+                                  ? 'text-red-500'
+                                  : 'text-muted-foreground'
                                   }`}
                               />
                             </Button>

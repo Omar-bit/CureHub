@@ -16,7 +16,7 @@ import {
   MessageSquare,
   Layout as LayoutIcon,
 } from 'lucide-react';
-import { agendaPreferencesAPI } from '../services/api';
+import { agendaPreferencesAPI, taskAPI } from '../services/api';
 
 const navItems = [
   {
@@ -30,6 +30,7 @@ const navItems = [
     label: 'Messagery',
     icon: MessageSquare,
     path: '/messagery',
+    badgeCount: 3, // Static count until messagery is implemented
   },
 ];
 
@@ -86,13 +87,29 @@ const bottomItems = [
 ];
 
 const AgendaSidebar = () => {
-  const { activeTab, setActiveTab, isSidebarOpen, setIsSidebarOpen } =
+  const { activeTab, setActiveTab, isSidebarOpen, setIsSidebarOpen, incompleteTaskCount, updateIncompleteTaskCount } =
     useAgenda();
   const location = useLocation();
   const navigate = useNavigate();
   const [isToolsExpanded, setIsToolsExpanded] = useState(false);
 
   const isAgendaPage = location.pathname === '/agenda';
+
+  // Fetch incomplete task count
+  useEffect(() => {
+    const fetchTaskCount = async () => {
+      try {
+        const stats = await taskAPI.getStats();
+        updateIncompleteTaskCount(stats.pendingTasks || 0);
+      } catch (error) {
+        console.error('Failed to fetch task stats:', error);
+      }
+    };
+
+    if (isAgendaPage) {
+      fetchTaskCount();
+    }
+  }, [isAgendaPage, updateIncompleteTaskCount]);
 
   const handleItemClick = (item) => {
     if (item.path) {
@@ -106,44 +123,58 @@ const AgendaSidebar = () => {
 
   const renderItem = (item, isActive) => {
     const Icon = item.icon;
+    const showTaskBadge = item.id === 'tasks' && incompleteTaskCount > 0;
+    const showNavBadge = item.badgeCount && item.badgeCount > 0;
+    const badgeCount = item.id === 'tasks' ? incompleteTaskCount : item.badgeCount;
     return (
       <button
         key={item.id}
         onClick={() => handleItemClick(item)}
         className={`cursor-pointer
           p-2
-          w-full flex flex-col gap-1 justify-center items-center text-sm font-medium rounded-md transition-colors
-          ${
-            isActive
-              ? 'bg-white text-gray-900 shadow-lg'
-              : 'text-gray-600 hover:bg-white hover:text-gray-900'
+          w-full flex flex-col gap-1 justify-center items-center text-sm font-medium rounded-md transition-colors relative
+          ${isActive
+            ? 'bg-white text-gray-900 shadow-lg'
+            : 'text-gray-600 hover:bg-white hover:text-gray-900'
           }
         `}
         title={item.label}
       >
         <Icon className='h-5 w-5' />
         <p className='text-[10px] truncate w-full text-center'>{item.label}</p>
+        {(showTaskBadge || showNavBadge) && (
+          <span className='absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center'>
+            {badgeCount > 99 ? '99+' : badgeCount}
+          </span>
+        )}
       </button>
     );
   };
 
   const renderMobileItem = (item, isActive) => {
     const Icon = item.icon;
+    const showTaskBadge = item.id === 'tasks' && incompleteTaskCount > 0;
+    const showNavBadge = item.badgeCount && item.badgeCount > 0;
+    const badgeCount = item.id === 'tasks' ? incompleteTaskCount : item.badgeCount;
     return (
       <button
         key={item.id}
         onClick={() => handleItemClick(item)}
         className={`
-          w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
-          ${
-            isActive
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-600 hover:bg-white hover:text-gray-900'
+          w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors relative
+          ${isActive
+            ? 'bg-white text-gray-900 shadow-sm'
+            : 'text-gray-600 hover:bg-white hover:text-gray-900'
           }
         `}
       >
         <Icon className='h-5 w-5 mr-3' />
         {item.label}
+        {(showTaskBadge || showNavBadge) && (
+          <span className='ml-auto bg-red-500 text-white text-xs font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center'>
+            {badgeCount > 99 ? '99+' : badgeCount}
+          </span>
+        )}
       </button>
     );
   };
@@ -174,9 +205,8 @@ const AgendaSidebar = () => {
 
         {/* Agenda Tools (Flexible Middle - Scrollable) */}
         <div
-          className={`flex-1 overflow-y-auto agenda-tools min-h-0 ${
-            isMobile ? 'px-4' : 'px-2'
-          }`}
+          className={`flex-1 overflow-y-auto agenda-tools min-h-0 ${isMobile ? 'px-4' : 'px-2'
+            }`}
           style={{
             '--sb-thumb-color': mainColor,
           }}
@@ -192,10 +222,9 @@ const AgendaSidebar = () => {
               <button
                 onClick={() => setIsToolsExpanded(!isToolsExpanded)}
                 className={`
-                  ${
-                    isMobile
-                      ? 'w-full flex items-center px-3 py-2'
-                      : 'w-full flex flex-col items-center justify-center p-2'
+                  ${isMobile
+                    ? 'w-full flex items-center px-3 py-2'
+                    : 'w-full flex flex-col items-center justify-center p-2'
                   }
                   text-gray-600 hover:bg-white hover:text-gray-900 rounded-md transition-colors
                 `}

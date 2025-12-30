@@ -13,12 +13,19 @@ export const useAgenda = () => {
 export const AgendaProvider = ({ children }) => {
   const [activeTab, setActiveTab] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [incompleteTaskCount, setIncompleteTaskCount] = useState(0);
+
+  const updateIncompleteTaskCount = (count) => {
+    setIncompleteTaskCount(count);
+  };
 
   const value = {
     activeTab,
     setActiveTab,
     isSidebarOpen,
     setIsSidebarOpen,
+    incompleteTaskCount,
+    updateIncompleteTaskCount,
   };
 
   return (

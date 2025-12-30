@@ -5,8 +5,10 @@ import TaskForm from './tasks/TaskForm';
 import { Button } from './ui/button';
 import { Plus, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useAgenda } from '../contexts/AgendaContext';
 
 const PatientTasksTab = ({ patient, onPatientClick }) => {
+  const { updateIncompleteTaskCount } = useAgenda();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showTaskForm, setShowTaskForm] = useState(false);
@@ -40,6 +42,9 @@ const PatientTasksTab = ({ patient, onPatientClick }) => {
       await taskAPI.toggleCompletion(taskId);
       toast.success('Statut de la tâche mis à jour');
       fetchPatientTasks();
+      // Update the incomplete task count
+      const stats = await taskAPI.getStats();
+      updateIncompleteTaskCount(stats.pendingTasks || 0);
     } catch (error) {
       console.error('Error toggling task completion:', error);
       toast.error('Erreur lors de la mise à jour de la tâche');
@@ -60,6 +65,9 @@ const PatientTasksTab = ({ patient, onPatientClick }) => {
       await taskAPI.delete(taskId);
       toast.success('Tâche supprimée avec succès');
       fetchPatientTasks();
+      // Update the incomplete task count
+      const stats = await taskAPI.getStats();
+      updateIncompleteTaskCount(stats.pendingTasks || 0);
     } catch (error) {
       console.error('Error deleting task:', error);
       toast.error('Erreur lors de la suppression de la tâche');
@@ -86,6 +94,9 @@ const PatientTasksTab = ({ patient, onPatientClick }) => {
       setShowTaskForm(false);
       setEditingTask(null);
       fetchPatientTasks();
+      // Update the incomplete task count
+      const stats = await taskAPI.getStats();
+      updateIncompleteTaskCount(stats.pendingTasks || 0);
     } catch (error) {
       console.error('Error saving task:', error);
       toast.error(

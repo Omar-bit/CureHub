@@ -330,7 +330,7 @@ export class ImprevuService {
   ): Promise<Imprevu> {
     await this.findOne(id, doctorId);
 
-    const { startDate, endDate, ...rest } = updateImprevuDto;
+    const { startDate, endDate, consultationTypeIds, appointmentIds, ...rest } = updateImprevuDto;
 
     const updateData: any = { ...rest };
 
