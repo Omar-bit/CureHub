@@ -26,6 +26,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { FormSelect } from './ui/form-field';
+import { ConfirmDialog } from './ui/confirm-dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,6 +51,8 @@ const PatientDocumentsTab = ({ patient }) => {
   const [uploadName, setUploadName] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
   const [showPinnedOnly, setShowPinnedOnly] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -175,16 +178,25 @@ const PatientDocumentsTab = ({ patient }) => {
     }
   };
 
-  const handleDelete = async (documentId) => {
-    if (!confirm('Are you sure you want to delete this document?')) return;
+  const handleDelete = (documentId) => {
+    setDocumentToDelete(documentId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!documentToDelete) return;
 
     try {
-      await documentsApi.delete(documentId);
+      await documentsApi.delete(documentToDelete);
       showSuccess('Document deleted successfully');
+      setDeleteDialogOpen(false);
+      setDocumentToDelete(null);
       fetchDocuments();
     } catch (error) {
       console.error('Error deleting document:', error);
       showError('Failed to delete document');
+      setDeleteDialogOpen(false);
+      setDocumentToDelete(null);
     }
   };
 
@@ -398,11 +410,10 @@ const PatientDocumentsTab = ({ patient }) => {
       <div className='space-y-4'>
         {/* Drag and Drop Area */}
         <div
-          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-            isDragOver
+          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${isDragOver
               ? 'border-primary bg-primary/5'
               : 'border-muted-foreground/25 hover:border-primary/50'
-          }`}
+            }`}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -410,9 +421,8 @@ const PatientDocumentsTab = ({ patient }) => {
           <div className='space-y-4'>
             <div className='flex justify-center'>
               <CloudUpload
-                className={`w-12 h-12 ${
-                  isDragOver ? 'text-primary' : 'text-muted-foreground'
-                }`}
+                className={`w-12 h-12 ${isDragOver ? 'text-primary' : 'text-muted-foreground'
+                  }`}
               />
             </div>
             <div>
@@ -640,11 +650,10 @@ const PatientDocumentsTab = ({ patient }) => {
                   return (
                     <div
                       key={document.id}
-                      className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${
-                        editingDocument?.id === document.id
+                      className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${editingDocument?.id === document.id
                           ? 'ring-2 ring-primary'
                           : ''
-                      }`}
+                        }`}
                     >
                       {editingDocument?.id === document.id ? (
                         <div className='space-y-3'>
@@ -719,11 +728,10 @@ const PatientDocumentsTab = ({ patient }) => {
                                 onClick={() => togglePin(document)}
                               >
                                 <Pin
-                                  className={`w-4 h-4 ${
-                                    isPinned
+                                  className={`w-4 h-4 ${isPinned
                                       ? 'text-yellow-500'
                                       : 'text-muted-foreground'
-                                  }`}
+                                    }`}
                                 />
                               </Button>
                               <Button
@@ -732,11 +740,10 @@ const PatientDocumentsTab = ({ patient }) => {
                                 onClick={() => toggleLock(document)}
                               >
                                 <Lock
-                                  className={`w-4 h-4 ${
-                                    isLocked
+                                  className={`w-4 h-4 ${isLocked
                                       ? 'text-red-500'
                                       : 'text-muted-foreground'
-                                  }`}
+                                    }`}
                                 />
                               </Button>
                               <DropdownMenu>
@@ -779,11 +786,10 @@ const PatientDocumentsTab = ({ patient }) => {
                                       if (isLocked) return;
                                       handleDelete(document.id);
                                     }}
-                                    className={`text-red-600 ${
-                                      isLocked
+                                    className={`text-red-600 ${isLocked
                                         ? 'opacity-50 cursor-not-allowed'
                                         : ''
-                                    }`}
+                                      }`}
                                   >
                                     <Trash2 className='w-4 h-4 mr-2' />
                                     Supprimer
@@ -844,11 +850,10 @@ const PatientDocumentsTab = ({ patient }) => {
                   return (
                     <div
                       key={document.id}
-                      className={`border rounded-lg p-3 transition-colors ${
-                        editingDocument?.id === document.id
+                      className={`border rounded-lg p-3 transition-colors ${editingDocument?.id === document.id
                           ? 'ring-2 ring-primary bg-muted/20'
                           : 'hover:bg-muted/50'
-                      }`}
+                        }`}
                     >
                       {editingDocument?.id === document.id ? (
                         <div className='space-y-3'>
@@ -938,11 +943,10 @@ const PatientDocumentsTab = ({ patient }) => {
                               onClick={() => togglePin(document)}
                             >
                               <Pin
-                                className={`w-4 h-4 ${
-                                  isPinned
+                                className={`w-4 h-4 ${isPinned
                                     ? 'text-yellow-500'
                                     : 'text-muted-foreground'
-                                }`}
+                                  }`}
                               />
                             </Button>
                             <Button
@@ -951,11 +955,10 @@ const PatientDocumentsTab = ({ patient }) => {
                               onClick={() => toggleLock(document)}
                             >
                               <Lock
-                                className={`w-4 h-4 ${
-                                  isLocked
+                                className={`w-4 h-4 ${isLocked
                                     ? 'text-red-500'
                                     : 'text-muted-foreground'
-                                }`}
+                                  }`}
                               />
                             </Button>
                             <Button
@@ -1003,6 +1006,21 @@ const PatientDocumentsTab = ({ patient }) => {
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setDocumentToDelete(null);
+        }}
+        onConfirm={confirmDelete}
+        title="Supprimer le document"
+        description="Êtes-vous sûr de vouloir supprimer ce document ? Cette action est irréversible."
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        variant="destructive"
+      />
     </div>
   );
 };
