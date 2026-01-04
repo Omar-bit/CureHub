@@ -1177,6 +1177,9 @@ const PatientDetailsSheet = ({
                                 <div className='text-xs text-gray-500 mt-1'>
                                   {dateTime.time}
                                 </div>
+                                <div className='text-xs text-gray-400 mt-1'>
+                                  {dateTime.month} {dateTime.year}
+                                </div>
                               </div>
                             </div>
 
@@ -1258,6 +1261,9 @@ const PatientDetailsSheet = ({
                                 <div className='text-xs text-gray-500 mt-1'>
                                   {dateTime.time}
                                 </div>
+                                <div className='text-xs text-gray-400 mt-1'>
+                                  {dateTime.month} {dateTime.year}
+                                </div>
                               </div>
                             </div>
 
@@ -1325,6 +1331,9 @@ const PatientDetailsSheet = ({
                                 </div>
                                 <div className='text-xs text-gray-500 mt-1'>
                                   {dateTime.time}
+                                </div>
+                                <div className='text-xs text-gray-400 mt-1'>
+                                  {dateTime.month} {dateTime.year}
                                 </div>
                               </div>
                             </div>
