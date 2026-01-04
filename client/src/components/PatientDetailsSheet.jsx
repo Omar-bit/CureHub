@@ -136,7 +136,6 @@ const PatientDetailsSheet = ({
   const [appointments, setAppointments] = useState({
     upcoming: [],
     past: [],
-    cancelled: [],
   });
   const [loadingAppointments, setLoadingAppointments] = useState(false);
   const [showAppointmentForm, setShowAppointmentForm] = useState(false);
@@ -198,18 +197,12 @@ const PatientDetailsSheet = ({
       const appointmentData = response.appointments || [];
       console.log('Fetched Appointments:', appointmentData);
 
-      // Separate appointments by status and time
+      // Separate appointments by time only (cancelled and deleted are included in both categories)
       const now = new Date();
-      const cancelled = appointmentData.filter(
-        (apt) => apt.status === 'CANCELLED'
-      );
-      const activeAppointments = appointmentData.filter(
-        (apt) => apt.status !== 'CANCELLED'
-      );
-      const upcoming = activeAppointments.filter(
+      const upcoming = appointmentData.filter(
         (apt) => new Date(apt.startTime) > now
       );
-      const past = activeAppointments.filter(
+      const past = appointmentData.filter(
         (apt) => new Date(apt.startTime) <= now
       );
 
@@ -220,13 +213,10 @@ const PatientDetailsSheet = ({
         past: past.sort(
           (a, b) => new Date(b.startTime) - new Date(a.startTime)
         ),
-        cancelled: cancelled.sort(
-          (a, b) => new Date(b.startTime) - new Date(a.startTime)
-        ),
       });
     } catch (error) {
       console.error('Error fetching patient appointments:', error);
-      setAppointments({ upcoming: [], past: [], cancelled: [] });
+      setAppointments({ upcoming: [], past: [] });
     } finally {
       setLoadingAppointments(false);
     }
@@ -1160,11 +1150,21 @@ const PatientDetailsSheet = ({
                       return (
                         <div
                           key={appointment.id}
-                          className='border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow'
+                          className={`border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow ${
+                            appointment.status === 'CANCELLED'
+                              ? 'bg-red-50 border-red-300'
+                              : 'bg-white border-gray-200'
+                          }`}
                         >
                           <div className='flex items-start gap-4'>
                             <div className='flex flex-col items-center min-w-[60px]'>
-                              <div className='bg-blue-500 text-white text-xs font-medium px-2 py-1 rounded mb-2'>
+                              <div
+                                className={`text-white text-xs font-medium px-2 py-1 rounded mb-2 ${
+                                  appointment.status === 'CANCELLED'
+                                    ? 'bg-red-500'
+                                    : 'bg-blue-500'
+                                }`}
+                              >
                                 {appointmentType}
                               </div>
                               <div className='text-center'>
@@ -1185,15 +1185,40 @@ const PatientDetailsSheet = ({
 
                             <div className='flex-1'>
                               <div className='flex items-center gap-2 mb-2'>
-                                <User className='w-4 h-4 text-blue-500' />
+                                <User
+                                  className={`w-4 h-4 ${
+                                    appointment.status === 'CANCELLED'
+                                      ? 'text-red-500'
+                                      : 'text-blue-500'
+                                  }`}
+                                />
                                 <span className='font-medium text-gray-900'>
                                   {doctorName}
                                 </span>
+                                {appointment.status === 'CANCELLED' && (
+                                  <span className='ml-auto text-xs font-semibold text-red-600 bg-red-100 px-2 py-1 rounded'>
+                                    Annulé
+                                  </span>
+                                )}
                               </div>
                               <div className='flex items-center gap-2'>
-                                <div className='w-2 h-2 bg-blue-500 rounded-full'></div>
-                                <span className='text-sm text-blue-600 font-medium'>
-                                  {urgency}
+                                <div
+                                  className={`w-2 h-2 rounded-full ${
+                                    appointment.status === 'CANCELLED'
+                                      ? 'bg-red-500'
+                                      : 'bg-blue-500'
+                                  }`}
+                                ></div>
+                                <span
+                                  className={`text-sm font-medium ${
+                                    appointment.status === 'CANCELLED'
+                                      ? 'text-red-600'
+                                      : 'text-blue-600'
+                                  }`}
+                                >
+                                  {appointment.status === 'CANCELLED'
+                                    ? 'Annulé'
+                                    : urgency}
                                 </span>
                               </div>
                             </div>
@@ -1223,76 +1248,7 @@ const PatientDetailsSheet = ({
                   )}
                 </div>
 
-                {/* Cancelled Appointments Section */}
-                <div className='space-y-3'>
-                  <h3 className='text-lg font-semibold text-foreground flex items-center gap-2'>
-                    <X className='w-5 h-5 text-red-500' />
-                    RDV annulés
-                    <span className='text-sm font-normal text-muted-foreground'>
-                      ({appointments.cancelled.length})
-                    </span>
-                  </h3>
-
-                  {appointments.cancelled.length > 0 ? (
-                    appointments.cancelled.map((appointment) => {
-                      const dateTime = formatDateTime(appointment.startTime);
-                      const doctorName = getDoctorName(appointment);
-                      const appointmentType = getAppointmentTypeLabel(
-                        appointment.consultationType
-                      );
-
-                      return (
-                        <div
-                          key={appointment.id}
-                          className='border border-red-200 rounded-lg p-4 bg-red-50 shadow-sm opacity-75'
-                        >
-                          <div className='flex items-start gap-4'>
-                            <div className='flex flex-col items-center min-w-[60px]'>
-                              <div className='bg-red-500 text-white text-xs font-medium px-2 py-1 rounded mb-2'>
-                                {appointmentType}
-                              </div>
-                              <div className='text-center'>
-                                <div className='text-xs text-gray-500 uppercase'>
-                                  {dateTime.date.split(' ')[0]}
-                                </div>
-                                <div className='text-xl font-bold text-gray-900'>
-                                  {dateTime.date.split(' ')[1]}
-                                </div>
-                                <div className='text-xs text-gray-500 mt-1'>
-                                  {dateTime.time}
-                                </div>
-                                <div className='text-xs text-gray-400 mt-1'>
-                                  {dateTime.month} {dateTime.year}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className='flex-1'>
-                              <div className='flex items-center gap-2 mb-2'>
-                                <User className='w-4 h-4 text-red-500' />
-                                <span className='font-medium text-gray-900'>
-                                  {doctorName}
-                                </span>
-                              </div>
-                              <div className='flex items-center gap-2'>
-                                <X className='w-4 h-4 text-red-600' />
-                                <span className='text-sm text-red-600 font-medium'>
-                                  Annulé
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className='text-center text-muted-foreground py-8 border rounded-lg'>
-                      <X className='w-12 h-12 mx-auto mb-4 opacity-50' />
-                      <p>Aucun rendez-vous annulé</p>
-                    </div>
-                  )}
-                </div>
-
+                {/* Cancelled Appointments Section - REMOVED */}
                 {/* Past Appointments Section */}
                 <div className='space-y-3'>
                   <h3 className='text-lg font-semibold text-foreground flex items-center gap-2'>
@@ -1315,11 +1271,21 @@ const PatientDetailsSheet = ({
                       return (
                         <div
                           key={appointment.id}
-                          className='border rounded-lg p-4 bg-gray-50 shadow-sm hover:shadow-md transition-shadow'
+                          className={`border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow ${
+                            appointment.status === 'CANCELLED'
+                              ? 'bg-red-50 border-red-300'
+                              : 'bg-gray-50 border-gray-200'
+                          }`}
                         >
                           <div className='flex items-start gap-4'>
                             <div className='flex flex-col items-center min-w-[60px]'>
-                              <div className='bg-gray-500 text-white text-xs font-medium px-2 py-1 rounded mb-2'>
+                              <div
+                                className={`text-white text-xs font-medium px-2 py-1 rounded mb-2 ${
+                                  appointment.status === 'CANCELLED'
+                                    ? 'bg-red-500'
+                                    : 'bg-gray-500'
+                                }`}
+                              >
                                 {appointmentType}
                               </div>
                               <div className='text-center'>
@@ -1340,25 +1306,62 @@ const PatientDetailsSheet = ({
 
                             <div className='flex-1'>
                               <div className='flex items-center gap-2 mb-2'>
-                                <User className='w-4 h-4 text-gray-500' />
+                                <User
+                                  className={`w-4 h-4 ${
+                                    appointment.status === 'CANCELLED'
+                                      ? 'text-red-500'
+                                      : 'text-gray-500'
+                                  }`}
+                                />
                                 <span className='font-medium text-gray-900'>
                                   {doctorName}
                                 </span>
+                                {appointment.status === 'CANCELLED' && (
+                                  <span className='ml-auto text-xs font-semibold text-red-600 bg-red-100 px-2 py-1 rounded'>
+                                    Annulé
+                                  </span>
+                                )}
                               </div>
                               <div className='flex items-center gap-2'>
-                                <div className='w-2 h-2 bg-gray-500 rounded-full'></div>
-                                <span className='text-sm text-gray-600 font-medium'>
-                                  {urgency}
+                                <div
+                                  className={`w-2 h-2 rounded-full ${
+                                    appointment.status === 'CANCELLED'
+                                      ? 'bg-red-500'
+                                      : 'bg-gray-500'
+                                  }`}
+                                ></div>
+                                <span
+                                  className={`text-sm font-medium ${
+                                    appointment.status === 'CANCELLED'
+                                      ? 'text-red-600'
+                                      : 'text-gray-600'
+                                  }`}
+                                >
+                                  {appointment.status === 'CANCELLED'
+                                    ? 'Annulé'
+                                    : urgency}
                                 </span>
                               </div>
-                              <div className='text-xs text-gray-500 mt-2'>
+                              <div
+                                className={`text-xs mt-2 ${
+                                  appointment.status === 'CANCELLED'
+                                    ? 'text-red-600'
+                                    : 'text-gray-500'
+                                }`}
+                              >
                                 Statut:{' '}
                                 {getAppointmentStatusLabel(appointment.status)}
                               </div>
                             </div>
                           </div>
 
-                          <div className='flex justify-center mt-3 pt-2 border-t border-gray-100'>
+                          <div
+                            className={`flex justify-center mt-3 pt-2 ${
+                              appointment.status === 'CANCELLED'
+                                ? 'border-t border-red-200'
+                                : 'border-t border-gray-100'
+                            }`}
+                          >
                             <ChevronDown className='w-4 h-4 text-gray-400' />
                           </div>
                         </div>
