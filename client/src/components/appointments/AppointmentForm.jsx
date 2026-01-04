@@ -363,11 +363,9 @@ const AppointmentForm = ({
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
 
-    // Clear start time when date or consultation type changes
-    if (
-      (name === 'date' || name === 'consultationTypeId') &&
-      formData.startTime
-    ) {
+    // Clear manual time when date changes (time slots may have changed)
+    if (name === 'date' && formData.startTime) {
+      setManualTime('');
       setFormData((prev) => ({ ...prev, startTime: '' }));
     }
 
@@ -402,10 +400,8 @@ const AppointmentForm = ({
       setErrors((prev) => ({ ...prev, consultationTypeId: '' }));
     }
 
-    // Clear start time when consultation type changes
-    if (formData.startTime) {
-      setFormData((prev) => ({ ...prev, startTime: '' }));
-    }
+    // Keep the start time when consultation type changes - the same time may still be available
+    // The TimeSlotSelector will show available slots for the new consultation type
 
     // Close the dropdown
     setShowConsultationDropdown(false);
