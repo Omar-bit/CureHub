@@ -646,12 +646,18 @@ const DayView = ({
 
                 {/* Appointment Info */}
                 <div className='flex-1 min-w-0 px-2 py-1'>
-                  <div
-                    className={`text-xs font-medium text-gray-900 truncate ${
-                      isCancelled ? 'line-through' : ''
-                    }`}
-                  >
-                    {getAppointmentPatientsDisplay(appointment)}
+                  {/* Patient Name with Consultation Motif and Private Notes */}
+                  <div className='text-xs font-medium text-gray-900 truncate'>
+                    <span className={isCancelled ? 'line-through' : ''}>
+                      {getAppointmentPatientsDisplay(appointment)}{' '}
+                      {(appointment.description || appointment.notes) && (
+                        <div className='inline text-slate-600'>
+                          {truncateText(appointment.description) +
+                            ' ' +
+                            truncateText(appointment.notes)}
+                        </div>
+                      )}
+                    </span>
                   </div>
                   {isCancelled && (
                     <div className='text-xs text-red-600 font-semibold'>
@@ -665,15 +671,6 @@ const DayView = ({
                   )}
 
                   {/* Description & Notes (truncated) */}
-                  {(appointment.description || appointment.notes) && (
-                    <div className='text-xs text-white mt-0.5 truncate'>
-                      {truncateText(appointment.description)}
-                      {appointment.description && appointment.notes
-                        ? ' • '
-                        : ''}
-                      {truncateText(appointment.notes)}
-                    </div>
-                  )}
                 </div>
               </div>
             );
