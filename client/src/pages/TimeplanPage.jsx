@@ -157,10 +157,21 @@ const TimeplanPage = () => {
     try {
       const existingTimeplan = getTimeplanForDay(dayOfWeek);
 
+      // Transform timeSlots to only include allowed properties
+      const transformedTimeSlots = (existingTimeplan?.timeSlots || []).map((slot) => ({
+        id: slot.id,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        consultationTypeIds: slot.consultationTypes
+          ? slot.consultationTypes.map((ct) => ct.consultationTypeId)
+          : slot.consultationTypeIds || [],
+        isActive: slot.isActive ?? true,
+      }));
+
       const payload = {
         dayOfWeek,
         isActive,
-        timeSlots: existingTimeplan?.timeSlots || [],
+        timeSlots: transformedTimeSlots,
       };
 
       // Add specificDate only in Calendrier mode

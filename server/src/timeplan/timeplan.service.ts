@@ -191,12 +191,20 @@ export class TimeplanService {
   ) {
     const { specificDate, isActive, timeSlots } = updateTimeplanDto;
 
+    // Parse specificDate to ensure consistent date format (YYYY-MM-DD only, no time component)
+    let parsedDate: Date | null = null;
+    if (specificDate) {
+      // Parse the date string and create a date at midnight UTC
+      const [year, month, day] = specificDate.split('-').map(Number);
+      parsedDate = new Date(Date.UTC(year, month - 1, day));
+    }
+
     // Check if timeplan exists - use findFirst instead of findUnique
     const existingTimeplan = await this.prisma.doctorTimeplan.findFirst({
       where: {
         doctorId,
         dayOfWeek,
-        specificDate: specificDate ? new Date(specificDate) : null,
+        specificDate: parsedDate,
       },
       include: {
         timeSlots: {
