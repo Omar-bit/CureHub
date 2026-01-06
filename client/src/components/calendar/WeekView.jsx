@@ -394,21 +394,19 @@ const WeekView = ({
           <div className='inline-flex rounded-lg border border-gray-300 p-1'>
             <button
               onClick={() => onViewChange?.('day')}
-              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                currentView === 'day'
+              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${currentView === 'day'
                   ? 'bg-blue-600 text-white'
                   : 'text-gray-700 hover:bg-gray-100'
-              }`}
+                }`}
             >
               Day
             </button>
             <button
               onClick={() => onViewChange?.('week')}
-              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                currentView === 'week'
+              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${currentView === 'week'
                   ? 'bg-blue-600 text-white'
                   : 'text-gray-700 hover:bg-gray-100'
-              }`}
+                }`}
             >
               Week
             </button>
@@ -426,18 +424,16 @@ const WeekView = ({
               className='flex-1 text-center py-3 border-r border-gray-100 last:border-r-0'
             >
               <div
-                className={`text-sm font-medium ${
-                  CalendarUtils.isToday(day) ? 'text-blue-600' : 'text-gray-700'
-                }`}
+                className={`text-sm font-medium ${CalendarUtils.isToday(day) ? 'text-blue-600' : 'text-gray-700'
+                  }`}
               >
                 {CalendarUtils.formatDate(day, isTabOpen ? 'EEE' : 'EEEE')}
               </div>
               <div
-                className={`text-lg ${
-                  CalendarUtils.isToday(day)
+                className={`text-lg ${CalendarUtils.isToday(day)
                     ? 'text-blue-600 font-bold'
                     : 'text-gray-900'
-                }`}
+                  }`}
               >
                 {CalendarUtils.formatDate(day, 'd')}
               </div>
@@ -478,9 +474,8 @@ const WeekView = ({
                         className='absolute inset-0'
                         style={{
                           top: 0,
-                          height: `${
-                            (workingHours.end - workingHours.start) * 60
-                          }px`,
+                          height: `${(workingHours.end - workingHours.start) * 60
+                            }px`,
                         }}
                       >
                         {isBlockedDay && (
@@ -502,11 +497,10 @@ const WeekView = ({
                             <div
                               className='absolute left-2 right-2 flex justify-center'
                               style={{
-                                top: `${
-                                  blockingSegments.length > 0
+                                top: `${blockingSegments.length > 0
                                     ? Math.max(blockingSegments[0].top, 8)
                                     : 8
-                                }px`,
+                                  }px`,
                               }}
                             >
                               <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium text-slate-700 bg-slate-200/90 border border-slate-300/70 shadow-sm'>
@@ -590,9 +584,8 @@ const WeekView = ({
                                 )}
                                 className={`
                                 flex items-start gap-0.5 cursor-pointer
-                                ${
-                                  colorClasses.darkBg
-                                } transition-all rounded-lg overflow-hidden text-xs
+                                ${colorClasses.darkBg
+                                  } transition-all rounded-lg overflow-hidden text-xs
                                 ${isCancelled ? 'opacity-60' : ''}
                               `}
                                 onClick={(e) => {
@@ -601,7 +594,7 @@ const WeekView = ({
                                 }}
                               >
                                 <div
-                                  className={`${colorClasses.bgColor} text-white px-2 py-1 font-bold whitespace-nowrap flex-shrink-0 rounded-l-lg flex items-center gap-1`}
+                                  className={`${colorClasses.bgColor} text-white px-2 py-0.5 font-bold whitespace-nowrap flex-shrink-0 rounded-l-lg flex items-center gap-1`}
                                 >
                                   <span>{startTime}</span>
                                   {statusIcon && <span>{statusIcon}</span>}
@@ -609,9 +602,8 @@ const WeekView = ({
 
                                 <div className='flex-1 min-w-0 px-1 py-0.5'>
                                   <div
-                                    className={`text-xs font-medium text-gray-900 truncate ${
-                                      isCancelled ? 'line-through' : ''
-                                    }`}
+                                    className={`text-xs font-medium text-gray-900 truncate ${isCancelled ? 'line-through' : ''
+                                      }`}
                                   >
                                     {getAppointmentPatientsDisplay(appointment)}
                                     {!isCancelled &&
@@ -629,15 +621,15 @@ const WeekView = ({
 
                                   {(appointment.description ||
                                     appointment.notes) && (
-                                    <div className='text-xs text-white mt-0.5 truncate'>
-                                      {truncateText(appointment.description)}
-                                      {appointment.description &&
-                                      appointment.notes
-                                        ? ' • '
-                                        : ''}
-                                      {truncateText(appointment.notes)}
-                                    </div>
-                                  )}
+                                      <div className='text-xs text-white mt-0.5 truncate'>
+                                        {truncateText(appointment.description)}
+                                        {appointment.description &&
+                                          appointment.notes
+                                          ? ' • '
+                                          : ''}
+                                        {truncateText(appointment.notes)}
+                                      </div>
+                                    )}
                                 </div>
                               </div>
                             );

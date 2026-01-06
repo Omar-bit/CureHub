@@ -377,9 +377,8 @@ const DayView = ({
 
     // When tab is open, constrain appointments to not extend beyond visible area
     const maxWidthConstraint = isTabOpen ? 'min(100%, 50vw)' : '100%';
-    const availableWidth = `calc(${maxWidthConstraint} - ${
-      leftOffset + rightOffset
-    }px)`;
+    const availableWidth = `calc(${maxWidthConstraint} - ${leftOffset + rightOffset
+      }px)`;
     const columnWidth =
       totalColumns > 1
         ? `calc(${availableWidth} / ${totalColumns})`
@@ -491,21 +490,19 @@ const DayView = ({
           <div className='inline-flex rounded-lg border border-gray-300 p-1'>
             <button
               onClick={() => onViewChange?.('day')}
-              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                currentView === 'day'
+              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${currentView === 'day'
                   ? 'bg-blue-600 text-white'
                   : 'text-gray-700 hover:bg-gray-100'
-              }`}
+                }`}
             >
               Day
             </button>
             <button
               onClick={() => onViewChange?.('week')}
-              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                currentView === 'week'
+              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${currentView === 'week'
                   ? 'bg-blue-600 text-white'
                   : 'text-gray-700 hover:bg-gray-100'
-              }`}
+                }`}
             >
               Week
             </button>
@@ -518,9 +515,8 @@ const DayView = ({
         <div
           className='relative'
           style={{
-            height: `${
-              (workingHours.end - workingHours.start) * 60 * verticalZoom
-            }px`,
+            height: `${(workingHours.end - workingHours.start) * 60 * verticalZoom
+              }px`,
           }}
         >
           {(blockingImprevuSegments.length > 0 || hasBlockingImprevu) && (
@@ -545,11 +541,10 @@ const DayView = ({
               <div
                 className='absolute left-8'
                 style={{
-                  top: `${
-                    blockingImprevuSegments.length > 0
+                  top: `${blockingImprevuSegments.length > 0
                       ? Math.max(blockingImprevuSegments[0].top, 8)
                       : 8
-                  }px`,
+                    }px`,
                 }}
               >
                 <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium text-slate-700 bg-slate-200/90 border border-slate-300/70 shadow-sm'>
@@ -629,8 +624,7 @@ const DayView = ({
                 style={getAppointmentStyle(appointment, column, totalColumns)}
                 className={`
                   flex items-start gap-2 cursor-pointer
-                  ${
-                    colorClasses.darkBg
+                  ${colorClasses.darkBg
                   } transition-all rounded-lg overflow-hidden
                   ${isCancelled ? 'opacity-60' : ''}
                 `}
@@ -638,14 +632,14 @@ const DayView = ({
               >
                 {/* Time Badge */}
                 <div
-                  className={`${colorClasses.bgColor} text-white px-3 py-2 font-bold text-xs whitespace-nowrap flex-shrink-0 rounded-l-lg flex items-center gap-1.5`}
+                  className={`${colorClasses.bgColor} text-white px-3 py-1 font-bold text-xs whitespace-nowrap flex-shrink-0 rounded-l-lg flex items-center gap-1.5`}
                 >
                   <span>{startTime}</span>
                   {statusIcon && <span>{statusIcon}</span>}
                 </div>
 
                 {/* Appointment Info */}
-                <div className='flex-1 min-w-0 px-2 py-1'>
+                <div className='flex-1 min-w-0 px-2 py-0.5'>
                   {/* Patient Name with Consultation Motif and Private Notes */}
                   <div className='text-xs font-medium text-gray-900 truncate'>
                     <span className={isCancelled ? 'line-through' : ''}>
