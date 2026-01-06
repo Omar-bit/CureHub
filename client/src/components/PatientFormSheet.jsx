@@ -366,15 +366,7 @@ const PatientFormSheet = ({
           isLoading={isLoading}
           isEditMode={isEditMode}
         >
-          <FormInput
-            label='Email'
-            name='email'
-            type='email'
-            value={formData.email}
-            onChange={handleChange}
-            placeholder='Adresse email'
-            error={errors.email}
-          />
+
           {/* Mobile Phone with List Dropdown */}
           <div className='flex items-start gap-2'>
             <div className='flex-1'>
@@ -478,6 +470,15 @@ const PatientFormSheet = ({
             </div>
           </div>
           <FormInput
+            label='Email'
+            name='email'
+            type='email'
+            value={formData.email}
+            onChange={handleChange}
+            placeholder='Adresse email'
+            error={errors.email}
+          />
+          <FormInput
             label='Adresse'
             name='address'
             value={formData.address}
@@ -504,15 +505,6 @@ const PatientFormSheet = ({
               error={errors.city}
             />
           </div>
-          <FormTextarea
-            label='Divers'
-            name='divers'
-            value={formData.divers}
-            onChange={handleChange}
-            placeholder='ex: code porte, n° infirmerie'
-            rows={3}
-            error={errors.divers}
-          />
         </AccordionSection>
 
         {/* Information Section */}
@@ -572,6 +564,16 @@ const PatientFormSheet = ({
             placeholder="Nombre d'absences"
             error={errors.absenceCount}
           />
+
+          <FormTextarea
+            label='Infos'
+            name='divers'
+            value={formData.divers}
+            onChange={handleChange}
+            placeholder='ex: code porte, n° infirmerie'
+            rows={3}
+            error={errors.divers}
+          />
         </AccordionSection>
 
         {/* Block/Delete Section - Only show in edit mode */}
@@ -594,11 +596,10 @@ const PatientFormSheet = ({
                 <Button
                   type='button'
                   variant='outline'
-                  className={`w-full ${
-                    isBlocked
-                      ? 'border-green-500 text-green-600 hover:bg-green-50'
-                      : 'border-orange-500 text-orange-600 hover:bg-orange-50'
-                  }`}
+                  className={`w-full ${isBlocked
+                    ? 'border-green-500 text-green-600 hover:bg-green-50'
+                    : 'border-orange-500 text-orange-600 hover:bg-orange-50'
+                    }`}
                   onClick={() => setShowBlockConfirm(true)}
                 >
                   {isBlocked ? 'Débloquer le patient' : 'Bloquer le patient'}
@@ -650,12 +651,10 @@ const PatientFormSheet = ({
         title={isBlocked ? 'Débloquer le patient' : 'Bloquer le patient'}
         description={
           isBlocked
-            ? `Êtes-vous sûr de vouloir débloquer ${
-                getPatientDisplayName(patient) || 'ce patient'
-              } ? Le patient pourra à nouveau prendre des rendez-vous.`
-            : `Êtes-vous sûr de vouloir bloquer ${
-                getPatientDisplayName(patient) || 'ce patient'
-              } ? Le patient ne pourra plus prendre de rendez-vous.`
+            ? `Êtes-vous sûr de vouloir débloquer ${getPatientDisplayName(patient) || 'ce patient'
+            } ? Le patient pourra à nouveau prendre des rendez-vous.`
+            : `Êtes-vous sûr de vouloir bloquer ${getPatientDisplayName(patient) || 'ce patient'
+            } ? Le patient ne pourra plus prendre de rendez-vous.`
         }
         confirmText={isBlocked ? 'Débloquer' : 'Bloquer'}
         cancelText='Annuler'
@@ -674,9 +673,8 @@ const PatientFormSheet = ({
           }
         }}
         title='Supprimer le patient'
-        description={`Êtes-vous sûr de vouloir supprimer ${
-          getPatientDisplayName(patient) || 'ce patient'
-        } ? Cette action est irréversible.`}
+        description={`Êtes-vous sûr de vouloir supprimer ${getPatientDisplayName(patient) || 'ce patient'
+          } ? Cette action est irréversible.`}
         confirmText='Supprimer'
         cancelText='Annuler'
         variant='destructive'
