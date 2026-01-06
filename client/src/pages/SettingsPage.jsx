@@ -70,7 +70,7 @@ const SettingsPage = () => {
       : []),
     {
       id: 'pto',
-      title: 'PTO',
+      title: 'Congés',
       description: 'Configure how you receive paid time off settings',
       icon: Bell,
       onClick: () => navigate('/settings/pto'),
