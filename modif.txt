@@ -1,0 +1,6 @@
+-temps slot 
+-affichage rendez vous
+-affichage calenderier toujours ala kobr l ecran
+-affichage exacte l rendez vous sur l calenderier
+-police dynamique basé sur taille de rendez vous
+-affichage PTO sur calendray (gray layer)
