@@ -383,6 +383,10 @@ model Appointment {
   documents AppointmentDocument[] // Appointment documents
   history   AppointmentHistory[] // Appointment history
 
+  // Soft delete fields
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

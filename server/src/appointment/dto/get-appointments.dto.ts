@@ -1,6 +1,7 @@
-import { IsString, IsOptional, IsDateString, IsEnum } from 'class-validator';
+import { IsString, IsOptional, IsDateString, IsEnum, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { AppointmentStatus } from '@prisma/client';
+import { Transform } from 'class-transformer';
 
 export class GetAppointmentsDto {
   @ApiProperty({
@@ -64,4 +65,14 @@ export class GetAppointmentsDto {
   })
   @IsOptional()
   limit?: number;
+
+  @ApiProperty({
+    description: 'Include soft-deleted appointments in results',
+    required: false,
+    default: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  includeDeleted?: boolean;
 }

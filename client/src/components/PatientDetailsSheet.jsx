@@ -193,11 +193,12 @@ const PatientDetailsSheet = ({
 
     setLoadingAppointments(true);
     try {
-      const response = await appointmentAPI.getByPatient(patient.id);
+      // Fetch appointments including deleted ones
+      const response = await appointmentAPI.getByPatient(patient.id, { includeDeleted: true });
       const appointmentData = response.appointments || [];
       console.log('Fetched Appointments:', appointmentData);
 
-      // Separate appointments by time only (cancelled and deleted are included in both categories)
+      // Separate appointments by time (include deleted in their respective categories)
       const now = new Date();
       const upcoming = appointmentData.filter(
         (apt) => new Date(apt.startTime) > now
@@ -314,8 +315,8 @@ const PatientDetailsSheet = ({
             apt.status === 'CANCELLED'
               ? 'red'
               : aptDate > now
-              ? 'blue'
-              : 'gray',
+                ? 'blue'
+                : 'gray',
           metadata: apt,
         });
       });
@@ -331,8 +332,8 @@ const PatientDetailsSheet = ({
         let color = task.completed
           ? 'green'
           : task.priority === 'HIGH'
-          ? 'red'
-          : 'orange';
+            ? 'red'
+            : 'orange';
 
         events.push({
           id: `task-${task.id}`,
@@ -410,8 +411,8 @@ const PatientDetailsSheet = ({
       console.error('Error generating email with AI:', error);
       showError(
         error.response?.data?.message ||
-          error.message ||
-          'Erreur lors de la génération du message'
+        error.message ||
+        'Erreur lors de la génération du message'
       );
     } finally {
       setGeneratingEmailAi(false);
@@ -441,8 +442,8 @@ const PatientDetailsSheet = ({
       console.error('Error generating SMS with AI:', error);
       showError(
         error.response?.data?.message ||
-          error.message ||
-          'Erreur lors de la génération du message'
+        error.message ||
+        'Erreur lors de la génération du message'
       );
     } finally {
       setGeneratingSmsAi(false);
@@ -763,7 +764,7 @@ const PatientDetailsSheet = ({
             <PatientFormSheet
               patient={patient}
               isOpen={true}
-              onClose={() => {}}
+              onClose={() => { }}
               onSave={async (data) => {
                 try {
                   await patientAPI.update(patient.id, data);
@@ -1070,7 +1071,7 @@ const PatientDetailsSheet = ({
                           } catch (error) {
                             showError(
                               error.response?.data?.message ||
-                                "Échec de l'envoi de l'email"
+                              "Échec de l'envoi de l'email"
                             );
                           } finally {
                             setSendingEmail(false);
@@ -1150,31 +1151,33 @@ const PatientDetailsSheet = ({
                       return (
                         <div
                           key={appointment.id}
-                          className={`border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow ${
-                            appointment.status === 'CANCELLED'
-                              ? 'bg-red-50 border-red-300'
-                              : 'bg-white border-gray-200'
-                          }`}
+                          className={`border rounded-lg p-4 shadow-sm transition-shadow ${appointment.isDeleted
+                            ? 'bg-gray-100 border-gray-300 opacity-80'
+                            : appointment.status === 'CANCELLED'
+                              ? 'bg-red-50 border-red-300 hover:shadow-md'
+                              : 'bg-white border-gray-200 hover:shadow-md'
+                            }`}
                         >
                           <div className='flex items-start gap-4'>
                             <div className='flex flex-col items-center min-w-[60px]'>
                               <div
-                                className={`text-white text-xs font-medium px-2 py-1 rounded mb-2 ${
-                                  appointment.status === 'CANCELLED'
+                                className={`text-white text-xs font-medium px-2 py-1 rounded mb-2 ${appointment.isDeleted
+                                  ? 'bg-gray-400'
+                                  : appointment.status === 'CANCELLED'
                                     ? 'bg-red-500'
                                     : 'bg-blue-500'
-                                }`}
+                                  } ${appointment.isDeleted ? 'line-through' : ''}`}
                               >
                                 {appointmentType}
                               </div>
                               <div className='text-center'>
-                                <div className='text-xs text-gray-500 uppercase'>
+                                <div className={`text-xs uppercase ${appointment.isDeleted ? 'text-gray-400 line-through' : 'text-gray-500'}`}>
                                   {dateTime.date.split(' ')[0]}
                                 </div>
-                                <div className='text-xl font-bold text-gray-900'>
+                                <div className={`text-xl font-bold ${appointment.isDeleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
                                   {dateTime.date.split(' ')[1]}
                                 </div>
-                                <div className='text-xs text-gray-500 mt-1'>
+                                <div className={`text-xs mt-1 ${appointment.isDeleted ? 'text-gray-400 line-through' : 'text-gray-500'}`}>
                                   {dateTime.time}
                                 </div>
                                 <div className='text-xs text-gray-400 mt-1'>
@@ -1186,16 +1189,22 @@ const PatientDetailsSheet = ({
                             <div className='flex-1'>
                               <div className='flex items-center gap-2 mb-2'>
                                 <User
-                                  className={`w-4 h-4 ${
-                                    appointment.status === 'CANCELLED'
+                                  className={`w-4 h-4 ${appointment.isDeleted
+                                    ? 'text-gray-400'
+                                    : appointment.status === 'CANCELLED'
                                       ? 'text-red-500'
                                       : 'text-blue-500'
-                                  }`}
+                                    }`}
                                 />
-                                <span className='font-medium text-gray-900'>
+                                <span className={`font-medium ${appointment.isDeleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
                                   {doctorName}
                                 </span>
-                                {appointment.status === 'CANCELLED' && (
+                                {appointment.isDeleted && (
+                                  <span className='ml-auto text-xs font-semibold text-gray-500 bg-gray-200 px-2 py-1 rounded'>
+                                    Supprimé
+                                  </span>
+                                )}
+                                {!appointment.isDeleted && appointment.status === 'CANCELLED' && (
                                   <span className='ml-auto text-xs font-semibold text-red-600 bg-red-100 px-2 py-1 rounded'>
                                     Annulé
                                   </span>
@@ -1203,35 +1212,41 @@ const PatientDetailsSheet = ({
                               </div>
                               <div className='flex items-center gap-2'>
                                 <div
-                                  className={`w-2 h-2 rounded-full ${
-                                    appointment.status === 'CANCELLED'
+                                  className={`w-2 h-2 rounded-full ${appointment.isDeleted
+                                    ? 'bg-gray-400'
+                                    : appointment.status === 'CANCELLED'
                                       ? 'bg-red-500'
                                       : 'bg-blue-500'
-                                  }`}
+                                    }`}
                                 ></div>
                                 <span
-                                  className={`text-sm font-medium ${
-                                    appointment.status === 'CANCELLED'
+                                  className={`text-sm font-medium ${appointment.isDeleted
+                                    ? 'text-gray-400 line-through'
+                                    : appointment.status === 'CANCELLED'
                                       ? 'text-red-600'
                                       : 'text-blue-600'
-                                  }`}
+                                    }`}
                                 >
-                                  {appointment.status === 'CANCELLED'
-                                    ? 'Annulé'
-                                    : urgency}
+                                  {appointment.isDeleted
+                                    ? 'Supprimé'
+                                    : appointment.status === 'CANCELLED'
+                                      ? 'Annulé'
+                                      : urgency}
                                 </span>
                               </div>
                             </div>
 
-                            <div className='flex items-start'>
-                              <Button
-                                size='sm'
-                                className='bg-purple-500 hover:bg-purple-600 text-white text-xs px-3 py-1.5 rounded-md'
-                              >
-                                <Send className='w-3 h-3 mr-1' />
-                                Rappel
-                              </Button>
-                            </div>
+                            {!appointment.isDeleted && (
+                              <div className='flex items-start'>
+                                <Button
+                                  size='sm'
+                                  className='bg-purple-500 hover:bg-purple-600 text-white text-xs px-3 py-1.5 rounded-md'
+                                >
+                                  <Send className='w-3 h-3 mr-1' />
+                                  Rappel
+                                </Button>
+                              </div>
+                            )}
                           </div>
 
                           <div className='flex justify-center mt-3 pt-2 border-t border-gray-100'>
@@ -1271,31 +1286,33 @@ const PatientDetailsSheet = ({
                       return (
                         <div
                           key={appointment.id}
-                          className={`border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow ${
-                            appointment.status === 'CANCELLED'
-                              ? 'bg-red-50 border-red-300'
-                              : 'bg-gray-50 border-gray-200'
-                          }`}
+                          className={`border rounded-lg p-4 shadow-sm transition-shadow ${appointment.isDeleted
+                            ? 'bg-gray-100 border-gray-300 opacity-80'
+                            : appointment.status === 'CANCELLED'
+                              ? 'bg-red-50 border-red-300 hover:shadow-md'
+                              : 'bg-gray-50 border-gray-200 hover:shadow-md'
+                            }`}
                         >
                           <div className='flex items-start gap-4'>
                             <div className='flex flex-col items-center min-w-[60px]'>
                               <div
-                                className={`text-white text-xs font-medium px-2 py-1 rounded mb-2 ${
-                                  appointment.status === 'CANCELLED'
+                                className={`text-white text-xs font-medium px-2 py-1 rounded mb-2 ${appointment.isDeleted
+                                  ? 'bg-gray-400'
+                                  : appointment.status === 'CANCELLED'
                                     ? 'bg-red-500'
                                     : 'bg-gray-500'
-                                }`}
+                                  } ${appointment.isDeleted ? 'line-through' : ''}`}
                               >
                                 {appointmentType}
                               </div>
                               <div className='text-center'>
-                                <div className='text-xs text-gray-500 uppercase'>
+                                <div className={`text-xs uppercase ${appointment.isDeleted ? 'text-gray-400 line-through' : 'text-gray-500'}`}>
                                   {dateTime.date.split(' ')[0]}
                                 </div>
-                                <div className='text-xl font-bold text-gray-900'>
+                                <div className={`text-xl font-bold ${appointment.isDeleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
                                   {dateTime.date.split(' ')[1]}
                                 </div>
-                                <div className='text-xs text-gray-500 mt-1'>
+                                <div className={`text-xs mt-1 ${appointment.isDeleted ? 'text-gray-400 line-through' : 'text-gray-500'}`}>
                                   {dateTime.time}
                                 </div>
                                 <div className='text-xs text-gray-400 mt-1'>
@@ -1307,16 +1324,22 @@ const PatientDetailsSheet = ({
                             <div className='flex-1'>
                               <div className='flex items-center gap-2 mb-2'>
                                 <User
-                                  className={`w-4 h-4 ${
-                                    appointment.status === 'CANCELLED'
+                                  className={`w-4 h-4 ${appointment.isDeleted
+                                    ? 'text-gray-400'
+                                    : appointment.status === 'CANCELLED'
                                       ? 'text-red-500'
                                       : 'text-gray-500'
-                                  }`}
+                                    }`}
                                 />
-                                <span className='font-medium text-gray-900'>
+                                <span className={`font-medium ${appointment.isDeleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
                                   {doctorName}
                                 </span>
-                                {appointment.status === 'CANCELLED' && (
+                                {appointment.isDeleted && (
+                                  <span className='ml-auto text-xs font-semibold text-gray-500 bg-gray-200 px-2 py-1 rounded'>
+                                    Supprimé
+                                  </span>
+                                )}
+                                {!appointment.isDeleted && appointment.status === 'CANCELLED' && (
                                   <span className='ml-auto text-xs font-semibold text-red-600 bg-red-100 px-2 py-1 rounded'>
                                     Annulé
                                   </span>
@@ -1324,43 +1347,49 @@ const PatientDetailsSheet = ({
                               </div>
                               <div className='flex items-center gap-2'>
                                 <div
-                                  className={`w-2 h-2 rounded-full ${
-                                    appointment.status === 'CANCELLED'
+                                  className={`w-2 h-2 rounded-full ${appointment.isDeleted
+                                    ? 'bg-gray-400'
+                                    : appointment.status === 'CANCELLED'
                                       ? 'bg-red-500'
                                       : 'bg-gray-500'
-                                  }`}
+                                    }`}
                                 ></div>
                                 <span
-                                  className={`text-sm font-medium ${
-                                    appointment.status === 'CANCELLED'
+                                  className={`text-sm font-medium ${appointment.isDeleted
+                                    ? 'text-gray-400 line-through'
+                                    : appointment.status === 'CANCELLED'
                                       ? 'text-red-600'
                                       : 'text-gray-600'
-                                  }`}
+                                    }`}
                                 >
-                                  {appointment.status === 'CANCELLED'
-                                    ? 'Annulé'
-                                    : urgency}
+                                  {appointment.isDeleted
+                                    ? 'Supprimé'
+                                    : appointment.status === 'CANCELLED'
+                                      ? 'Annulé'
+                                      : urgency}
                                 </span>
                               </div>
                               <div
-                                className={`text-xs mt-2 ${
-                                  appointment.status === 'CANCELLED'
+                                className={`text-xs mt-2 ${appointment.isDeleted
+                                  ? 'text-gray-400 line-through'
+                                  : appointment.status === 'CANCELLED'
                                     ? 'text-red-600'
                                     : 'text-gray-500'
-                                }`}
+                                  }`}
                               >
                                 Statut:{' '}
-                                {getAppointmentStatusLabel(appointment.status)}
+                                {appointment.isDeleted ? 'Supprimé' : getAppointmentStatusLabel(appointment.status)}
                               </div>
                             </div>
                           </div>
 
                           <div
-                            className={`flex justify-center mt-3 pt-2 ${
-                              appointment.status === 'CANCELLED'
+                            className={`flex justify-center mt-3 pt-2 ${appointment.isDeleted
+                              ? 'border-t border-gray-200'
+                              : appointment.status === 'CANCELLED'
                                 ? 'border-t border-red-200'
                                 : 'border-t border-gray-100'
-                            }`}
+                              }`}
                           >
                             <ChevronDown className='w-4 h-4 text-gray-400' />
                           </div>
@@ -1374,6 +1403,8 @@ const PatientDetailsSheet = ({
                     </div>
                   )}
                 </div>
+
+
               </div>
             )}
           </TabsContent>
@@ -1474,12 +1505,12 @@ const PatientDetailsSheet = ({
                                             <span>
                                               Priorité:{' '}
                                               {event.metadata.priority ===
-                                              'HIGH'
+                                                'HIGH'
                                                 ? 'Haute'
                                                 : event.metadata.priority ===
                                                   'MEDIUM'
-                                                ? 'Moyenne'
-                                                : 'Basse'}
+                                                  ? 'Moyenne'
+                                                  : 'Basse'}
                                             </span>
                                           </div>
                                         )}
@@ -1498,17 +1529,16 @@ const PatientDetailsSheet = ({
 
                               {/* Event type badge */}
                               <div
-                                className={`px-2 py-1 rounded text-xs font-medium ${
-                                  event.color === 'green'
-                                    ? 'bg-green-50 text-green-700'
-                                    : event.color === 'blue'
+                                className={`px-2 py-1 rounded text-xs font-medium ${event.color === 'green'
+                                  ? 'bg-green-50 text-green-700'
+                                  : event.color === 'blue'
                                     ? 'bg-blue-50 text-blue-700'
                                     : event.color === 'red'
-                                    ? 'bg-red-50 text-red-700'
-                                    : event.color === 'orange'
-                                    ? 'bg-orange-50 text-orange-700'
-                                    : 'bg-gray-50 text-gray-700'
-                                }`}
+                                      ? 'bg-red-50 text-red-700'
+                                      : event.color === 'orange'
+                                        ? 'bg-orange-50 text-orange-700'
+                                        : 'bg-gray-50 text-gray-700'
+                                  }`}
                               >
                                 {event.type
                                   .replace('_', ' ')

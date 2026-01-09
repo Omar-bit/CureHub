@@ -196,6 +196,7 @@ export class AppointmentService {
       consultationTypeId,
       page = 1,
       limit = 50,
+      includeDeleted = false,
     } = query;
 
     const pageNum = Number(page) || 1;
@@ -205,6 +206,8 @@ export class AppointmentService {
     // Build where clause to support patientId filter for both primary and multi-patient appointments
     const where: Prisma.AppointmentWhereInput = {
       doctorId,
+      // Filter out deleted appointments by default
+      ...(includeDeleted ? {} : { isDeleted: false }),
       ...(patientId
         ? {
             OR: [
@@ -711,8 +714,13 @@ export class AppointmentService {
   async remove(id: string, doctorId: string): Promise<void> {
     await this.findOne(id, doctorId); // Verify ownership
 
-    await this.prisma.appointment.delete({
+    // Soft delete: set isDeleted flag and deletedAt timestamp
+    await this.prisma.appointment.update({
       where: { id },
+      data: {
+        isDeleted: true,
+        deletedAt: new Date(),
+      },
     });
   }
 
