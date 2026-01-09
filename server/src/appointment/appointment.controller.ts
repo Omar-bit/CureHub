@@ -65,7 +65,7 @@ export class AppointmentController {
       createAppointmentDto,
     );
   }
-
+  // A3MAL KACHAA AAA
   @Get()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get all appointments for the doctor' })
@@ -75,6 +75,9 @@ export class AppointmentController {
   })
   @UseGuards(JwtAuthGuard)
   findAll(@Request() req, @Query() query: GetAppointmentsDto) {
+    // YOU NEED TO FIX THIS 
+    // READ THIS 
+    // !todo later update query to retreive all appointments for the doctor in a specefic duration otherwise the query will be heavy and too long 
     const doctorProfileId = this.getDoctorProfileId(req);
     return this.appointmentService.findAll(doctorProfileId, query);
   }
