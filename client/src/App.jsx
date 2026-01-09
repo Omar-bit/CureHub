@@ -15,7 +15,7 @@ import RegisterPage from './pages/RegisterPage';
 import EmailVerificationPage from './pages/EmailVerificationPage';
 import DashboardPage from './pages/DashboardPage';
 import AgendaPage from './pages/AgendaPage';
-import SettingsPage from './pages/SettingsPage';
+// SettingsPage removed - settings now shown via sidebar panel
 import ConsultationTypesPage from './pages/ConsultationTypesPage';
 import TimeplanPage from './pages/TimeplanPage';
 import MessagingPage from './pages/MessagingPage';
@@ -67,14 +67,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path='/settings'
-                element={
-                  <ProtectedRoute>
-                    <SettingsPage />
-                  </ProtectedRoute>
-                }
-              />
+              {/* /settings route removed - settings now shown via sidebar panel */}
               <Route
                 path='/settings/profile'
                 element={
