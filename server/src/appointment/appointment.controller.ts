@@ -102,7 +102,7 @@ export class AppointmentController {
   @ApiOperation({
     summary: 'Get available time slots for booking appointments',
     description:
-      "Returns available 15-minute time slots for a specific date and consultation type. Considers doctor's schedule, existing appointments, and consultation duration.",
+      "Returns available time slots for a specific date based on the consultation type's duration. For example, a 45-minute consultation with 8h-12h availability will generate slots at 8:00, 8:45, 9:30, 10:15, 11:00. Considers doctor's schedule, existing appointments, and consultation duration.",
   })
   @ApiResponse({
     status: 200,
