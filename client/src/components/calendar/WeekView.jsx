@@ -395,8 +395,8 @@ const WeekView = ({
             <button
               onClick={() => onViewChange?.('day')}
               className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${currentView === 'day'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-700 hover:bg-gray-100'
                 }`}
             >
               Day
@@ -404,8 +404,8 @@ const WeekView = ({
             <button
               onClick={() => onViewChange?.('week')}
               className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${currentView === 'week'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-700 hover:bg-gray-100'
                 }`}
             >
               Week
@@ -421,7 +421,11 @@ const WeekView = ({
           {weekDays.map((day, index) => (
             <div
               key={index}
-              className='flex-1 text-center py-3 border-r border-gray-100 last:border-r-0'
+              className='week-day flex-1 text-center py-3 border-r border-gray-100 last:border-r-0 cursor-pointer hover:bg-gray-50 transition-colors'
+              onClick={() => {
+                onDateChange(day);
+                onViewChange?.('day');
+              }}
             >
               <div
                 className={`text-sm font-medium ${CalendarUtils.isToday(day) ? 'text-blue-600' : 'text-gray-700'
@@ -431,8 +435,8 @@ const WeekView = ({
               </div>
               <div
                 className={`text-lg ${CalendarUtils.isToday(day)
-                    ? 'text-blue-600 font-bold'
-                    : 'text-gray-900'
+                  ? 'text-blue-600 font-bold'
+                  : 'text-gray-900'
                   }`}
               >
                 {CalendarUtils.formatDate(day, 'd')}
@@ -498,8 +502,8 @@ const WeekView = ({
                               className='absolute left-2 right-2 flex justify-center'
                               style={{
                                 top: `${blockingSegments.length > 0
-                                    ? Math.max(blockingSegments[0].top, 8)
-                                    : 8
+                                  ? Math.max(blockingSegments[0].top, 8)
+                                  : 8
                                   }px`,
                               }}
                             >
