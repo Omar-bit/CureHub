@@ -180,6 +180,16 @@ const PatientManagement = ({ onAppointmentCreated }) => {
     setFilteredPatients(filtered);
   }, [patients, searchQuery, searchCategory, statusFilter]);
 
+  // Sync selectedPatient with patients list when it updates
+  useEffect(() => {
+    if (selectedPatient) {
+      const updatedPatient = patients.find((p) => p.id === selectedPatient.id);
+      if (updatedPatient && updatedPatient !== selectedPatient) {
+        setSelectedPatient(updatedPatient);
+      }
+    }
+  }, [patients]);
+
   const loadPatients = async () => {
     try {
       setIsLoading(true);
@@ -461,10 +471,9 @@ const PatientManagement = ({ onAppointmentCreated }) => {
             <Users className='w-12 h-12 mb-2 text-muted-foreground/50' />
             <p className='text-sm'>
               {searchQuery
-                ? `No patients found matching "${searchQuery}" in ${
-                    searchCategories.find((cat) => cat.value === searchCategory)
-                      ?.label || 'selected category'
-                  }`
+                ? `No patients found matching "${searchQuery}" in ${searchCategories.find((cat) => cat.value === searchCategory)
+                  ?.label || 'selected category'
+                }`
                 : 'No patients yet'}
             </p>
             {!searchQuery && (
