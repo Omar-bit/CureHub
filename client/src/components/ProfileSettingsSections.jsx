@@ -20,11 +20,15 @@ const PROFESSION_GROUPS = [
   },
   {
     label: 'Auxiliaires médicaux - Rééducation',
-    options: ['Masseur-kinésithérapeute', 'Orthophoniste', 'Orthoptiste'],
-  },
-  {
-    label: 'Autres professions',
-    options: ['Diététicien', 'Ergothérapeute', 'Psychomotricien', 'Opticien'],
+    options: [
+      'Masseur-kinésithérapeute',
+      'Orthophoniste',
+      'Orthoptiste',
+      'Diététicien',
+      'Ergothérapeute',
+      'Psychomotricien',
+      'Opticien',
+    ],
   },
 ];
 
@@ -46,7 +50,7 @@ const TITLE_OPTIONS = [
   'Mademoiselle',
 ];
 
-const GENDER_OPTIONS = ['Homme', 'Femme', 'Autre'];
+const GENDER_OPTIONS = ['Homme', 'Femme'];
 
 /**
  * ProfessionalInfoSection Component
