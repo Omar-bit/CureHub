@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { ConfigService } from '@nestjs/config';
+import type { Express } from 'express';
 import { EmailTemplateService, EmailTemplate } from './email-template.service';
 
 export interface EmailConfig {
@@ -340,6 +341,7 @@ export class EmailService {
     doctorName: string,
     subject: string,
     message: string,
+    file?: Express.Multer.File,
   ): Promise<boolean> {
     try {
       const template = this.emailTemplateService.generateCustomPatientEmail({
@@ -349,9 +351,19 @@ export class EmailService {
         message,
       });
 
+      const attachments = file
+        ? [
+            {
+              filename: file.originalname,
+              content: file.buffer,
+            },
+          ]
+        : undefined;
+
       return await this.sendEmail({
         to: email,
         template,
+        attachments,
       });
     } catch (error) {
       this.logger.error(

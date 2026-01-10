@@ -12,6 +12,7 @@ import {
 } from './dto/patient.dto';
 import { Patient, Gender } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import type { Express } from 'express';
 import { EmailService } from '../email/email.service';
 import { CreatePatientRelationshipDto } from './dto/create-patient-relationship.dto';
 import { UpdatePatientPermissionsDto } from './dto/update-patient-permissions.dto';
@@ -753,6 +754,7 @@ export class PatientService {
     subject: string,
     message: string,
     doctorName: string,
+    file?: Express.Multer.File,
   ): Promise<{ success: boolean; message: string }> {
     // Find the patient and verify ownership
     const patient = await this.prisma.patient.findFirst({
@@ -781,6 +783,7 @@ export class PatientService {
       doctorName,
       subject,
       message,
+      file,
     );
 
     if (!emailSent) {

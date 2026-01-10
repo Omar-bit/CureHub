@@ -133,7 +133,7 @@ const PatientCard = ({
   // If this is a visitor, show simplified card
   if (patient.visitor) {
     return (
-      <div className='bg-gray-100 rounded-lg shadow-sm border border-gray-300 p-4 mb-4 hover:shadow-md transition-all duration-300'>
+      <div onClick={() => setIsExpanded(!isExpanded)} className='bg-gray-100 rounded-lg shadow-sm border border-gray-300 p-4 mb-4 hover:shadow-md transition-all duration-300'>
         <div className='flex items-center justify-between'>
           <div className='flex-1'>
             <div className='flex items-center gap-2 flex-wrap'>
@@ -164,7 +164,7 @@ const PatientCard = ({
           </div>
           {/* Expand/Collapse Button */}
           <button
-            onClick={() => setIsExpanded(!isExpanded)}
+
             className='ml-4 p-2 rounded-full hover:bg-gray-200 transition-colors'
           >
             {isExpanded ? (
@@ -274,7 +274,7 @@ const PatientCard = ({
   ];
 
   return (
-    <div className='bg-gray-100 rounded-lg shadow-sm border border-gray-300 p-4 mb-4 hover:shadow-md transition-all duration-300'>
+    <div onClick={() => setIsExpanded(!isExpanded)} className='cursor-pointer hover:scale-101 bg-gray-100 rounded-lg shadow-sm border border-gray-300 p-4 mb-4 hover:shadow-md transition-all duration-300'>
       {/* Collapsed Header Section */}
       <div className='flex items-center justify-between'>
         <div className='flex-1'>
@@ -341,7 +341,7 @@ const PatientCard = ({
 
         {/* Expand/Collapse Button */}
         <button
-          onClick={() => setIsExpanded(!isExpanded)}
+
           className='ml-4 p-2 rounded-full hover:bg-gray-200 transition-colors'
         >
           {isExpanded ? (
@@ -354,7 +354,7 @@ const PatientCard = ({
 
       {/* Expanded Content */}
       {isExpanded && (
-        <div className='mt-4 space-y-4 animate-in slide-in-from-top-2 duration-300'>
+        <div className='overflow-x-auto mt-4 space-y-4 animate-in slide-in-from-top-2 duration-300'>
           {/* Detailed Contact Information */}
           <div className='space-y-2'>
             {patient.phoneNumber && (

@@ -27,6 +27,7 @@ import {
   Sparkles,
   Copy,
   RotateCcw,
+  Paperclip,
 } from 'lucide-react';
 import { SheetContent, SheetHeader, SheetTitle, SheetFooter } from './ui/sheet';
 import { Button } from './ui/button';
@@ -145,6 +146,7 @@ const PatientDetailsSheet = ({
   const [timelineEvents, setTimelineEvents] = useState([]);
   const [loadingTimeline, setLoadingTimeline] = useState(false);
   const [emailMessage, setEmailMessage] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [smsMessage, setSmsMessage] = useState('');
 
@@ -722,39 +724,39 @@ const PatientDetailsSheet = ({
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}
-        className='w-full mt-6'
+        className='w-full mt-6 '
       >
-        <TabsList className='grid w-full grid-cols-8'>
-          <TabsTrigger value='profil' className='flex items-center gap-2'>
-            <User className='w-4 h-4' />
+        <TabsList className='grid w-full grid-cols-8 gap-1 ' >
+          <TabsTrigger value='profil' className='flex items-center gap-1'>
+            <User className='size-3' />
             Profil
           </TabsTrigger>
-          <TabsTrigger value='proches' className='flex items-center gap-2'>
-            <Users className='w-4 h-4' />
+          <TabsTrigger value='proches' className='flex items-center gap-1'>
+            <Users className='size-3' />
             Proches
           </TabsTrigger>
-          <TabsTrigger value='contacter' className='flex items-center gap-2'>
-            <Phone className='w-4 h-4' />
+          <TabsTrigger value='contacter' className='flex items-center gap-1'>
+            <Phone className='size-3' />
             Contacter
           </TabsTrigger>
-          <TabsTrigger value='documents' className='flex items-center gap-2'>
-            <FileText className='w-4 h-4' />
+          <TabsTrigger value='documents' className='flex items-center gap-1'>
+            <FileText className='size-3' />
             Documents
           </TabsTrigger>
-          <TabsTrigger value='actes' className='flex items-center gap-2'>
-            <Activity className='w-4 h-4' />
+          <TabsTrigger value='actes' className='flex items-center gap-1'>
+            <Activity className='size-3' />
             Actes
           </TabsTrigger>
-          <TabsTrigger value='rdv' className='flex items-center gap-2'>
-            <CalendarDays className='w-4 h-4' />
+          <TabsTrigger value='rdv' className='flex items-center gap-1'>
+            <CalendarDays className='size-3' />
             RDV
           </TabsTrigger>
-          <TabsTrigger value='taches' className='flex items-center gap-2'>
-            <CheckSquare className='w-4 h-4' />
+          <TabsTrigger value='taches' className='flex items-center gap-1'>
+            <CheckSquare className='size-3' />
             Tâches
           </TabsTrigger>
-          <TabsTrigger value='historique' className='flex items-center gap-2'>
-            <History className='w-4 h-4' />
+          <TabsTrigger value='historique' className='flex items-center gap-1'>
+            <History className='size-3' />
             Historique
           </TabsTrigger>
         </TabsList>
@@ -1047,6 +1049,42 @@ const PatientDetailsSheet = ({
                         </div>
                       )}
                     </div>
+
+                    {/* File Attachment Section */}
+                    <div className='flex items-center gap-2'>
+                      <input
+                        type="file"
+                        id="email-attachment"
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setSelectedFile(e.target.files[0]);
+                          }
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-2 text-muted-foreground hover:text-foreground"
+                        onClick={() => document.getElementById('email-attachment').click()}
+                      >
+                        <Paperclip className="w-4 h-4" />
+                        {selectedFile ? 'Changer le fichier' : 'Joindre un fichier'}
+                      </Button>
+
+                      {selectedFile && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted px-2 py-1 rounded">
+                          <span className="truncate max-w-[200px]">{selectedFile.name}</span>
+                          <button
+                            onClick={() => setSelectedFile(null)}
+                            className="text-gray-500 hover:text-red-500"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
                     <div className='flex items-center justify-between'>
                       <a
                         href={`mailto:${patient.email}`}
@@ -1062,13 +1100,26 @@ const PatientDetailsSheet = ({
                           if (!emailMessage.trim()) return;
                           setSendingEmail(true);
                           try {
-                            await patientAPI.sendEmail(patient.id, {
-                              subject: 'Message de votre médecin',
-                              message: emailMessage,
-                            });
+                            const formData = new FormData();
+                            formData.append('subject', 'Message de votre médecin');
+                            formData.append('message', emailMessage);
+                            if (selectedFile) {
+                              formData.append('file', selectedFile);
+                            }
+
+                            // We need access to axios directly or update patientAPI to handle this specific call with FormData
+                            // Since patientAPI.sendEmail wraps api.post, we can pass the FormData directly
+                            // BUT we need to make sure the Content-Type header is set correctly for multipart/form-data
+                            // By passing FormData, axios usually detects it. 
+                            // However, the api wrapper function takes (id, data) -> api.post(url, data)
+
+                            await patientAPI.sendEmail(patient.id, formData);
+
                             showSuccess('Email envoyé avec succès');
                             setEmailMessage('');
+                            setSelectedFile(null);
                           } catch (error) {
+                            console.error(error);
                             showError(
                               error.response?.data?.message ||
                               "Échec de l'envoi de l'email"

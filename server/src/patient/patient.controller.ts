@@ -11,7 +11,11 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { Express } from 'express';
 import { PatientService } from './patient.service';
 import {
   CreatePatientDto,
@@ -281,10 +285,12 @@ export class PatientController {
   // Email Endpoint
 
   @Post(':id/send-email')
+  @UseInterceptors(FileInterceptor('file'))
   @HttpCode(HttpStatus.OK)
   async sendEmailToPatient(
     @CurrentUser() user: any,
     @Param('id') patientId: string,
+    @UploadedFile() file: Express.Multer.File,
     @Body() body: { subject: string; message: string },
   ) {
     // Ensure user is a doctor and has a doctor profile
@@ -312,6 +318,7 @@ export class PatientController {
       subject,
       body.message,
       doctorName,
+      file,
     );
   }
 }
