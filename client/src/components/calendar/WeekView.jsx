@@ -240,6 +240,116 @@ const WeekView = ({
     return calculateAppointmentLayout(dayAppointments);
   };
 
+  // Helper to get day of week from date (returns MONDAY, TUESDAY, etc.)
+  const getDayOfWeek = (date) => {
+    const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+    return days[date.getDay()];
+  };
+
+  // Calculate availability segments from timeplans for a specific day
+  const getAvailabilitySegmentsForDay = React.useCallback(
+    (day) => {
+      if (!timeplans || timeplans.length === 0) {
+        return [];
+      }
+
+      const dayOfWeek = getDayOfWeek(day);
+      const dateStr = CalendarUtils.formatDate(day, 'yyyy-MM-dd');
+
+      // Find timeplan for this day - prioritize specific date, then general weekly
+      let timeplan = timeplans.find(
+        (tp) =>
+          tp.dayOfWeek === dayOfWeek &&
+          tp.specificDate &&
+          CalendarUtils.formatDate(new Date(tp.specificDate), 'yyyy-MM-dd') === dateStr &&
+          tp.isActive
+      );
+
+      if (!timeplan) {
+        timeplan = timeplans.find(
+          (tp) => tp.dayOfWeek === dayOfWeek && !tp.specificDate && tp.isActive
+        );
+      }
+
+      if (!timeplan || !timeplan.timeSlots || timeplan.timeSlots.length === 0) {
+        return [];
+      }
+
+      const segments = [];
+      const activeSlots = timeplan.timeSlots.filter((slot) => slot.isActive && slot.isActive !== false);
+
+      activeSlots.forEach((slot) => {
+        if (!slot.consultationTypes || slot.consultationTypes.length === 0) {
+          return;
+        }
+
+        const [startHour, startMinute] = slot.startTime.split(':').map(Number);
+        const [endHour, endMinute] = slot.endTime.split(':').map(Number);
+
+        // Calculate position and height (WeekView uses fixed 60px per hour, no zoom)
+        const startTimeStr = slot.startTime;
+        const startDate = new Date(day);
+        startDate.setHours(startHour, startMinute, 0, 0);
+        const endDate = new Date(day);
+        endDate.setHours(endHour, endMinute, 0, 0);
+
+        // Check if slot overlaps with working hours
+        const slotEndHour = endHour + (endMinute > 0 ? 0.01 : 0);
+        if (slotEndHour <= workingHours.start || startHour >= workingHours.end) {
+          return;
+        }
+
+        const duration = CalendarUtils.getAppointmentDuration(startDate, endDate);
+        const top = CalendarUtils.getTimeSlotPosition(startTimeStr, workingHours.start, 60);
+        const height = CalendarUtils.getTimeSlotHeight(duration, 60);
+
+        if (height <= 0) {
+          return;
+        }
+
+        // Extract consultation types with their colors
+        const consultationTypesList = slot.consultationTypes
+          .map((ct) => {
+            // Handle both nested structure (ct.consultationType) and flat structure
+            const consultationType = ct.consultationType || ct;
+            return consultationType && consultationType.color ? consultationType : null;
+          })
+          .filter((ct) => ct !== null);
+
+        if (consultationTypesList.length === 0) {
+          return;
+        }
+
+        // If multiple consultation types, create side-by-side thin vertical lines with gaps
+        const numTypes = consultationTypesList.length;
+        const gapSize = 1; // Gap size in pixels between lines
+        const totalBarWidth = 3; // Total width for the bar area in pixels
+        const totalGaps = numTypes > 1 ? (numTypes - 1) * gapSize : 0;
+        const barWidth = numTypes > 1 ? (totalBarWidth - totalGaps) / numTypes : totalBarWidth;
+
+        consultationTypesList.forEach((consultationType, index) => {
+          // Calculate position: previous bars + gaps
+          const leftOffset = index * (barWidth + gapSize);
+          
+          segments.push({
+            top,
+            height,
+            left: leftOffset, // Pixel offset from start
+            width: barWidth, // Pixel width of each bar
+            color: consultationType.color || '#gray',
+            name: consultationType.name || 'Consultation',
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            consultationTypeId: consultationType.id,
+          });
+        });
+      });
+
+      return segments;
+    },
+    [timeplans, workingHours.start, workingHours.end]
+  );
+
   const getBlockingImprevuSegmentsForDay = React.useCallback(
     (day) => {
       if (!imprevus || imprevus.length === 0) {
@@ -585,6 +695,27 @@ const WeekView = ({
                               </div>
                             </div>
                           )}
+                        {/* Availability Bars - Thin vertical lines at left edge of day column (next to time labels) */}
+                        {getAvailabilitySegmentsForDay(day).map((segment, segIndex) => {
+                          const segmentLeft = segment.left || 0; // Pixel offset from start of bar area
+                          const segmentWidth = segment.width || 3; // Pixel width of the bar
+                          
+                          return (
+                            <div
+                              key={`availability-${dayIndex}-${segment.consultationTypeId}-${segIndex}`}
+                              className="absolute z-10 pointer-events-none"
+                              style={{
+                                top: `${segment.top}px`,
+                                height: `${segment.height}px`,
+                                left: `${segmentLeft}px`,
+                                width: `${segmentWidth}px`,
+                                backgroundColor: segment.color,
+                                borderRadius: '1px',
+                              }}
+                              title={`${segment.name} - ${segment.startTime} à ${segment.endTime}`}
+                            />
+                          );
+                        })}
                         {getDayAppointmentLayouts(day).map(
                           ({ appointment, column, totalColumns }) => {
                             const colorClasses =

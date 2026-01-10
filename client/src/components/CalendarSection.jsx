@@ -12,6 +12,7 @@ import {
   agendaPreferencesAPI,
   imprevuAPI,
   ptoAPI,
+  timeplanAPI,
 } from '../services/api';
 import { showError } from '../lib/toast';
 import { Loader2 } from 'lucide-react';
@@ -33,6 +34,7 @@ const CalendarSection = forwardRef(
     const [appointments, setAppointments] = useState([]);
     const [imprevus, setImprevus] = useState([]);
     const [ptos, setPtos] = useState([]);
+    const [timeplans, setTimeplans] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentView, setCurrentView] = useState('day');
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -114,6 +116,16 @@ const CalendarSection = forwardRef(
       }
     };
 
+    const loadTimeplans = async () => {
+      try {
+        const data = await timeplanAPI.getAll();
+        setTimeplans(data || []);
+        return data || [];
+      } catch (error) {
+        console.error('Error loading timeplans:', error);
+      }
+    };
+
     useImperativeHandle(ref, () => ({
       navigateToDate: (date) => {
         if (calendarRef.current) {
@@ -127,6 +139,7 @@ const CalendarSection = forwardRef(
           loadAppointments({ showLoader: false }),
           loadImprevus(currentDate),
           loadPtos(),
+          loadTimeplans(),
         ]);
       },
       getCurrentDate: () =>
@@ -145,6 +158,7 @@ const CalendarSection = forwardRef(
       loadPreferences();
       loadImprevus(currentDate);
       loadPtos();
+      loadTimeplans();
     }, []);
 
     // Listen for preference updates
@@ -308,6 +322,7 @@ const CalendarSection = forwardRef(
             appointments={appointments}
             imprevus={imprevus}
             ptos={ptos}
+            timeplans={timeplans}
             onAppointmentClick={onAppointmentClick}
             onTimeSlotClick={handleTimeSlotClickWithImprevuCheck}
             workingHours={{
