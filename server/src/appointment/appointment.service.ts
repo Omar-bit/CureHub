@@ -1123,12 +1123,16 @@ export class AppointmentService {
     const [startHour, startMinute] = startTime.split(':').map(Number);
     const [endHour, endMinute] = endTime.split(':').map(Number);
 
-    // Create start and end Date objects
-    const start = new Date(date);
-    start.setHours(startHour, startMinute, 0, 0);
+    // Extract the date portion (year, month, day) from the input date
+    // We use UTC to ensure consistent timezone handling across server environments
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
 
-    const end = new Date(date);
-    end.setHours(endHour, endMinute, 0, 0);
+    // Create start and end Date objects using UTC to match how appointments are stored
+    // This fixes the timezone discrepancy between local server time and UTC-stored appointments
+    const start = new Date(Date.UTC(year, month, day, startHour, startMinute, 0, 0));
+    const end = new Date(Date.UTC(year, month, day, endHour, endMinute, 0, 0));
 
     // Generate slots based on consultation type duration
     // Slots are spaced by the consultation duration to ensure back-to-back appointments
@@ -1146,9 +1150,13 @@ export class AppointmentService {
 
       // Check if this slot would fit within the time slot
       if (slotEndTime <= end) {
-        const timeString = current.toTimeString().slice(0, 5); // "HH:mm" format
+        // Format time string using UTC hours/minutes to match how we constructed the slots
+        const hours = current.getUTCHours().toString().padStart(2, '0');
+        const minutes = current.getUTCMinutes().toString().padStart(2, '0');
+        const timeString = `${hours}:${minutes}`;
 
         // Check if this time conflicts with existing appointments
+        // Appointments are stored in UTC, so this comparison is now consistent
         const hasConflict = existingAppointments.some((appointment) => {
           const appointmentStart = new Date(appointment.startTime);
           const appointmentEnd = new Date(appointment.endTime);
@@ -1179,9 +1187,9 @@ export class AppointmentService {
         // Check if this time is blocked by PTO
         const isBlockedByPTO = blockingPTOs.some((pto) => {
           const ptoStart = new Date(pto.startDate);
-          ptoStart.setHours(0, 0, 0, 0);
+          ptoStart.setUTCHours(0, 0, 0, 0);
           const ptoEnd = new Date(pto.endDate);
-          ptoEnd.setHours(23, 59, 59, 999);
+          ptoEnd.setUTCHours(23, 59, 59, 999);
 
           return current >= ptoStart && current <= ptoEnd;
         });
