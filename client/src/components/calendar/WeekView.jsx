@@ -703,7 +703,7 @@ const WeekView = ({
                           return (
                             <div
                               key={`availability-${dayIndex}-${segment.consultationTypeId}-${segIndex}`}
-                              className="absolute z-10 pointer-events-none"
+                              className="absolute rounded-[100%] overflow-hidden shadow-md opacity-80 z-10 pointer-events-none"
                               style={{
                                 top: `${segment.top}px`,
                                 height: `${segment.height}px`,
