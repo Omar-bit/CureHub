@@ -139,9 +139,15 @@ export class AppointmentController {
     @Query() query: GetAvailableSlotsDto,
   ): Promise<AvailableSlotsResponse> {
     const doctorProfileId = this.getDoctorProfileId(req);
+    
+    // Parse date string explicitly to avoid timezone issues
+    // "2026-01-12" should always mean January 12, 2026 in local time
+    const [year, month, day] = query.date.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    
     return this.appointmentService.getAvailableSlots(
       doctorProfileId,
-      new Date(query.date),
+      date,
       query.consultationTypeId,
     );
   }

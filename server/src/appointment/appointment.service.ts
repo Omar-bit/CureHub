@@ -1123,16 +1123,23 @@ export class AppointmentService {
     const [startHour, startMinute] = startTime.split(':').map(Number);
     const [endHour, endMinute] = endTime.split(':').map(Number);
 
-    // Extract the date portion (year, month, day) from the input date
-    // We use UTC to ensure consistent timezone handling across server environments
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const day = date.getDate();
+    // Create start and end Date objects in local timezone
+    // The date parameter is already a Date object representing the target date
+    const start = new Date(date);
+    start.setHours(startHour, startMinute, 0, 0);
 
-    // Create start and end Date objects using UTC to match how appointments are stored
-    // This fixes the timezone discrepancy between local server time and UTC-stored appointments
-    const start = new Date(Date.UTC(year, month, day, startHour, startMinute, 0, 0));
-    const end = new Date(Date.UTC(year, month, day, endHour, endMinute, 0, 0));
+    const end = new Date(date);
+    end.setHours(endHour, endMinute, 0, 0);
+
+    console.log(`[DEBUG] Generating slots for date: ${date.toISOString()}`);
+    console.log(`[DEBUG] Start time: ${start.toISOString()} (${startTime} local)`);
+    console.log(`[DEBUG] End time: ${end.toISOString()} (${endTime} local)`);
+    console.log(`[DEBUG] Existing appointments count: ${existingAppointments.length}`);
+    if (existingAppointments.length > 0) {
+      existingAppointments.forEach((apt, idx) => {
+        console.log(`[DEBUG] Appointment ${idx + 1}: ${new Date(apt.startTime).toISOString()} - ${new Date(apt.endTime).toISOString()}`);
+      });
+    }
 
     // Generate slots based on consultation type duration
     // Slots are spaced by the consultation duration to ensure back-to-back appointments
@@ -1150,22 +1157,25 @@ export class AppointmentService {
 
       // Check if this slot would fit within the time slot
       if (slotEndTime <= end) {
-        // Format time string using UTC hours/minutes to match how we constructed the slots
-        const hours = current.getUTCHours().toString().padStart(2, '0');
-        const minutes = current.getUTCMinutes().toString().padStart(2, '0');
-        const timeString = `${hours}:${minutes}`;
+        const timeString = current.toTimeString().slice(0, 5); // "HH:mm" format
 
         // Check if this time conflicts with existing appointments
-        // Appointments are stored in UTC, so this comparison is now consistent
         const hasConflict = existingAppointments.some((appointment) => {
           const appointmentStart = new Date(appointment.startTime);
           const appointmentEnd = new Date(appointment.endTime);
 
-          return (
+          const conflict = (
             (current >= appointmentStart && current < appointmentEnd) ||
             (slotEndTime > appointmentStart && slotEndTime <= appointmentEnd) ||
             (current <= appointmentStart && slotEndTime >= appointmentEnd)
           );
+
+          if (conflict) {
+            console.log(`[DEBUG] Slot ${timeString} conflicts with appointment: ${appointmentStart.toISOString()} - ${appointmentEnd.toISOString()}`);
+            console.log(`[DEBUG]   Current slot: ${current.toISOString()} - ${slotEndTime.toISOString()}`);
+          }
+
+          return conflict;
         });
 
         // Check if this time is blocked by an imprevu
@@ -1187,17 +1197,20 @@ export class AppointmentService {
         // Check if this time is blocked by PTO
         const isBlockedByPTO = blockingPTOs.some((pto) => {
           const ptoStart = new Date(pto.startDate);
-          ptoStart.setUTCHours(0, 0, 0, 0);
+          ptoStart.setHours(0, 0, 0, 0);
           const ptoEnd = new Date(pto.endDate);
-          ptoEnd.setUTCHours(23, 59, 59, 999);
+          ptoEnd.setHours(23, 59, 59, 999);
 
           return current >= ptoStart && current <= ptoEnd;
         });
 
+        const available = !hasConflict && !isPast && !isBlockedByImprevu && !isBlockedByPTO;
+        
+        console.log(`[DEBUG] Slot ${timeString}: available=${available}, hasConflict=${hasConflict}, isPast=${isPast}`);
+
         slots.push({
           time: timeString,
-          available:
-            !hasConflict && !isPast && !isBlockedByImprevu && !isBlockedByPTO,
+          available,
         });
       }
 
