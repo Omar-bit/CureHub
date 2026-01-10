@@ -20,6 +20,7 @@ const WeekView = ({
   currentDate,
   appointments = [],
   imprevus = [],
+  ptos = [],
   onDateChange,
   onAppointmentClick,
   onTimeSlotClick,
@@ -290,32 +291,83 @@ const WeekView = ({
         const height = CalendarUtils.getTimeSlotHeight(duration, 60);
 
         if (height > 0) {
-          segments.push({ top, height });
+          segments.push({ top, height, type: 'imprevu', label: 'Jour fermé (imprévu)', imprevu });
+        }
+      });
+
+      // Process PTOs
+      ptos.forEach((pto) => {
+        const start = new Date(pto.startDate);
+        start.setHours(0, 0, 0, 0); // Ensure PTO starts at beginning of day
+        const end = new Date(pto.endDate);
+        end.setHours(23, 59, 59, 999); // Ensure PTO ends at end of day
+
+        if (end <= dayStart || start >= dayEnd) {
+          return;
+        }
+
+        const segmentStart = new Date(
+          Math.max(start.getTime(), windowStart.getTime())
+        );
+        const segmentEnd = new Date(
+          Math.min(end.getTime(), windowEnd.getTime())
+        );
+
+        if (segmentEnd <= segmentStart) {
+          return;
+        }
+
+        const startTimeStr = CalendarUtils.formatTime(segmentStart);
+        const duration = CalendarUtils.getAppointmentDuration(
+          segmentStart,
+          segmentEnd
+        );
+
+        const top = CalendarUtils.getTimeSlotPosition(
+          startTimeStr,
+          workingHours.start,
+          60
+        );
+        const height = CalendarUtils.getTimeSlotHeight(duration, 60);
+
+        if (height > 0) {
+          segments.push({ top, height, type: 'pto', label: pto.label ? `Jour fermé (${pto.label})` : 'Jour fermé (Congés)', pto });
         }
       });
 
       return segments;
     },
-    [imprevus, workingHours.start, workingHours.end]
+    [imprevus, ptos, workingHours.start, workingHours.end]
   );
 
   const hasBlockingImprevuForDay = React.useCallback(
     (day) => {
-      if (!imprevus || imprevus.length === 0) {
-        return false;
-      }
       const dayStart = new Date(day);
       dayStart.setHours(0, 0, 0, 0);
       const dayEnd = new Date(day);
       dayEnd.setHours(23, 59, 59, 999);
-      return imprevus.some((imprevu) => {
+
+      const hasImprevu = imprevus?.some((imprevu) => {
         const start = new Date(imprevu.startDate);
         const end = new Date(imprevu.endDate);
         const blocks = imprevu.blockTimeSlots !== false;
         return blocks && end > dayStart && start < dayEnd;
       });
+
+      if (hasImprevu) return true;
+
+      // Check PTOs
+      const hasPto = ptos?.some((pto) => {
+        const start = new Date(pto.startDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(pto.endDate);
+        end.setHours(23, 59, 59, 999);
+        return end > dayStart && start < dayEnd;
+      });
+
+      return hasPto;
     },
-    [imprevus]
+    [imprevus, ptos]
   );
 
   return (

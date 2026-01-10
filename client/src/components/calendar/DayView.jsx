@@ -23,6 +23,7 @@ const DayView = ({
   currentDate,
   appointments = [],
   imprevus = [],
+  ptos = [],
   onDateChange,
   onAppointmentClick,
   onTimeSlotClick,
@@ -175,7 +176,47 @@ const DayView = ({
       );
 
       if (height > 0) {
-        segments.push({ top, height });
+        segments.push({ top, height, type: 'imprevu', label: 'Jour fermé (imprévu)', imprevu });
+      }
+    });
+
+    // Process PTOs
+    ptos.forEach((pto) => {
+      const start = new Date(pto.startDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(pto.endDate);
+      end.setHours(23, 59, 59, 999);
+
+      if (end <= dayStart || start >= dayEnd) {
+        return;
+      }
+
+      const segmentStart = new Date(
+        Math.max(start.getTime(), windowStart.getTime())
+      );
+      const segmentEnd = new Date(Math.min(end.getTime(), windowEnd.getTime()));
+      if (segmentEnd <= segmentStart) {
+        return;
+      }
+
+      const startTimeStr = CalendarUtils.formatTime(segmentStart);
+      const duration = CalendarUtils.getAppointmentDuration(
+        segmentStart,
+        segmentEnd
+      );
+
+      const top = CalendarUtils.getTimeSlotPosition(
+        startTimeStr,
+        workingHours.start,
+        60 * effectiveZoom
+      );
+      const height = CalendarUtils.getTimeSlotHeight(
+        duration,
+        60 * effectiveZoom
+      );
+
+      if (height > 0) {
+        segments.push({ top, height, type: 'pto', label: pto.label ? `Jour fermé (${pto.label})` : 'Jour fermé (Congés)', pto });
       }
     });
 
@@ -186,23 +227,35 @@ const DayView = ({
     workingHours.start,
     workingHours.end,
     effectiveZoom,
+    ptos
   ]);
 
   const hasBlockingImprevu = React.useMemo(() => {
-    if (!imprevus || imprevus.length === 0) {
-      return false;
-    }
     const dayStart = new Date(currentDate);
     dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(currentDate);
     dayEnd.setHours(23, 59, 59, 999);
-    return imprevus.some((imprevu) => {
+
+    const hasImprevu = imprevus?.some((imprevu) => {
       const start = new Date(imprevu.startDate);
       const end = new Date(imprevu.endDate);
       const blocks = imprevu.blockTimeSlots !== false;
       return blocks && end > dayStart && start < dayEnd;
     });
-  }, [imprevus, currentDate]);
+
+    if (hasImprevu) return true;
+
+    // Check PTOs
+    const hasPto = ptos?.some((pto) => {
+      const start = new Date(pto.startDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(pto.endDate);
+      end.setHours(23, 59, 59, 999);
+      return end > dayStart && start < dayEnd;
+    });
+
+    return hasPto;
+  }, [imprevus, ptos, currentDate]);
 
   // Helper to truncate long text for display in the calendar
   const truncateText = (text, n = 60) => {
@@ -584,7 +637,7 @@ const DayView = ({
                 }}
               >
                 <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium text-slate-700 bg-slate-200/90 border border-slate-300/70 shadow-sm'>
-                  Jour fermé (imprévu)
+                  {blockingImprevuSegments.length > 0 ? blockingImprevuSegments[0].label : 'Jour fermé (imprévu)'}
                 </span>
               </div>
             </div>

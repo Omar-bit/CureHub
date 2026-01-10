@@ -11,6 +11,7 @@ import {
   appointmentAPI,
   agendaPreferencesAPI,
   imprevuAPI,
+  ptoAPI,
 } from '../services/api';
 import { showError } from '../lib/toast';
 import { Loader2 } from 'lucide-react';
@@ -31,6 +32,7 @@ const CalendarSection = forwardRef(
   ) => {
     const [appointments, setAppointments] = useState([]);
     const [imprevus, setImprevus] = useState([]);
+    const [ptos, setPtos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentView, setCurrentView] = useState('day');
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -102,6 +104,16 @@ const CalendarSection = forwardRef(
       }
     };
 
+    const loadPtos = async () => {
+      try {
+        const data = await ptoAPI.getAll();
+        setPtos(data || []);
+        return data || [];
+      } catch (error) {
+        console.error('Error loading PTOs:', error);
+      }
+    };
+
     useImperativeHandle(ref, () => ({
       navigateToDate: (date) => {
         if (calendarRef.current) {
@@ -114,6 +126,7 @@ const CalendarSection = forwardRef(
         await Promise.all([
           loadAppointments({ showLoader: false }),
           loadImprevus(currentDate),
+          loadPtos(),
         ]);
       },
       getCurrentDate: () =>
@@ -131,6 +144,7 @@ const CalendarSection = forwardRef(
       loadAppointments();
       loadPreferences();
       loadImprevus(currentDate);
+      loadPtos();
     }, []);
 
     // Listen for preference updates
@@ -178,12 +192,61 @@ const CalendarSection = forwardRef(
       );
     };
 
+    const findBlockingPtoForDateTime = (dateTime) => {
+      if (!ptos || ptos.length === 0) {
+        return null;
+      }
+      const target = dateTime instanceof Date ? dateTime : new Date(dateTime);
+      const targetDateStr = format(target, 'yyyy-MM-dd');
+
+      return (
+        ptos.find((pto) => {
+          const start = new Date(pto.startDate);
+          const end = new Date(pto.endDate);
+          const startDateStr = format(start, 'yyyy-MM-dd');
+          const endDateStr = format(end, 'yyyy-MM-dd');
+
+          return targetDateStr >= startDateStr && targetDateStr <= endDateStr;
+        }) || null
+      );
+    };
+
+    const checkIsDayClosed = (dateTime) => {
+      const imprevu = findBlockingImprevuForDateTime(dateTime);
+      if (imprevu) return { type: 'imprevu', data: imprevu };
+
+      const pto = findBlockingPtoForDateTime(dateTime);
+      if (pto) return { type: 'pto', data: pto };
+
+      return null;
+    };
+
     const handleTimeSlotClickWithImprevuCheck = (dateTime) => {
       const slotDate = dateTime instanceof Date ? dateTime : new Date(dateTime);
-      const blockingImprevu = findBlockingImprevuForDateTime(slotDate);
-      if (blockingImprevu) {
+      const blockingInfo = checkIsDayClosed(slotDate);
+
+      if (blockingInfo) {
+        const { type, data } = blockingInfo;
         setPendingSlotDate(slotDate);
-        setPendingImprevu(blockingImprevu);
+        if (type === 'imprevu') {
+          setPendingImprevu(data);
+        } else {
+          // For PTOs we can treat them similarly? The user said "follow the imprevus one its similar"
+          // But existing state structure seems to rely on pendingImprevu
+          // I'll reuse pendingImprevu or create a new state? reusing might be confusing if the dialog expects imprevu fields
+          // Let's see what the dialog uses: getImprevuLabel
+          // I should probably set pendingImprevu to a "fake" imprevu object or update the dialog logic.
+          // Imprevu object has: startDate, endDate, reason.
+          // PTO object has: startDate, endDate, label.
+          // I will map PTO to a compatible object for now to minimize changes, or update dialog.
+          // Let's store it in pendingImprevu but add a flag or just map properties.
+          setPendingImprevu({
+            startDate: data.startDate,
+            endDate: data.endDate,
+            reason: data.label, // Map label to reason for display
+            type: 'PTO' // marker
+          });
+        }
         setForceDialogOpen(true);
         return;
       }
@@ -244,6 +307,7 @@ const CalendarSection = forwardRef(
             ref={calendarRef}
             appointments={appointments}
             imprevus={imprevus}
+            ptos={ptos}
             onAppointmentClick={onAppointmentClick}
             onTimeSlotClick={handleTimeSlotClickWithImprevuCheck}
             workingHours={{
@@ -264,9 +328,9 @@ const CalendarSection = forwardRef(
           title='Forcer un rendez-vous sur un jour fermé ?'
           description={
             pendingImprevu
-              ? `Ce jour est déclaré comme non travaillé en raison de l’imprévu « ${getImprevuLabel(
-                  pendingImprevu
-                )} ». Voulez-vous vraiment forcer la création de ce rendez-vous à cette date ?`
+              ? `Ce jour est déclaré comme non travaillé en raison de ${pendingImprevu.type === 'PTO' ? 'congés' : "l'imprévu"} « ${getImprevuLabel(
+                pendingImprevu
+              )} ». Voulez-vous vraiment forcer la création de ce rendez-vous à cette date ?`
               : 'Ce jour est déclaré comme non travaillé en raison d’un imprévu. Voulez-vous vraiment forcer la création de ce rendez-vous à cette date ?'
           }
           confirmText='Forcer le rendez-vous'

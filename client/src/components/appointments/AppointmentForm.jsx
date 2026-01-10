@@ -35,7 +35,7 @@ import {
 } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { ConfirmDialog } from '../ui/confirm-dialog';
-import { patientAPI, appointmentAPI, imprevuAPI } from '../../services/api';
+import { patientAPI, appointmentAPI, imprevuAPI, ptoAPI } from '../../services/api';
 import { splitPatientName } from '../../lib/patient';
 import { useDoctorProfile } from '../../hooks/useDoctorProfile';
 import { Switch } from '../ui/switch';
@@ -612,20 +612,52 @@ const AppointmentForm = ({
 
   const checkImprevuForAppointment = async (appointmentData) => {
     try {
-      const data = await imprevuAPI.getAll({
-        startDate: appointmentData.startTime,
-        endDate: appointmentData.endTime,
-        limit: '50',
-      });
-      const imprevus = data.imprevus || data || [];
-      if (!imprevus || imprevus.length === 0) {
-        return null;
-      }
-      return (
-        imprevus.find((imprevu) => imprevu.blockTimeSlots !== false) || null
+      const [imprevuData, ptoData] = await Promise.all([
+        imprevuAPI.getAll({
+          startDate: appointmentData.startTime,
+          endDate: appointmentData.endTime,
+          limit: '50',
+        }),
+        ptoAPI.getAll(),
+      ]);
+
+      const imprevus = imprevuData.imprevus || imprevuData || [];
+      const ptos = ptoData || [];
+
+      // Check Imprevus
+      const blockingImprevu = imprevus.find(
+        (imprevu) => imprevu.blockTimeSlots !== false
       );
+      if (blockingImprevu) return { ...blockingImprevu, type: 'IMPREVU' };
+
+      // Check PTOs
+      if (ptos.length > 0) {
+        const targetStart = new Date(appointmentData.startTime);
+        const targetEnd = new Date(appointmentData.endTime);
+        const targetDateStr = format(targetStart, 'yyyy-MM-dd'); // Use date string for robust comparison
+
+        const blockingPto = ptos.find((pto) => {
+          const start = new Date(pto.startDate);
+          const end = new Date(pto.endDate);
+          const startDateStr = format(start, 'yyyy-MM-dd');
+          const endDateStr = format(end, 'yyyy-MM-dd');
+
+          return targetDateStr >= startDateStr && targetDateStr <= endDateStr;
+        });
+
+        if (blockingPto) {
+          return {
+            startDate: blockingPto.startDate,
+            endDate: blockingPto.endDate,
+            reason: blockingPto.label,
+            type: 'PTO'
+          };
+        }
+      }
+
+      return null;
     } catch (error) {
-      console.error('Error checking imprevus:', error);
+      console.error('Error checking imprevus or PTOs:', error);
       return null;
     }
   };
@@ -870,10 +902,10 @@ const AppointmentForm = ({
   // Ensure we're properly parsing the consultation type ID
   const selectedConsultationType = formData.consultationTypeId
     ? consultationTypes.find(
-        (ct) =>
-          ct.id === parseInt(formData.consultationTypeId) ||
-          ct.id === formData.consultationTypeId
-      )
+      (ct) =>
+        ct.id === parseInt(formData.consultationTypeId) ||
+        ct.id === formData.consultationTypeId
+    )
     : null;
 
   const content = (
@@ -934,9 +966,8 @@ const AppointmentForm = ({
                 value={patientSearch?.replace('!SP!', '')}
                 onChange={handlePatientSearch}
                 onFocus={() => setShowPatientDropdown(true)}
-                className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.patientId ? 'border-red-300' : 'border-gray-300'
-                }`}
+                className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.patientId ? 'border-red-300' : 'border-gray-300'
+                  }`}
                 placeholder='Search patients by name...'
               />
               <div className='absolute inset-y-0 right-0 pr-3 flex items-center'>
@@ -1038,9 +1069,8 @@ const AppointmentForm = ({
                 >
                   <span>Selected Patients ({selectedPatients.length})</span>
                   <ChevronDown
-                    className={`h-4 w-4 transition-transform ${
-                      expandedSelectedPatients ? 'rotate-180' : ''
-                    }`}
+                    className={`h-4 w-4 transition-transform ${expandedSelectedPatients ? 'rotate-180' : ''
+                      }`}
                   />
                 </button>
                 {expandedSelectedPatients &&
@@ -1054,8 +1084,8 @@ const AppointmentForm = ({
                         <div className='relative'>
                           <PatientCard
                             patient={patient}
-                            onEdit={() => {}}
-                            onDelete={() => {}}
+                            onEdit={() => { }}
+                            onDelete={() => { }}
                             onView={handlePatientView}
                           />
                           <button
@@ -1078,11 +1108,10 @@ const AppointmentForm = ({
                             >
                               <span>{appointments.length} RDV À VENIR</span>
                               <ChevronDown
-                                className={`h-4 w-4 transition-transform ${
-                                  expandedUpcomingAppointments[patient.id]
-                                    ? 'rotate-180'
-                                    : ''
-                                }`}
+                                className={`h-4 w-4 transition-transform ${expandedUpcomingAppointments[patient.id]
+                                  ? 'rotate-180'
+                                  : ''
+                                  }`}
                               />
                             </button>
                             {expandedUpcomingAppointments[patient.id] && (
@@ -1100,9 +1129,8 @@ const AppointmentForm = ({
                                     'Consultation';
                                   const doctorFirstName =
                                     doctorProfile?.user?.firstName || '';
-                                  const doctorDisplayName = `Dr ${
-                                    doctorFirstName || ''
-                                  }`.trim();
+                                  const doctorDisplayName = `Dr ${doctorFirstName || ''
+                                    }`.trim();
                                   const doctorInitial = doctorFirstName
                                     ? doctorFirstName.charAt(0)
                                     : 'D';
@@ -1179,9 +1207,8 @@ const AppointmentForm = ({
                 name='date'
                 value={formData.date}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.date ? 'border-red-300' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.date ? 'border-red-300' : 'border-gray-300'
+                  }`}
               />
               {errors.date && (
                 <p className='mt-1 text-sm text-red-600'>{errors.date}</p>
@@ -1219,13 +1246,11 @@ const AppointmentForm = ({
               onClick={() =>
                 setShowConsultationDropdown(!showConsultationDropdown)
               }
-              className={`w-full p-2 border rounded-lg cursor-pointer bg-white flex items-center justify-between ${
-                errors.consultationTypeId ? 'border-red-300' : 'border-gray-300'
-              } ${
-                showConsultationDropdown
+              className={`w-full p-2 border rounded-lg cursor-pointer bg-white flex items-center justify-between ${errors.consultationTypeId ? 'border-red-300' : 'border-gray-300'
+                } ${showConsultationDropdown
                   ? 'ring-2 ring-blue-500 border-transparent'
                   : 'hover:border-gray-400'
-              }`}
+                }`}
             >
               <div className='flex items-center space-x-2'>
                 {selectedConsultationType ? (
@@ -1251,9 +1276,8 @@ const AppointmentForm = ({
                 )}
               </div>
               <ChevronDown
-                className={`h-5 w-5 text-gray-500 transition-transform ${
-                  showConsultationDropdown ? 'rotate-180' : ''
-                }`}
+                className={`h-5 w-5 text-gray-500 transition-transform ${showConsultationDropdown ? 'rotate-180' : ''
+                  }`}
               />
             </div>
 
@@ -1272,92 +1296,83 @@ const AppointmentForm = ({
                   {consultationTypes.filter(
                     (type) => type.location === 'ONSITE'
                   ).length > 0 && (
-                    <div
-                      onClick={() => setSelectedLocation('ONSITE')}
-                      className={`flex-1 flex items-center justify-center space-x-2 px-2 py-4 cursor-pointer transition-colors ${
-                        selectedLocation === 'ONSITE'
+                      <div
+                        onClick={() => setSelectedLocation('ONSITE')}
+                        className={`flex-1 flex items-center justify-center space-x-2 px-2 py-4 cursor-pointer transition-colors ${selectedLocation === 'ONSITE'
                           ? 'bg-blue-600 border-blue-700 text-white'
                           : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-                      }`}
-                    >
-                      <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                          selectedLocation === 'ONSITE'
+                          }`}
+                      >
+                        <div
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedLocation === 'ONSITE'
                             ? 'bg-blue-500'
                             : 'bg-gray-200'
-                        }`}
-                      >
-                        <Building2
-                          className={`w-4 h-4 ${
-                            selectedLocation === 'ONSITE'
+                            }`}
+                        >
+                          <Building2
+                            className={`w-4 h-4 ${selectedLocation === 'ONSITE'
                               ? 'text-white'
                               : 'text-gray-600'
-                          }`}
-                        />
+                              }`}
+                          />
+                        </div>
+                        <span className='font-medium'>au cabinet</span>
                       </div>
-                      <span className='font-medium'>au cabinet</span>
-                    </div>
-                  )}
+                    )}
 
                   {consultationTypes.filter(
                     (type) => type.location === 'ONLINE'
                   ).length > 0 && (
-                    <div
-                      onClick={() => setSelectedLocation('ONLINE')}
-                      className={`flex-1 flex items-center justify-center space-x-2 px-2 py-4 cursor-pointer transition-colors ${
-                        selectedLocation === 'ONLINE'
+                      <div
+                        onClick={() => setSelectedLocation('ONLINE')}
+                        className={`flex-1 flex items-center justify-center space-x-2 px-2 py-4 cursor-pointer transition-colors ${selectedLocation === 'ONLINE'
                           ? 'bg-blue-600 border-blue-700 text-white'
                           : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-                      }`}
-                    >
-                      <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                          selectedLocation === 'ONLINE'
+                          }`}
+                      >
+                        <div
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedLocation === 'ONLINE'
                             ? 'bg-blue-500'
                             : 'bg-gray-200'
-                        }`}
-                      >
-                        <Video
-                          className={`w-4 h-4 ${
-                            selectedLocation === 'ONLINE'
+                            }`}
+                        >
+                          <Video
+                            className={`w-4 h-4 ${selectedLocation === 'ONLINE'
                               ? 'text-white'
                               : 'text-gray-600'
-                          }`}
-                        />
+                              }`}
+                          />
+                        </div>
+                        <span className='font-medium'>en visio</span>
                       </div>
-                      <span className='font-medium'>en visio</span>
-                    </div>
-                  )}
+                    )}
 
                   {consultationTypes.filter(
                     (type) => type.location === 'ATHOME'
                   ).length > 0 && (
-                    <div
-                      onClick={() => setSelectedLocation('ATHOME')}
-                      className={`flex-1 flex items-center justify-center space-x-2 px-2 py-4 cursor-pointer transition-colors ${
-                        selectedLocation === 'ATHOME'
+                      <div
+                        onClick={() => setSelectedLocation('ATHOME')}
+                        className={`flex-1 flex items-center justify-center space-x-2 px-2 py-4 cursor-pointer transition-colors ${selectedLocation === 'ATHOME'
                           ? 'bg-blue-600 border-blue-700 text-white'
                           : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-                      }`}
-                    >
-                      <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                          selectedLocation === 'ATHOME'
+                          }`}
+                      >
+                        <div
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedLocation === 'ATHOME'
                             ? 'bg-blue-500'
                             : 'bg-gray-200'
-                        }`}
-                      >
-                        <Home
-                          className={`w-4 h-4 ${
-                            selectedLocation === 'ATHOME'
+                            }`}
+                        >
+                          <Home
+                            className={`w-4 h-4 ${selectedLocation === 'ATHOME'
                               ? 'text-white'
                               : 'text-gray-600'
-                          }`}
-                        />
+                              }`}
+                          />
+                        </div>
+                        <span className='font-medium'>à domicile</span>
                       </div>
-                      <span className='font-medium'>à domicile</span>
-                    </div>
-                  )}
+                    )}
                 </div>
 
                 {/* Consultation Types for Selected Location */}
@@ -1378,16 +1393,14 @@ const AppointmentForm = ({
                                   isAvailable &&
                                   handleConsultationTypeSelect(type)
                                 }
-                                className={`p-3 rounded-lg transition-colors ${
-                                  isAvailable
-                                    ? 'cursor-pointer hover:bg-gray-50'
-                                    : 'cursor-not-allowed opacity-50 bg-gray-50'
-                                } ${
-                                  formData.consultationTypeId ===
-                                  String(type.id)
+                                className={`p-3 rounded-lg transition-colors ${isAvailable
+                                  ? 'cursor-pointer hover:bg-gray-50'
+                                  : 'cursor-not-allowed opacity-50 bg-gray-50'
+                                  } ${formData.consultationTypeId ===
+                                    String(type.id)
                                     ? 'bg-blue-50 border border-blue-200'
                                     : 'border border-gray-200'
-                                }`}
+                                  }`}
                               >
                                 <div className='flex items-center justify-between'>
                                   <div className='flex items-center space-x-3'>
@@ -1402,11 +1415,10 @@ const AppointmentForm = ({
                                     </div>
                                     <div>
                                       <h4
-                                        className={`font-medium ${
-                                          isAvailable
-                                            ? 'text-gray-900'
-                                            : 'text-gray-500'
-                                        }`}
+                                        className={`font-medium ${isAvailable
+                                          ? 'text-gray-900'
+                                          : 'text-gray-500'
+                                          }`}
                                       >
                                         {type.name}
                                         {!isAvailable && (
@@ -1419,11 +1431,10 @@ const AppointmentForm = ({
                                   </div>
                                   <div className='text-right'>
                                     <p
-                                      className={`font-semibold ${
-                                        isAvailable
-                                          ? 'text-gray-900'
-                                          : 'text-gray-500'
-                                      }`}
+                                      className={`font-semibold ${isAvailable
+                                        ? 'text-gray-900'
+                                        : 'text-gray-500'
+                                        }`}
                                     >
                                       ${type.price}
                                     </p>
@@ -1454,15 +1465,13 @@ const AppointmentForm = ({
                                 isAvailable &&
                                 handleConsultationTypeSelect(type)
                               }
-                              className={`p-3 rounded-lg transition-colors ${
-                                isAvailable
-                                  ? 'cursor-pointer hover:bg-gray-50'
-                                  : 'cursor-not-allowed opacity-50 bg-gray-50'
-                              } ${
-                                formData.consultationTypeId === String(type.id)
+                              className={`p-3 rounded-lg transition-colors ${isAvailable
+                                ? 'cursor-pointer hover:bg-gray-50'
+                                : 'cursor-not-allowed opacity-50 bg-gray-50'
+                                } ${formData.consultationTypeId === String(type.id)
                                   ? 'bg-blue-50 border border-blue-200'
                                   : 'border border-gray-200'
-                              }`}
+                                }`}
                             >
                               <div className='flex items-center justify-between'>
                                 <div className='flex items-center space-x-3'>
@@ -1476,11 +1485,10 @@ const AppointmentForm = ({
                                   </div>
                                   <div>
                                     <h4
-                                      className={`font-medium ${
-                                        isAvailable
-                                          ? 'text-gray-900'
-                                          : 'text-gray-500'
-                                      }`}
+                                      className={`font-medium ${isAvailable
+                                        ? 'text-gray-900'
+                                        : 'text-gray-500'
+                                        }`}
                                     >
                                       {type.name}
                                       {!isAvailable && (
@@ -1493,11 +1501,10 @@ const AppointmentForm = ({
                                 </div>
                                 <div className='text-right'>
                                   <p
-                                    className={`font-semibold ${
-                                      isAvailable
-                                        ? 'text-gray-900'
-                                        : 'text-gray-500'
-                                    }`}
+                                    className={`font-semibold ${isAvailable
+                                      ? 'text-gray-900'
+                                      : 'text-gray-500'
+                                      }`}
                                   >
                                     ${type.price}
                                   </p>
@@ -1527,15 +1534,13 @@ const AppointmentForm = ({
                                 isAvailable &&
                                 handleConsultationTypeSelect(type)
                               }
-                              className={`p-3 rounded-lg transition-colors ${
-                                isAvailable
-                                  ? 'cursor-pointer hover:bg-gray-50'
-                                  : 'cursor-not-allowed opacity-50 bg-gray-50'
-                              } ${
-                                formData.consultationTypeId === String(type.id)
+                              className={`p-3 rounded-lg transition-colors ${isAvailable
+                                ? 'cursor-pointer hover:bg-gray-50'
+                                : 'cursor-not-allowed opacity-50 bg-gray-50'
+                                } ${formData.consultationTypeId === String(type.id)
                                   ? 'bg-blue-50 border border-blue-200'
                                   : 'border border-gray-200'
-                              }`}
+                                }`}
                             >
                               <div className='flex items-center justify-between'>
                                 <div className='flex items-center space-x-3'>
@@ -1549,11 +1554,10 @@ const AppointmentForm = ({
                                   </div>
                                   <div>
                                     <h4
-                                      className={`font-medium ${
-                                        isAvailable
-                                          ? 'text-gray-900'
-                                          : 'text-gray-500'
-                                      }`}
+                                      className={`font-medium ${isAvailable
+                                        ? 'text-gray-900'
+                                        : 'text-gray-500'
+                                        }`}
                                     >
                                       {type.name}
                                       {!isAvailable && (
@@ -1566,11 +1570,10 @@ const AppointmentForm = ({
                                 </div>
                                 <div className='text-right'>
                                   <p
-                                    className={`font-semibold ${
-                                      isAvailable
-                                        ? 'text-gray-900'
-                                        : 'text-gray-500'
-                                    }`}
+                                    className={`font-semibold ${isAvailable
+                                      ? 'text-gray-900'
+                                      : 'text-gray-500'
+                                      }`}
                                   >
                                     ${type.price}
                                   </p>
@@ -1652,9 +1655,8 @@ const AppointmentForm = ({
                   Available Time Slots
                 </span>
                 <ChevronDown
-                  className={`h-4 w-4 transition-transform ${
-                    expandedTimeSlots ? 'rotate-180' : ''
-                  }`}
+                  className={`h-4 w-4 transition-transform ${expandedTimeSlots ? 'rotate-180' : ''
+                    }`}
                 />
               </button>
               {expandedTimeSlots && (
@@ -1844,7 +1846,7 @@ const AppointmentForm = ({
             appointment={selectedAppointmentForView}
             isOpen={!!selectedAppointmentForView}
             onClose={() => setSelectedAppointmentForView(null)}
-            onDelete={() => {}}
+            onDelete={() => { }}
             inline={false}
           />
         )}
@@ -1854,8 +1856,8 @@ const AppointmentForm = ({
             patient={selectedPatientForView}
             isOpen={!!selectedPatientForView}
             onClose={() => setSelectedPatientForView(null)}
-            onEdit={() => {}}
-            onDelete={() => {}}
+            onEdit={() => { }}
+            onDelete={() => { }}
             initialTab={selectedPatientTab}
             onView={handlePatientView}
             onPatientUpdated={handlePatientUpdatedFromDetails}
@@ -1956,8 +1958,8 @@ const AppointmentForm = ({
           description={
             pendingImprevu
               ? `Ce jour est déclaré comme non travaillé en raison de l’imprévu « ${getImprevuLabel(
-                  pendingImprevu
-                )} ». Voulez-vous vraiment forcer la création de ce rendez-vous à cette date ?`
+                pendingImprevu
+              )} ». Voulez-vous vraiment forcer la création de ce rendez-vous à cette date ?`
               : 'Ce jour est déclaré comme non travaillé en raison d’un imprévu. Voulez-vous vraiment forcer la création de ce rendez-vous à cette date ?'
           }
           confirmText='Forcer le rendez-vous'
@@ -2078,14 +2080,31 @@ const AppointmentForm = ({
       </Dialog>
       <ConfirmDialog
         isOpen={imprevuDialogOpen}
-        onClose={handleImprevuDialogClose}
-        onConfirm={handleImprevuForceConfirm}
+        onClose={() => setImprevuDialogOpen(false)}
+        onConfirm={async () => {
+          setImprevuDialogOpen(false);
+
+          // Continue flow: Check conflicts
+          const conflict = await checkForConflicts(pendingAppointmentData);
+          if (conflict && conflict.hasConflict) {
+            setConflictDetails(conflict);
+            setShowConflictDialog(true);
+          } else {
+            // No conflict, proceed to save
+            try {
+              await onSave(pendingAppointmentData);
+              if (!inline) onClose();
+            } catch (err) {
+              console.error('Error saving appointment:', err);
+            }
+          }
+        }}
         title='Forcer un rendez-vous sur un jour fermé ?'
         description={
           pendingImprevu
-            ? `Ce jour est déclaré comme non travaillé en raison de l’imprévu « ${getImprevuLabel(
-                pendingImprevu
-              )} ». Voulez-vous vraiment forcer la création de ce rendez-vous à cette date ?`
+            ? `Ce jour est déclaré comme non travaillé en raison de ${pendingImprevu.type === 'PTO' ? 'congés' : "l'imprévu"} « ${getImprevuLabel(
+              pendingImprevu
+            )} ». Voulez-vous vraiment forcer la création de ce rendez-vous à cette date ?`
             : 'Ce jour est déclaré comme non travaillé en raison d’un imprévu. Voulez-vous vraiment forcer la création de ce rendez-vous à cette date ?'
         }
         confirmText='Forcer le rendez-vous'
@@ -2099,7 +2118,7 @@ const AppointmentForm = ({
           appointment={selectedAppointmentForView}
           isOpen={!!selectedAppointmentForView}
           onClose={() => setSelectedAppointmentForView(null)}
-          onDelete={() => {}}
+          onDelete={() => { }}
           inline={true}
         />
       )}
@@ -2109,8 +2128,8 @@ const AppointmentForm = ({
           patient={selectedPatientForView}
           isOpen={!!selectedPatientForView}
           onClose={() => setSelectedPatientForView(null)}
-          onEdit={() => {}}
-          onDelete={() => {}}
+          onEdit={() => { }}
+          onDelete={() => { }}
           initialTab={selectedPatientTab}
           onView={handlePatientView}
           onPatientUpdated={handlePatientUpdatedFromDetails}
