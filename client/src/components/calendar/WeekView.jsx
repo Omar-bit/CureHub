@@ -222,7 +222,7 @@ const WeekView = ({
     return {
       position: 'absolute',
       top: `${position}px`,
-      height: `${Math.max(35, height - gapSize)}px`, // Reduce height to create gap between adjacent appointments, with minimum height
+      height: `${Math.max(15, height - gapSize)}px`, // Reduce height to create gap between adjacent appointments, with minimum height
       left: leftPosition,
       width: columnWidth,
       zIndex: 10,
@@ -540,6 +540,11 @@ const WeekView = ({
                             const startTime = CalendarUtils.formatTime(
                               new Date(appointment.startTime)
                             );
+                            const duration = CalendarUtils.getAppointmentDuration(
+                              appointment.startTime,
+                              appointment.endTime
+                            );
+                            const isShort = duration <= 15;
                             const isCancelled =
                               appointment.status === 'CANCELLED';
 
@@ -589,9 +594,9 @@ const WeekView = ({
                                   totalColumns
                                 )}
                                 className={`
-                                flex items-start gap-0.5 cursor-pointer
+                                flex ${isShort ? 'items-center' : 'items-start'} gap-0.5 cursor-pointer
                                 ${colorClasses.darkBg
-                                  } transition-all rounded-lg overflow-hidden text-xs
+                                  } transition-all rounded-lg overflow-hidden ${isShort ? 'text-[10px]' : 'text-xs'}
                                 ${isCancelled ? 'opacity-60' : ''}
                               `}
                                 onClick={(e) => {
@@ -600,15 +605,15 @@ const WeekView = ({
                                 }}
                               >
                                 <div
-                                  className={`${colorClasses.bgColor} text-white px-2 py-0.5 font-bold whitespace-nowrap flex-shrink-0 rounded-l-lg flex items-center gap-1`}
+                                  className={`${colorClasses.bgColor} text-white px-2 ${isShort ? 'py-0' : 'py-0.5'} font-bold whitespace-nowrap flex-shrink-0 rounded-l-lg flex items-center gap-1`}
                                 >
                                   <span>{startTime}</span>
                                   {statusIcon && <span>{statusIcon}</span>}
                                 </div>
 
-                                <div className='flex-1 min-w-0 px-1 py-0.5'>
+                                <div className={`flex-1 min-w-0 px-1 ${isShort ? 'py-0' : 'py-0.5'}`}>
                                   <div
-                                    className={`text-xs font-medium text-gray-900 truncate ${isCancelled ? 'line-through' : ''
+                                    className={`${isShort ? 'text-[10px] leading-3' : 'text-xs'} font-medium text-gray-900 truncate ${isCancelled ? 'line-through' : ''
                                       }`}
                                   >
                                     {getAppointmentPatientsDisplay(appointment)}
@@ -620,14 +625,14 @@ const WeekView = ({
                                       )}
                                   </div>
                                   {isCancelled && (
-                                    <div className='text-xs text-red-600 font-semibold'>
+                                    <div className={`${isShort ? 'text-[9px]' : 'text-xs'} text-red-600 font-semibold`}>
                                       Annulé
                                     </div>
                                   )}
 
                                   {(appointment.description ||
                                     appointment.notes) && (
-                                      <div className='text-xs text-white mt-0.5 truncate'>
+                                      <div className={`${isShort ? 'text-[9px]' : 'text-xs'} text-white mt-0.5 truncate`}>
                                         {truncateText(appointment.description)}
                                         {appointment.description &&
                                           appointment.notes

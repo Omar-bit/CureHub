@@ -421,7 +421,7 @@ const DayView = ({
     return {
       position: 'absolute',
       top: `${zoomedPosition}px`,
-      height: `${Math.max(20, zoomedHeight)}px`, // Minimum height to ensure visibility without doubling short appointments
+      height: `${Math.max(10, zoomedHeight)}px`, // Minimum height to ensure visibility without doubling short appointments
       left: leftPosition,
       width: columnWidth,
       zIndex: 10,
@@ -653,6 +653,11 @@ const DayView = ({
             const startTime = CalendarUtils.formatTime(
               new Date(appointment.startTime)
             );
+            const duration = CalendarUtils.getAppointmentDuration(
+              appointment.startTime,
+              appointment.endTime
+            );
+            const isShort = duration <= 15;
             const isCancelled = appointment.status === 'CANCELLED';
             const statusIcon = getStatusIcon(appointment.status);
             return (
@@ -660,7 +665,7 @@ const DayView = ({
                 key={appointment.id}
                 style={getAppointmentStyle(appointment, column, totalColumns)}
                 className={`
-                  flex items-start gap-2 cursor-pointer
+                  flex ${isShort ? 'items-center' : 'items-start'} gap-2 cursor-pointer
                   ${colorClasses.darkBg
                   } transition-all rounded-lg overflow-hidden
                   ${isCancelled ? 'opacity-60' : ''}
@@ -669,16 +674,16 @@ const DayView = ({
               >
                 {/* Time Badge */}
                 <div
-                  className={`${colorClasses.bgColor} text-white px-3 py-1 font-bold text-xs whitespace-nowrap flex-shrink-0 rounded-l-lg flex items-center gap-1.5`}
+                  className={`${colorClasses.bgColor} text-white px-3 ${isShort ? 'py-0' : 'py-1'} font-bold text-xs whitespace-nowrap flex-shrink-0 rounded-l-lg flex items-center gap-1.5`}
                 >
-                  <span>{startTime}</span>
+                  <span className={isShort ? 'text-[10px]' : 'text-xs'}>{startTime}</span>
                   {statusIcon && <span>{statusIcon}</span>}
                 </div>
 
                 {/* Appointment Info */}
-                <div className='flex-1 min-w-0 px-2 py-0.5'>
+                <div className={`flex-1 min-w-0 px-2 ${isShort ? 'py-0' : 'py-0.5'}`}>
                   {/* Patient Name with Consultation Motif and Private Notes */}
-                  <div className='text-xs font-medium text-gray-900 truncate'>
+                  <div className={`${isShort ? 'text-[10px] leading-3' : 'text-xs'} font-medium text-gray-900 truncate`}>
                     <span className={isCancelled ? 'line-through' : ''}>
                       {getAppointmentPatientsDisplay(appointment)}{' '}
                       {(appointment.description || appointment.notes) && (
