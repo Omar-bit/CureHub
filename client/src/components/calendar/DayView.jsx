@@ -491,8 +491,8 @@ const DayView = ({
             <button
               onClick={() => onViewChange?.('day')}
               className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${currentView === 'day'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-700 hover:bg-gray-100'
                 }`}
             >
               Day
@@ -500,8 +500,8 @@ const DayView = ({
             <button
               onClick={() => onViewChange?.('week')}
               className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${currentView === 'week'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-700 hover:bg-gray-100'
                 }`}
             >
               Week
@@ -542,8 +542,8 @@ const DayView = ({
                 className='absolute left-8'
                 style={{
                   top: `${blockingImprevuSegments.length > 0
-                      ? Math.max(blockingImprevuSegments[0].top, 8)
-                      : 8
+                    ? Math.max(blockingImprevuSegments[0].top, 8)
+                    : 8
                     }px`,
                 }}
               >
@@ -558,7 +558,7 @@ const DayView = ({
             <div key={timeSlot} className='relative'>
               <div className='flex'>
                 {/* Time label */}
-                <div className='w-12 text-xs text-gray-500 text-right pr-2 py-2'>
+                <div className='w-12 text-xs text-gray-500 text-right pr-2 -mt-1'>
                   {timeSlot}
                 </div>
                 {/* Time slot area */}

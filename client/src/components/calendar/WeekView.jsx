@@ -458,7 +458,7 @@ const WeekView = ({
           {timeSlots.map((timeSlot, timeIndex) => (
             <div key={timeSlot} className='flex border-t border-gray-100'>
               {/* Time label */}
-              <div className='w-12 flex-shrink-0 text-xs text-gray-500 text-right pr-2 py-2'>
+              <div className='w-12 flex-shrink-0 text-xs text-gray-500 text-right pr-2 -mt-1'>
                 {timeSlot}
               </div>
               {/* Day columns */}
