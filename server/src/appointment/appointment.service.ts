@@ -1131,16 +1131,6 @@ export class AppointmentService {
     const end = new Date(date);
     end.setHours(endHour, endMinute, 0, 0);
 
-    console.log(`[DEBUG] Generating slots for date: ${date.toISOString()}`);
-    console.log(`[DEBUG] Start time: ${start.toISOString()} (${startTime} local)`);
-    console.log(`[DEBUG] End time: ${end.toISOString()} (${endTime} local)`);
-    console.log(`[DEBUG] Existing appointments count: ${existingAppointments.length}`);
-    if (existingAppointments.length > 0) {
-      existingAppointments.forEach((apt, idx) => {
-        console.log(`[DEBUG] Appointment ${idx + 1}: ${new Date(apt.startTime).toISOString()} - ${new Date(apt.endTime).toISOString()}`);
-      });
-    }
-
     // Generate slots based on consultation type duration
     // Slots are spaced by the consultation duration to ensure back-to-back appointments
     const current = new Date(start);
@@ -1157,25 +1147,19 @@ export class AppointmentService {
 
       // Check if this slot would fit within the time slot
       if (slotEndTime <= end) {
-        const timeString = current.toTimeString().slice(0, 5); // "HH:mm" format
+        // Return full ISO string so client can handle timezone conversion
+        const timeString = current.toISOString();
 
         // Check if this time conflicts with existing appointments
         const hasConflict = existingAppointments.some((appointment) => {
           const appointmentStart = new Date(appointment.startTime);
           const appointmentEnd = new Date(appointment.endTime);
 
-          const conflict = (
+          return (
             (current >= appointmentStart && current < appointmentEnd) ||
             (slotEndTime > appointmentStart && slotEndTime <= appointmentEnd) ||
             (current <= appointmentStart && slotEndTime >= appointmentEnd)
           );
-
-          if (conflict) {
-            console.log(`[DEBUG] Slot ${timeString} conflicts with appointment: ${appointmentStart.toISOString()} - ${appointmentEnd.toISOString()}`);
-            console.log(`[DEBUG]   Current slot: ${current.toISOString()} - ${slotEndTime.toISOString()}`);
-          }
-
-          return conflict;
         });
 
         // Check if this time is blocked by an imprevu
@@ -1205,8 +1189,6 @@ export class AppointmentService {
         });
 
         const available = !hasConflict && !isPast && !isBlockedByImprevu && !isBlockedByPTO;
-        
-        console.log(`[DEBUG] Slot ${timeString}: available=${available}, hasConflict=${hasConflict}, isPast=${isPast}`);
 
         slots.push({
           time: timeString,

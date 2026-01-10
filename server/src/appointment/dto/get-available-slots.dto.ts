@@ -19,7 +19,7 @@ export class GetAvailableSlotsDto {
 }
 
 export interface AvailableSlot {
-  time: string; // Format: "HH:mm" (e.g., "09:00")
+  time: string; // ISO Date string (e.g., "2026-01-10T10:00:00.000Z")
   available: boolean;
 }
 
