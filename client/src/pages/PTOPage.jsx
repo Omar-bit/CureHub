@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Plus, Edit2, Trash2, Calendar, Users } from 'lucide-react';
+import { Plus, Edit2, Trash2, Calendar, Users, Download } from 'lucide-react';
 import { ContentContainer, PageHeader } from '../components/Layout';
 import { Button } from '../components/ui/button';
 import {
@@ -21,7 +21,9 @@ import {
 } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+
 import { ConfirmDialog } from '../components/ui/confirm-dialog';
+import { HolidayImportDialog } from '../components/pto/HolidayImportDialog';
 import { ptoAPI } from '../services/api';
 import { showError, showSuccess } from '../lib/toast';
 
@@ -30,6 +32,7 @@ const PTOPage = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [holidayDialogOpen, setHolidayDialogOpen] = useState(false);
   const [editingPTO, setEditingPTO] = useState(null);
   const [selectedPTO, setSelectedPTO] = useState(null);
   const [formData, setFormData] = useState({
@@ -51,7 +54,7 @@ const PTOPage = () => {
     } catch (error) {
       showError(
         error.response?.data?.message ||
-          'Failed to load PTO periods. Please try again.'
+        'Failed to load PTO periods. Please try again.'
       );
     } finally {
       setLoading(false);
@@ -120,7 +123,7 @@ const PTOPage = () => {
     } catch (error) {
       showError(
         error.response?.data?.message ||
-          `Failed to ${editingPTO ? 'update' : 'create'} PTO period`
+        `Failed to ${editingPTO ? 'update' : 'create'} PTO period`
       );
     }
   };
@@ -267,7 +270,15 @@ const PTOPage = () => {
             </div>
 
             {/* Add Button */}
-            <div className='mt-6'>
+            <div className='mt-6 flex gap-3'>
+              <Button
+                variant='outline'
+                onClick={() => setHolidayDialogOpen(true)}
+                className='text-blue-600 border-blue-200 hover:bg-blue-50'
+              >
+                <Download className='h-4 w-4 mr-2' />
+                Importer (Fériés/Vacances)
+              </Button>
               <Button
                 onClick={() => handleOpenDialog()}
                 className='bg-purple-600 hover:bg-purple-700 text-white'
@@ -369,6 +380,14 @@ const PTOPage = () => {
         onConfirm={handleDelete}
         confirmText='Supprimer'
         cancelText='Annuler'
+      />
+
+      {/* Holiday Import Dialog */}
+      <HolidayImportDialog
+        open={holidayDialogOpen}
+        onOpenChange={setHolidayDialogOpen}
+        onHolidayInjected={loadPTOs}
+        existingPTOs={ptos}
       />
     </div>
   );

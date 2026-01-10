@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   Request,
   ForbiddenException,
@@ -17,6 +18,7 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { PTOService } from './pto.service';
+import { HolidaysService } from './holidays.service';
 import { CreatePTODto, UpdatePTODto } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -25,7 +27,10 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @Controller('pto')
 @UseGuards(JwtAuthGuard)
 export class PTOController {
-  constructor(private readonly ptoService: PTOService) {}
+  constructor(
+    private readonly ptoService: PTOService,
+    private readonly holidaysService: HolidaysService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all PTO periods for the doctor' })
@@ -100,5 +105,25 @@ export class PTOController {
 
     const doctorId = req.user.doctorProfile.id;
     return this.ptoService.remove(id, doctorId);
+  }
+
+  @Get('holidays/list')
+  @ApiOperation({ summary: 'Get public and school holidays' })
+  async getHolidays(
+    @Request() req,
+    @Query('year') year: string,
+    @Query('type') type: 'public' | 'school',
+    @Query('zones') zones: string | string[], // can be 'A' or ['A', 'B']
+  ) {
+    // No strict doctor check needed for public data, but good practice to keep auth if it's an internal tool
+    // req.user check is already done by guard
+    
+    const yearNum = year ? parseInt(year) : new Date().getFullYear();
+    if (type === 'school') {
+        const zoneList = Array.isArray(zones) ? zones : (zones ? [zones] : ['A', 'B', 'C']);
+        // Fetch for current year and next year to cover academic years
+        return this.holidaysService.getSchoolHolidays(yearNum, yearNum + 1, zoneList);
+    }
+    return this.holidaysService.getPublicHolidays(yearNum);
   }
 }

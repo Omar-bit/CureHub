@@ -605,4 +605,10 @@ export const ptoAPI = {
 
   // Delete a PTO period
   delete: (id) => api.delete(`/pto/${id}`).then((res) => res.data),
+
+  // Get holidays
+  getHolidays: (params) => {
+    const query = new URLSearchParams(params).toString();
+    return api.get(`/pto/holidays/list?${query}`).then((res) => res.data);
+  },
 };
