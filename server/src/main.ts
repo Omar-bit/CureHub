@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -36,6 +37,19 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  // 1. Configure Swagger options
+  const config = new DocumentBuilder()
+    .setTitle('My API')
+    .setDescription('API description')
+    .setVersion('1.0')
+    .build();
+
+  // 2. Create the API document
+  const document = SwaggerModule.createDocument(app, config);
+
+  // 3. Set up the Swagger UI at a specific path
+  SwaggerModule.setup('api', app, document);
 
   await app.listen(process.env.PORT ?? 3000);
   console.log(

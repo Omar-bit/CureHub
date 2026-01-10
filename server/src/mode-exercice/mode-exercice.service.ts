@@ -150,5 +150,53 @@ export class ModeExerciceService {
       where: { id },
     });
   }
+
+  async createDefaultModeExercices(doctorId: string) {
+    const defaultModes = [
+      {
+        name: 'Au cabinet',
+        nomDesPlages: false,
+        color: '#10B981', // Green
+        description: 'Consultation au cabinet médical',
+      },
+      {
+        name: 'À domicile',
+        nomDesPlages: false,
+        color: '#EF4444', // Red
+        description: 'Visite à domicile',
+      },
+      {
+        name: 'En visio',
+        nomDesPlages: false,
+        color: '#3B82F6', // Blue
+        description: 'Téléconsultation en ligne',
+      },
+    ];
+
+    const createdModes: any[] = [];
+    for (const modeData of defaultModes) {
+      // Check if mode already exists to avoid duplicates
+      const existing = await this.prisma.modeExercice.findFirst({
+        where: {
+          doctorId,
+          name: modeData.name,
+        },
+      });
+
+      if (!existing) {
+        const created = await this.prisma.modeExercice.create({
+          data: {
+            ...modeData,
+            doctorId,
+          },
+        });
+        createdModes.push(created);
+      } else {
+        createdModes.push(existing);
+      }
+    }
+
+    return createdModes;
+  }
 }
 

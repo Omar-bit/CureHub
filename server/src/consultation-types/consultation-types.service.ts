@@ -10,18 +10,14 @@ import {
   UpdateConsultationTypeDto,
   ConsultationTypeQueryDto,
 } from './dto/consultation-type.dto';
-import {
-  DoctorConsultationType,
-  ConsultationLocation,
-  ConsultationType,
-} from '@prisma/client';
+import { DoctorConsultationType, ConsultationType } from '@prisma/client';
 
 @Injectable()
 export class ConsultationTypesService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(doctorId: string, query: ConsultationTypeQueryDto = {}) {
-    const { enabledOnly, location, type } = query;
+    const { enabledOnly, modeExerciceId, type } = query;
 
     const where: any = {
       doctorId,
@@ -31,8 +27,8 @@ export class ConsultationTypesService {
       where.enabled = true;
     }
 
-    if (location) {
-      where.location = location;
+    if (modeExerciceId) {
+      where.modeExerciceId = modeExerciceId;
     }
 
     if (type) {
@@ -46,7 +42,14 @@ export class ConsultationTypesService {
         id: true,
         name: true,
         color: true,
-        location: true,
+        modeExercice: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            description: true,
+          },
+        },
         duration: true,
         restAfter: true,
         type: true,
@@ -70,7 +73,14 @@ export class ConsultationTypesService {
           id: true,
           name: true,
           color: true,
-          location: true,
+          modeExercice: {
+            select: {
+              id: true,
+              name: true,
+              color: true,
+              description: true,
+            },
+          },
           duration: true,
           restAfter: true,
           type: true,
@@ -107,15 +117,29 @@ export class ConsultationTypesService {
 
     return this.prisma.doctorConsultationType.create({
       data: {
-        ...createDto,
-        doctorId,
+        name: createDto.name,
+        color: createDto.color,
+        modeExerciceId: createDto.modeExerciceId,
+        duration: createDto.duration,
+        restAfter: createDto.restAfter,
+        type: createDto.type,
+        canBookBefore: createDto.canBookBefore,
+        price: createDto.price,
         enabled: createDto.enabled ?? true,
+        doctorId,
       },
       select: {
         id: true,
         name: true,
         color: true,
-        location: true,
+        modeExercice: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            description: true,
+          },
+        },
         duration: true,
         restAfter: true,
         type: true,
@@ -160,7 +184,14 @@ export class ConsultationTypesService {
         id: true,
         name: true,
         color: true,
-        location: true,
+        modeExercice: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            description: true,
+          },
+        },
         duration: true,
         restAfter: true,
         type: true,
@@ -183,11 +214,22 @@ export class ConsultationTypesService {
   }
 
   async createDefaultConsultationTypes(doctorId: string) {
+    // Get the default mode exercices for this doctor
+    const modeExercices = await this.prisma.modeExercice.findMany({
+      where: { doctorId },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    // Map mode exercices by name for easier lookup
+    const modeExerciceMap = new Map(
+      modeExercices.map((me) => [me.name.toLowerCase(), me.id]),
+    );
+
     const defaultTypes = [
       {
-        name: 'General Consultation',
+        name: 'Consultation générale',
         color: '#3B82F6', // Blue
-        location: ConsultationLocation.ONSITE,
+        modeExerciceId: modeExerciceMap.get('au cabinet'),
         duration: 30,
         restAfter: 10,
         type: ConsultationType.REGULAR,
@@ -196,9 +238,9 @@ export class ConsultationTypesService {
         enabled: true,
       },
       {
-        name: 'Online Consultation',
+        name: 'Téléconsultation',
         color: '#10B981', // Green
-        location: ConsultationLocation.ONLINE,
+        modeExerciceId: modeExerciceMap.get('en visio'),
         duration: 20,
         restAfter: 5,
         type: ConsultationType.REGULAR,
@@ -207,9 +249,9 @@ export class ConsultationTypesService {
         enabled: true,
       },
       {
-        name: 'Emergency Visit',
+        name: 'Visite à domicile',
         color: '#EF4444', // Red
-        location: ConsultationLocation.ATHOME,
+        modeExerciceId: modeExerciceMap.get('à domicile'),
         duration: 45,
         restAfter: 15,
         type: ConsultationType.URGENT,
@@ -221,9 +263,12 @@ export class ConsultationTypesService {
 
     const createdTypes: DoctorConsultationType[] = [];
     for (const typeData of defaultTypes) {
+      if (!typeData.modeExerciceId) continue;
+
       const created = await this.prisma.doctorConsultationType.create({
         data: {
           ...typeData,
+          modeExerciceId: typeData.modeExerciceId, // Explicitly set to satisfy TS
           doctorId,
         },
       });

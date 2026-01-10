@@ -35,7 +35,12 @@ import {
 } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { ConfirmDialog } from '../ui/confirm-dialog';
-import { patientAPI, appointmentAPI, imprevuAPI, ptoAPI } from '../../services/api';
+import {
+  patientAPI,
+  appointmentAPI,
+  imprevuAPI,
+  ptoAPI,
+} from '../../services/api';
 import { splitPatientName } from '../../lib/patient';
 import { useDoctorProfile } from '../../hooks/useDoctorProfile';
 import { Switch } from '../ui/switch';
@@ -75,7 +80,7 @@ const AppointmentForm = ({
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
   const [showConsultationDropdown, setShowConsultationDropdown] =
     useState(false);
-  const [selectedLocation, setSelectedLocation] = useState('ONSITE'); // Default to ONSITE (au cabinet)
+  const [selectedModeExerciceId, setSelectedModeExerciceId] = useState(null);
   const [showPatientFormSheet, setShowPatientFormSheet] = useState(false);
   const [prefilledPatientName, setPrefilledPatientName] = useState(null);
   const [selectedPatients, setSelectedPatients] = useState([]); // Array of selected patient objects (includes visitor patients)
@@ -168,7 +173,7 @@ const AppointmentForm = ({
         (type) => type.id === parseInt(appointment.consultationTypeId)
       );
       if (consultationType) {
-        setSelectedLocation(consultationType.location);
+        setSelectedModeExerciceId(consultationType.modeExercice?.id);
 
         // Calculate duration per patient if editing with multiple patients
         const numberOfPatients = appointment.appointmentPatients?.length || 1;
@@ -375,7 +380,7 @@ const AppointmentForm = ({
         (type) => type.id === parseInt(value)
       );
       if (selectedType) {
-        setSelectedLocation(selectedType.location);
+        setSelectedModeExerciceId(selectedType.modeExercice?.id);
       }
     }
   };
@@ -389,7 +394,7 @@ const AppointmentForm = ({
     }));
 
     // Set the location tab based on the selected type
-    setSelectedLocation(type.location);
+    setSelectedModeExerciceId(type.modeExercice?.id);
 
     // Update duration per patient and reset manual override
     setDurationPerPatient(type.duration);
@@ -650,7 +655,7 @@ const AppointmentForm = ({
             startDate: blockingPto.startDate,
             endDate: blockingPto.endDate,
             reason: blockingPto.label,
-            type: 'PTO'
+            type: 'PTO',
           };
         }
       }
@@ -902,10 +907,10 @@ const AppointmentForm = ({
   // Ensure we're properly parsing the consultation type ID
   const selectedConsultationType = formData.consultationTypeId
     ? consultationTypes.find(
-      (ct) =>
-        ct.id === parseInt(formData.consultationTypeId) ||
-        ct.id === formData.consultationTypeId
-    )
+        (ct) =>
+          ct.id === parseInt(formData.consultationTypeId) ||
+          ct.id === formData.consultationTypeId
+      )
     : null;
 
   const content = (
@@ -966,8 +971,9 @@ const AppointmentForm = ({
                 value={patientSearch?.replace('!SP!', '')}
                 onChange={handlePatientSearch}
                 onFocus={() => setShowPatientDropdown(true)}
-                className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.patientId ? 'border-red-300' : 'border-gray-300'
-                  }`}
+                className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.patientId ? 'border-red-300' : 'border-gray-300'
+                }`}
                 placeholder='Search patients by name...'
               />
               <div className='absolute inset-y-0 right-0 pr-3 flex items-center'>
@@ -1069,8 +1075,9 @@ const AppointmentForm = ({
                 >
                   <span>Selected Patients ({selectedPatients.length})</span>
                   <ChevronDown
-                    className={`h-4 w-4 transition-transform ${expandedSelectedPatients ? 'rotate-180' : ''
-                      }`}
+                    className={`h-4 w-4 transition-transform ${
+                      expandedSelectedPatients ? 'rotate-180' : ''
+                    }`}
                   />
                 </button>
                 {expandedSelectedPatients &&
@@ -1084,8 +1091,8 @@ const AppointmentForm = ({
                         <div className='relative'>
                           <PatientCard
                             patient={patient}
-                            onEdit={() => { }}
-                            onDelete={() => { }}
+                            onEdit={() => {}}
+                            onDelete={() => {}}
                             onView={handlePatientView}
                           />
                           <button
@@ -1108,10 +1115,11 @@ const AppointmentForm = ({
                             >
                               <span>{appointments.length} RDV À VENIR</span>
                               <ChevronDown
-                                className={`h-4 w-4 transition-transform ${expandedUpcomingAppointments[patient.id]
-                                  ? 'rotate-180'
-                                  : ''
-                                  }`}
+                                className={`h-4 w-4 transition-transform ${
+                                  expandedUpcomingAppointments[patient.id]
+                                    ? 'rotate-180'
+                                    : ''
+                                }`}
                               />
                             </button>
                             {expandedUpcomingAppointments[patient.id] && (
@@ -1129,8 +1137,9 @@ const AppointmentForm = ({
                                     'Consultation';
                                   const doctorFirstName =
                                     doctorProfile?.user?.firstName || '';
-                                  const doctorDisplayName = `Dr ${doctorFirstName || ''
-                                    }`.trim();
+                                  const doctorDisplayName = `Dr ${
+                                    doctorFirstName || ''
+                                  }`.trim();
                                   const doctorInitial = doctorFirstName
                                     ? doctorFirstName.charAt(0)
                                     : 'D';
@@ -1207,8 +1216,9 @@ const AppointmentForm = ({
                 name='date'
                 value={formData.date}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.date ? 'border-red-300' : 'border-gray-300'
-                  }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.date ? 'border-red-300' : 'border-gray-300'
+                }`}
               />
               {errors.date && (
                 <p className='mt-1 text-sm text-red-600'>{errors.date}</p>
@@ -1246,11 +1256,13 @@ const AppointmentForm = ({
               onClick={() =>
                 setShowConsultationDropdown(!showConsultationDropdown)
               }
-              className={`w-full p-2 border rounded-lg cursor-pointer bg-white flex items-center justify-between ${errors.consultationTypeId ? 'border-red-300' : 'border-gray-300'
-                } ${showConsultationDropdown
+              className={`w-full p-2 border rounded-lg cursor-pointer bg-white flex items-center justify-between ${
+                errors.consultationTypeId ? 'border-red-300' : 'border-gray-300'
+              } ${
+                showConsultationDropdown
                   ? 'ring-2 ring-blue-500 border-transparent'
                   : 'hover:border-gray-400'
-                }`}
+              }`}
             >
               <div className='flex items-center space-x-2'>
                 {selectedConsultationType ? (
@@ -1276,8 +1288,9 @@ const AppointmentForm = ({
                 )}
               </div>
               <ChevronDown
-                className={`h-5 w-5 text-gray-500 transition-transform ${showConsultationDropdown ? 'rotate-180' : ''
-                  }`}
+                className={`h-5 w-5 text-gray-500 transition-transform ${
+                  showConsultationDropdown ? 'rotate-180' : ''
+                }`}
               />
             </div>
 
@@ -1292,299 +1305,156 @@ const AppointmentForm = ({
                 </div>
 
                 {/* Location Tabs - Styled like the screenshot */}
-                <div className='flex border-b border-gray-200 bg-gray-50'>
-                  {consultationTypes.filter(
-                    (type) => type.location === 'ONSITE'
-                  ).length > 0 && (
-                      <div
-                        onClick={() => setSelectedLocation('ONSITE')}
-                        className={`flex-1 flex items-center justify-center space-x-2 px-2 py-4 cursor-pointer transition-colors ${selectedLocation === 'ONSITE'
+                {/* Mode Exercice Tabs */}
+                <div className='flex border-b border-gray-200 bg-gray-50 overflow-x-auto'>
+                  {Array.from(
+                    new Map(
+                      consultationTypes
+                        .filter((ct) => ct.modeExercice)
+                        .map((ct) => [ct.modeExercice.id, ct.modeExercice])
+                    ).values()
+                  ).map((mode) => (
+                    <div
+                      key={mode.id}
+                      onClick={() => setSelectedModeExerciceId(mode.id)}
+                      className={`flex-1 flex items-center justify-center space-x-2 px-2 py-4 cursor-pointer transition-colors min-w-[120px] ${
+                        selectedModeExerciceId === mode.id
                           ? 'bg-blue-600 border-blue-700 text-white'
                           : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-                          }`}
-                      >
-                        <div
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedLocation === 'ONSITE'
-                            ? 'bg-blue-500'
-                            : 'bg-gray-200'
-                            }`}
-                        >
-                          <Building2
-                            className={`w-4 h-4 ${selectedLocation === 'ONSITE'
-                              ? 'text-white'
-                              : 'text-gray-600'
-                              }`}
-                          />
-                        </div>
-                        <span className='font-medium'>au cabinet</span>
-                      </div>
-                    )}
-
-                  {consultationTypes.filter(
-                    (type) => type.location === 'ONLINE'
-                  ).length > 0 && (
+                      }`}
+                    >
                       <div
-                        onClick={() => setSelectedLocation('ONLINE')}
-                        className={`flex-1 flex items-center justify-center space-x-2 px-2 py-4 cursor-pointer transition-colors ${selectedLocation === 'ONLINE'
-                          ? 'bg-blue-600 border-blue-700 text-white'
-                          : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-                          }`}
-                      >
-                        <div
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedLocation === 'ONLINE'
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                          selectedModeExerciceId === mode.id
                             ? 'bg-blue-500'
                             : 'bg-gray-200'
-                            }`}
-                        >
-                          <Video
-                            className={`w-4 h-4 ${selectedLocation === 'ONLINE'
-                              ? 'text-white'
-                              : 'text-gray-600'
-                              }`}
-                          />
-                        </div>
-                        <span className='font-medium'>en visio</span>
-                      </div>
-                    )}
-
-                  {consultationTypes.filter(
-                    (type) => type.location === 'ATHOME'
-                  ).length > 0 && (
-                      <div
-                        onClick={() => setSelectedLocation('ATHOME')}
-                        className={`flex-1 flex items-center justify-center space-x-2 px-2 py-4 cursor-pointer transition-colors ${selectedLocation === 'ATHOME'
-                          ? 'bg-blue-600 border-blue-700 text-white'
-                          : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-                          }`}
+                        }`}
                       >
-                        <div
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedLocation === 'ATHOME'
-                            ? 'bg-blue-500'
-                            : 'bg-gray-200'
-                            }`}
-                        >
-                          <Home
-                            className={`w-4 h-4 ${selectedLocation === 'ATHOME'
-                              ? 'text-white'
-                              : 'text-gray-600'
+                        {(() => {
+                          const name = mode.name?.toLowerCase() || '';
+                          if (
+                            name.includes('tele') ||
+                            name.includes('télé') ||
+                            name.includes('visio') ||
+                            name.includes('video') ||
+                            name.includes('online')
+                          )
+                            return (
+                              <Video
+                                className={`w-4 h-4 ${
+                                  selectedModeExerciceId === mode.id
+                                    ? 'text-white'
+                                    : 'text-gray-600'
+                                }`}
+                              />
+                            );
+                          if (
+                            name.includes('domicile') ||
+                            name.includes('home')
+                          )
+                            return (
+                              <Home
+                                className={`w-4 h-4 ${
+                                  selectedModeExerciceId === mode.id
+                                    ? 'text-white'
+                                    : 'text-gray-600'
+                                }`}
+                              />
+                            );
+                          return (
+                            <Building2
+                              className={`w-4 h-4 ${
+                                selectedModeExerciceId === mode.id
+                                  ? 'text-white'
+                                  : 'text-gray-600'
                               }`}
-                          />
-                        </div>
-                        <span className='font-medium'>à domicile</span>
+                            />
+                          );
+                        })()}
                       </div>
-                    )}
+                      <span className='font-medium text-sm truncate'>
+                        {mode.name}
+                      </span>
+                    </div>
+                  ))}
                 </div>
 
-                {/* Consultation Types for Selected Location */}
+                {/* Consultation Types for Selected Mode */}
                 <div className='p-4 space-y-3'>
-                  {selectedLocation === 'ONSITE' && (
-                    <div className='mb-3'>
-                      <div className='space-y-2'>
-                        {consultationTypes
-                          .filter((type) => type.location === 'ONSITE')
-                          .map((type) => {
-                            const isAvailable = isConsultationTypeAvailable(
-                              type.id
-                            );
-                            return (
+                  {consultationTypes
+                    .filter(
+                      (type) => type.modeExercice?.id === selectedModeExerciceId
+                    )
+                    .map((type) => {
+                      const isAvailable = isConsultationTypeAvailable(type.id);
+                      return (
+                        <div
+                          key={type.id}
+                          onClick={() =>
+                            isAvailable && handleConsultationTypeSelect(type)
+                          }
+                          className={`p-3 rounded-lg transition-colors ${
+                            isAvailable
+                              ? 'cursor-pointer hover:bg-gray-50'
+                              : 'cursor-not-allowed opacity-50 bg-gray-50'
+                          } ${
+                            formData.consultationTypeId === String(type.id)
+                              ? 'bg-blue-50 border border-blue-200'
+                              : 'border border-gray-200'
+                          }`}
+                        >
+                          <div className='flex items-center justify-between'>
+                            <div className='flex items-center space-x-3'>
                               <div
-                                key={type.id}
-                                onClick={() =>
-                                  isAvailable &&
-                                  handleConsultationTypeSelect(type)
-                                }
-                                className={`p-3 rounded-lg transition-colors ${isAvailable
-                                  ? 'cursor-pointer hover:bg-gray-50'
-                                  : 'cursor-not-allowed opacity-50 bg-gray-50'
-                                  } ${formData.consultationTypeId ===
-                                    String(type.id)
-                                    ? 'bg-blue-50 border border-blue-200'
-                                    : 'border border-gray-200'
-                                  }`}
+                                className='w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold'
+                                style={{
+                                  backgroundColor: type.color || '#3B82F6',
+                                }}
                               >
-                                <div className='flex items-center justify-between'>
-                                  <div className='flex items-center space-x-3'>
-                                    <div
-                                      className='w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold'
-                                      style={{
-                                        backgroundColor:
-                                          type.color || '#3B82F6',
-                                      }}
-                                    >
-                                      {type.duration}
-                                    </div>
-                                    <div>
-                                      <h4
-                                        className={`font-medium ${isAvailable
-                                          ? 'text-gray-900'
-                                          : 'text-gray-500'
-                                          }`}
-                                      >
-                                        {type.name}
-                                        {!isAvailable && (
-                                          <span className='ml-2 text-xs text-red-500'>
-                                            (Non disponible)
-                                          </span>
-                                        )}
-                                      </h4>
-                                    </div>
-                                  </div>
-                                  <div className='text-right'>
-                                    <p
-                                      className={`font-semibold ${isAvailable
-                                        ? 'text-gray-900'
-                                        : 'text-gray-500'
-                                        }`}
-                                    >
-                                      ${type.price}
-                                    </p>
-                                    <p className='text-xs text-gray-500'>
-                                      {type.duration} min.
-                                    </p>
-                                  </div>
-                                </div>
+                                {type.duration}
                               </div>
-                            );
-                          })}
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedLocation === 'ONLINE' && (
-                    <div className='space-y-2'>
-                      {consultationTypes
-                        .filter((type) => type.location === 'ONLINE')
-                        .map((type) => {
-                          const isAvailable = isConsultationTypeAvailable(
-                            type.id
-                          );
-                          return (
-                            <div
-                              key={type.id}
-                              onClick={() =>
-                                isAvailable &&
-                                handleConsultationTypeSelect(type)
-                              }
-                              className={`p-3 rounded-lg transition-colors ${isAvailable
-                                ? 'cursor-pointer hover:bg-gray-50'
-                                : 'cursor-not-allowed opacity-50 bg-gray-50'
-                                } ${formData.consultationTypeId === String(type.id)
-                                  ? 'bg-blue-50 border border-blue-200'
-                                  : 'border border-gray-200'
-                                }`}
-                            >
-                              <div className='flex items-center justify-between'>
-                                <div className='flex items-center space-x-3'>
-                                  <div
-                                    className='w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold'
-                                    style={{
-                                      backgroundColor: type.color || '#3B82F6',
-                                    }}
-                                  >
-                                    {type.duration}
-                                  </div>
-                                  <div>
-                                    <h4
-                                      className={`font-medium ${isAvailable
-                                        ? 'text-gray-900'
-                                        : 'text-gray-500'
-                                        }`}
-                                    >
-                                      {type.name}
-                                      {!isAvailable && (
-                                        <span className='ml-2 text-xs text-red-500'>
-                                          (Non disponible)
-                                        </span>
-                                      )}
-                                    </h4>
-                                  </div>
-                                </div>
-                                <div className='text-right'>
-                                  <p
-                                    className={`font-semibold ${isAvailable
+                              <div>
+                                <h4
+                                  className={`font-medium ${
+                                    isAvailable
                                       ? 'text-gray-900'
                                       : 'text-gray-500'
-                                      }`}
-                                  >
-                                    ${type.price}
-                                  </p>
-                                  <p className='text-xs text-gray-500'>
-                                    {type.duration} min.
-                                  </p>
+                                  }`}
+                                >
+                                  {type.name}
+                                  {!isAvailable && (
+                                    <span className='ml-2 text-xs text-red-500'>
+                                      (Non disponible)
+                                    </span>
+                                  )}
+                                </h4>
+                                <div className='flex items-center text-xs text-gray-500 mt-1 space-x-2'>
+                                  <span className='flex items-center'>
+                                    <Clock className='w-3 h-3 mr-1' />
+                                    {type.duration} min
+                                  </span>
+                                  <span className='flex items-center'>
+                                    <CreditCard className='w-3 h-3 mr-1' />
+                                    {type.price}
+                                  </span>
                                 </div>
                               </div>
                             </div>
-                          );
-                        })}
-                    </div>
-                  )}
-
-                  {selectedLocation === 'ATHOME' && (
-                    <div className='space-y-2'>
-                      {consultationTypes
-                        .filter((type) => type.location === 'ATHOME')
-                        .map((type) => {
-                          const isAvailable = isConsultationTypeAvailable(
-                            type.id
-                          );
-                          return (
-                            <div
-                              key={type.id}
-                              onClick={() =>
-                                isAvailable &&
-                                handleConsultationTypeSelect(type)
-                              }
-                              className={`p-3 rounded-lg transition-colors ${isAvailable
-                                ? 'cursor-pointer hover:bg-gray-50'
-                                : 'cursor-not-allowed opacity-50 bg-gray-50'
-                                } ${formData.consultationTypeId === String(type.id)
-                                  ? 'bg-blue-50 border border-blue-200'
-                                  : 'border border-gray-200'
-                                }`}
-                            >
-                              <div className='flex items-center justify-between'>
-                                <div className='flex items-center space-x-3'>
-                                  <div
-                                    className='w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold'
-                                    style={{
-                                      backgroundColor: type.color || '#3B82F6',
-                                    }}
-                                  >
-                                    {type.duration}
-                                  </div>
-                                  <div>
-                                    <h4
-                                      className={`font-medium ${isAvailable
-                                        ? 'text-gray-900'
-                                        : 'text-gray-500'
-                                        }`}
-                                    >
-                                      {type.name}
-                                      {!isAvailable && (
-                                        <span className='ml-2 text-xs text-red-500'>
-                                          (Non disponible)
-                                        </span>
-                                      )}
-                                    </h4>
-                                  </div>
-                                </div>
-                                <div className='text-right'>
-                                  <p
-                                    className={`font-semibold ${isAvailable
-                                      ? 'text-gray-900'
-                                      : 'text-gray-500'
-                                      }`}
-                                  >
-                                    ${type.price}
-                                  </p>
-                                  <p className='text-xs text-gray-500'>
-                                    {type.duration} min.
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
+                            {formData.consultationTypeId ===
+                              String(type.id) && (
+                              <div className='w-2 h-2 rounded-full bg-blue-500' />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  {consultationTypes.filter(
+                    (type) => type.modeExercice?.id === selectedModeExerciceId
+                  ).length === 0 && (
+                    <div className='text-center py-4 text-gray-500'>
+                      {consultationTypes.length > 0
+                        ? "Sélectionnez un mode d'exercice."
+                        : 'Aucun type de consultation disponible.'}
                     </div>
                   )}
                 </div>
@@ -1655,8 +1525,9 @@ const AppointmentForm = ({
                   Available Time Slots
                 </span>
                 <ChevronDown
-                  className={`h-4 w-4 transition-transform ${expandedTimeSlots ? 'rotate-180' : ''
-                    }`}
+                  className={`h-4 w-4 transition-transform ${
+                    expandedTimeSlots ? 'rotate-180' : ''
+                  }`}
                 />
               </button>
               {expandedTimeSlots && (
@@ -1846,7 +1717,7 @@ const AppointmentForm = ({
             appointment={selectedAppointmentForView}
             isOpen={!!selectedAppointmentForView}
             onClose={() => setSelectedAppointmentForView(null)}
-            onDelete={() => { }}
+            onDelete={() => {}}
             inline={false}
           />
         )}
@@ -1856,8 +1727,8 @@ const AppointmentForm = ({
             patient={selectedPatientForView}
             isOpen={!!selectedPatientForView}
             onClose={() => setSelectedPatientForView(null)}
-            onEdit={() => { }}
-            onDelete={() => { }}
+            onEdit={() => {}}
+            onDelete={() => {}}
             initialTab={selectedPatientTab}
             onView={handlePatientView}
             onPatientUpdated={handlePatientUpdatedFromDetails}
@@ -1958,8 +1829,8 @@ const AppointmentForm = ({
           description={
             pendingImprevu
               ? `Ce jour est déclaré comme non travaillé en raison de l’imprévu « ${getImprevuLabel(
-                pendingImprevu
-              )} ». Voulez-vous vraiment forcer la création de ce rendez-vous à cette date ?`
+                  pendingImprevu
+                )} ». Voulez-vous vraiment forcer la création de ce rendez-vous à cette date ?`
               : 'Ce jour est déclaré comme non travaillé en raison d’un imprévu. Voulez-vous vraiment forcer la création de ce rendez-vous à cette date ?'
           }
           confirmText='Forcer le rendez-vous'
@@ -2102,9 +1973,11 @@ const AppointmentForm = ({
         title='Forcer un rendez-vous sur un jour fermé ?'
         description={
           pendingImprevu
-            ? `Ce jour est déclaré comme non travaillé en raison de ${pendingImprevu.type === 'PTO' ? 'congés' : "l'imprévu"} « ${getImprevuLabel(
-              pendingImprevu
-            )} ». Voulez-vous vraiment forcer la création de ce rendez-vous à cette date ?`
+            ? `Ce jour est déclaré comme non travaillé en raison de ${
+                pendingImprevu.type === 'PTO' ? 'congés' : "l'imprévu"
+              } « ${getImprevuLabel(
+                pendingImprevu
+              )} ». Voulez-vous vraiment forcer la création de ce rendez-vous à cette date ?`
             : 'Ce jour est déclaré comme non travaillé en raison d’un imprévu. Voulez-vous vraiment forcer la création de ce rendez-vous à cette date ?'
         }
         confirmText='Forcer le rendez-vous'
@@ -2118,7 +1991,7 @@ const AppointmentForm = ({
           appointment={selectedAppointmentForView}
           isOpen={!!selectedAppointmentForView}
           onClose={() => setSelectedAppointmentForView(null)}
-          onDelete={() => { }}
+          onDelete={() => {}}
           inline={true}
         />
       )}
@@ -2128,8 +2001,8 @@ const AppointmentForm = ({
           patient={selectedPatientForView}
           isOpen={!!selectedPatientForView}
           onClose={() => setSelectedPatientForView(null)}
-          onEdit={() => { }}
-          onDelete={() => { }}
+          onEdit={() => {}}
+          onDelete={() => {}}
           initialTab={selectedPatientTab}
           onView={handlePatientView}
           onPatientUpdated={handlePatientUpdatedFromDetails}

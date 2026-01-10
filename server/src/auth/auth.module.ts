@@ -12,6 +12,7 @@ import { EmailModule } from '../email/email.module';
 import { OtpModule } from '../otp/otp.module';
 import { DoctorProfileService } from '../doctor-profile/doctor-profile.service';
 import { ConsultationTypesService } from '../consultation-types/consultation-types.service';
+import { ModeExerciceService } from '../mode-exercice/mode-exercice.service';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ConsultationTypesService } from '../consultation-types/consultation-typ
     JwtAuthGuard,
     DoctorProfileService,
     ConsultationTypesService,
+    ModeExerciceService,
   ],
   exports: [AuthService, JwtAuthGuard],
 })

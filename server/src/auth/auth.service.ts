@@ -12,6 +12,7 @@ import { EmailService } from '../email/email.service';
 import { OtpService } from '../otp/otp.service';
 import { DoctorProfileService } from '../doctor-profile/doctor-profile.service';
 import { ConsultationTypesService } from '../consultation-types/consultation-types.service';
+import { ModeExerciceService } from '../mode-exercice/mode-exercice.service';
 import {
   VerifyEmailDto,
   ResendVerificationDto,
@@ -47,6 +48,7 @@ export class AuthService {
     private otpService: OtpService,
     private doctorProfileService: DoctorProfileService,
     private consultationTypesService: ConsultationTypesService,
+    private modeExerciceService: ModeExerciceService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<User | null> {
@@ -155,11 +157,24 @@ export class AuthService {
       // User starts as unverified
     });
 
-    // If the user is a doctor, create a default doctor profile and consultation types
+    // If the user is a doctor, create a default doctor profile, mode exercices, and consultation types
     if (user.role === UserRole.DOCTOR) {
       try {
         const doctorProfile =
           await this.doctorProfileService.createDefaultProfile(user.id);
+
+        // Create default mode exercices for the new doctor
+        try {
+          await this.modeExerciceService.createDefaultModeExercices(
+            doctorProfile.id,
+          );
+        } catch (modeExerciceError) {
+          // Log the error but don't fail the registration
+          console.error(
+            'Failed to create default mode exercices:',
+            modeExerciceError,
+          );
+        }
 
         // Create default consultation types for the new doctor
         try {

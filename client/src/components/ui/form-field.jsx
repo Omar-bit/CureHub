@@ -94,6 +94,7 @@ const FormSelect = React.forwardRef(
       options = [],
       placeholder = 'Select an option...',
       className,
+
       ...props
     },
     ref

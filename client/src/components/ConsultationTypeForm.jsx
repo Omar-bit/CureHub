@@ -2,14 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Modal, ModalContent, ModalFooter } from './ui/modal';
 import { FormInput, FormSelect } from './ui/form-field';
 import { Button } from './ui/button';
-import { consultationTypesAPI } from './../services/api';
+import { consultationTypesAPI, modeExerciceAPI } from './../services/api';
 import { showSuccess, showError } from './../lib/toast';
-
-const LOCATION_OPTIONS = [
-  { value: 'ONSITE', label: 'Onsite (In Clinic)' },
-  { value: 'ONLINE', label: 'Online (Teleconsultation)' },
-  { value: 'ATHOME', label: 'At Home (Home Visit)' },
-];
 
 const TYPE_OPTIONS = [
   { value: 'REGULAR', label: 'Regular' },
@@ -30,7 +24,7 @@ const ConsultationTypeForm = ({
   const [formData, setFormData] = useState({
     name: '',
     color: '#3B82F6',
-    location: '',
+    modeExerciceId: '',
     duration: '',
     restAfter: '',
     type: '',
@@ -40,8 +34,30 @@ const ConsultationTypeForm = ({
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [modeExercices, setModeExercices] = useState([]);
+  const [loadingModeExercices, setLoadingModeExercices] = useState(false);
 
   const isEditing = !!consultationType;
+
+  // Load mode exercices when form opens
+  useEffect(() => {
+    const loadModeExercices = async () => {
+      if (isOpen) {
+        setLoadingModeExercices(true);
+        try {
+          const data = await modeExerciceAPI.getAll();
+          setModeExercices(data || []);
+        } catch (error) {
+          console.error('Failed to load mode exercices:', error);
+          showError('Failed to load mode exercices');
+        } finally {
+          setLoadingModeExercices(false);
+        }
+      }
+    };
+
+    loadModeExercices();
+  }, [isOpen]);
 
   // Initialize form data when editing
   useEffect(() => {
@@ -49,7 +65,10 @@ const ConsultationTypeForm = ({
       setFormData({
         name: consultationType.name || '',
         color: consultationType.color || '#3B82F6',
-        location: consultationType.location || '',
+        modeExerciceId:
+          consultationType.modeExerciceId ||
+          consultationType.modeExercice?.id ||
+          '',
         duration: consultationType.duration?.toString() || '',
         restAfter: consultationType.restAfter?.toString() || '',
         type: consultationType.type || '',
@@ -65,7 +84,7 @@ const ConsultationTypeForm = ({
       setFormData({
         name: '',
         color: '#3B82F6',
-        location: '',
+        modeExerciceId: '',
         duration: '',
         restAfter: '',
         type: '',
@@ -90,9 +109,7 @@ const ConsultationTypeForm = ({
       newErrors.color = 'Please enter a valid hex color (e.g., #3B82F6)';
     }
 
-    if (!formData.location) {
-      newErrors.location = 'Location is required';
-    }
+    // Mode exercice is optional, no validation needed
 
     if (!formData.duration) {
       newErrors.duration = 'Duration is required';
@@ -117,6 +134,9 @@ const ConsultationTypeForm = ({
     } else if (parseFloat(formData.price) < 0) {
       newErrors.price = 'Price must be 0 or more';
     }
+    if (!formData.modeExerciceId) {
+      newErrors.modeExerciceId = 'Mode exercice is required';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -134,7 +154,7 @@ const ConsultationTypeForm = ({
       const submitData = {
         name: formData.name.trim(),
         color: formData.color.trim(),
-        location: formData.location,
+        modeExerciceId: formData.modeExerciceId,
         duration: parseInt(formData.duration),
         restAfter: parseInt(formData.restAfter) || 0,
         type: formData.type,
@@ -214,14 +234,20 @@ const ConsultationTypeForm = ({
 
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <FormSelect
-              label='Location'
               required
-              value={formData.location}
-              onChange={(e) => handleInputChange('location', e.target.value)}
-              error={errors.location}
-              options={LOCATION_OPTIONS}
-              placeholder='Select location'
-              disabled={isLoading}
+              label="Mode d'exercice"
+              error={errors.modeExerciceId}
+              value={formData.modeExerciceId}
+              onChange={(e) =>
+                handleInputChange('modeExerciceId', e.target.value)
+              }
+              error={errors.modeExerciceId}
+              options={modeExercices.map((me) => ({
+                value: me.id,
+                label: me.name,
+              }))}
+              placeholder="Sélectionner un mode d'exercice"
+              disabled={isLoading || loadingModeExercices}
             />
 
             <FormSelect

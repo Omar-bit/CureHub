@@ -8,7 +8,7 @@ import {
   IsHexColor,
   Min,
 } from 'class-validator';
-import { ConsultationLocation, ConsultationType } from '@prisma/client';
+import { ConsultationType } from '@prisma/client';
 
 export class CreateConsultationTypeDto {
   @IsString()
@@ -17,8 +17,8 @@ export class CreateConsultationTypeDto {
   @IsHexColor()
   color: string;
 
-  @IsEnum(ConsultationLocation)
-  location: ConsultationLocation;
+  @IsString()
+  modeExerciceId: string;
 
   @IsInt()
   @Min(1)
@@ -54,8 +54,8 @@ export class UpdateConsultationTypeDto {
   color?: string;
 
   @IsOptional()
-  @IsEnum(ConsultationLocation)
-  location?: ConsultationLocation;
+  @IsString()
+  modeExerciceId?: string;
 
   @IsOptional()
   @IsInt()
@@ -92,8 +92,8 @@ export class ConsultationTypeQueryDto {
   enabledOnly?: boolean;
 
   @IsOptional()
-  @IsEnum(ConsultationLocation)
-  location?: ConsultationLocation;
+  @IsString()
+  modeExerciceId?: string;
 
   @IsOptional()
   @IsEnum(ConsultationType)

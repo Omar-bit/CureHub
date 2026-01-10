@@ -630,7 +630,14 @@ export class PatientService {
           id: true,
           name: true,
           color: true,
-          location: true,
+          modeExercice: {
+            select: {
+              id: true,
+              name: true,
+              color: true,
+              description: true,
+            },
+          },
           duration: true,
           price: true,
         },

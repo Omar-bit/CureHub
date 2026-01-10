@@ -62,7 +62,8 @@ const ConsultationTypesPage = () => {
       const filtered = consultationTypes.filter(
         (type) =>
           type.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          type.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (type.modeExercice?.name &&
+            type.modeExercice.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
           type.type.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredTypes(filtered);
@@ -99,19 +100,6 @@ const ConsultationTypesPage = () => {
     loadConsultationTypes();
   };
 
-  const getLocationDisplay = (location) => {
-    switch (location) {
-      case 'ONSITE':
-        return 'Onsite';
-      case 'ONLINE':
-        return 'Online';
-      case 'ATHOME':
-        return 'At Home';
-      default:
-        return location;
-    }
-  };
-
   const getTypeDisplay = (type) => {
     switch (type) {
       case 'REGULAR':
@@ -120,19 +108,6 @@ const ConsultationTypesPage = () => {
         return 'Urgent';
       default:
         return type;
-    }
-  };
-
-  const getLocationIcon = (location) => {
-    switch (location) {
-      case 'ONSITE':
-        return '🏥';
-      case 'ONLINE':
-        return '💻';
-      case 'ATHOME':
-        return '🏠';
-      default:
-        return '📍';
     }
   };
 
@@ -152,12 +127,21 @@ const ConsultationTypesPage = () => {
       ),
     },
     {
-      key: 'location',
-      title: 'Location',
-      render: (value) => (
+      key: 'modeExercice',
+      title: 'Mode d\'exercice',
+      render: (value, row) => (
         <div className='flex items-center gap-2'>
-          <span>{getLocationIcon(value)}</span>
-          <span>{getLocationDisplay(value)}</span>
+          {row.modeExercice ? (
+            <>
+              <div
+                className='w-3 h-3 rounded-full border border-gray-300'
+                style={{ backgroundColor: row.modeExercice.color }}
+              />
+              <span>{row.modeExercice.name}</span>
+            </>
+          ) : (
+            <span className='text-gray-400'>—</span>
+          )}
         </div>
       ),
     },
@@ -384,13 +368,16 @@ const ConsultationTypesPage = () => {
                           {consultationType.name}
                         </h3>
                         <div className='flex items-center gap-1 text-sm text-muted-foreground'>
-                          <span>
-                            {getLocationIcon(consultationType.location)}
-                          </span>
-                          <span>
-                            {getLocationDisplay(consultationType.location)}
-                          </span>
-                          <span className='mx-1'>•</span>
+                          {consultationType.modeExercice ? (
+                            <>
+                              <div
+                                className='w-3 h-3 rounded-full border border-white shadow-sm'
+                                style={{ backgroundColor: consultationType.modeExercice.color }}
+                              />
+                              <span>{consultationType.modeExercice.name}</span>
+                              <span className='mx-1'>•</span>
+                            </>
+                          ) : null}
                           <span>{getTypeDisplay(consultationType.type)}</span>
                         </div>
                       </div>

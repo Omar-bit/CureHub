@@ -58,25 +58,25 @@ const PatientActesTab = ({ patient }) => {
     }
   };
 
-  const getLocationLabel = (location) => {
-    const labels = {
-      ONSITE: 'Au cabinet',
-      ONLINE: 'Téléconsultation',
-      ATHOME: 'À domicile',
-    };
-    return labels[location] || location;
+  const getModeExerciceLabel = (modeExercice) => {
+    return modeExercice?.name || 'Non spécifié';
   };
 
-  const getLocationIcon = (location) => {
-    switch (location) {
-      case 'ONLINE':
-        return '🌐';
-      case 'ATHOME':
-        return '🏠';
-      case 'ONSITE':
-      default:
-        return '🏥';
+  const getModeExerciceIcon = (modeExercice) => {
+    const name = modeExercice?.name?.toLowerCase() || '';
+    if (
+      name.includes('tele') ||
+      name.includes('télé') ||
+      name.includes('visio') ||
+      name.includes('video') ||
+      name.includes('online')
+    ) {
+      return '🌐';
     }
+    if (name.includes('domicile') || name.includes('home')) {
+      return '🏠';
+    }
+    return '🏥';
   };
 
   if (loading) {
@@ -129,7 +129,7 @@ const PatientActesTab = ({ patient }) => {
                   : '#e5e7eb',
               }}
             >
-              {getLocationIcon(consultationType.location)}
+              {getModeExerciceIcon(consultationType.modeExercice)}
             </div>
             <div className='flex-1 min-w-0'>
               <div className='flex items-center gap-2'>
@@ -147,7 +147,7 @@ const PatientActesTab = ({ patient }) => {
                       : '#6b7280',
                   }}
                 >
-                  {getLocationLabel(consultationType.location)}
+                  {getModeExerciceLabel(consultationType.modeExercice)}
                 </span>
               </div>
               <div className='flex items-center gap-4 mt-1 text-xs text-muted-foreground'>
