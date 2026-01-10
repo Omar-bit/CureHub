@@ -33,9 +33,39 @@ const DayView = ({
   currentView = 'day',
   onViewChange,
 }) => {
+  const containerRef = React.useRef(null);
+  const [containerHeight, setContainerHeight] = React.useState(0);
   const [currentTimePosition, setCurrentTimePosition] = React.useState(null);
   const [showDatePicker, setShowDatePicker] = React.useState(false);
   const datePickerRef = React.useRef(null);
+
+  // Calculate effective zoom to fill height if needed
+  const effectiveZoom = React.useMemo(() => {
+    if (!containerHeight) return verticalZoom;
+    const durationHours = workingHours.end - workingHours.start;
+    if (durationHours <= 0) return verticalZoom;
+
+    // Calculate zoom needed to fill the container height
+    // We substract a small buffer (e.g. 1px to avoid rounding issues causing scrollbars)
+    const autoZoom = (containerHeight - 1) / (durationHours * 60);
+
+    // Use the larger of the two zooms
+    return Math.max(verticalZoom, autoZoom);
+  }, [containerHeight, workingHours.start, workingHours.end, verticalZoom]);
+
+  // Observer for container height
+  React.useEffect(() => {
+    if (!containerRef.current) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerHeight(entry.contentRect.height);
+      }
+    });
+
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   // Calculate current time indicator position
   const getCurrentTimePosition = React.useCallback(() => {
@@ -51,9 +81,9 @@ const DayView = ({
     }
 
     const minutesFromStart = (hours - workingHours.start) * 60 + minutes;
-    const position = minutesFromStart * verticalZoom;
+    const position = minutesFromStart * effectiveZoom;
     setCurrentTimePosition(position);
-  }, [currentDate, workingHours.start, workingHours.end, verticalZoom]);
+  }, [currentDate, workingHours.start, workingHours.end, effectiveZoom]);
 
   // Initialize and update current time position
   React.useEffect(() => {
@@ -137,11 +167,11 @@ const DayView = ({
       const top = CalendarUtils.getTimeSlotPosition(
         startTimeStr,
         workingHours.start,
-        60 * verticalZoom
+        60 * effectiveZoom
       );
       const height = CalendarUtils.getTimeSlotHeight(
         duration,
-        60 * verticalZoom
+        60 * effectiveZoom
       );
 
       if (height > 0) {
@@ -155,7 +185,7 @@ const DayView = ({
     currentDate,
     workingHours.start,
     workingHours.end,
-    verticalZoom,
+    effectiveZoom,
   ]);
 
   const hasBlockingImprevu = React.useMemo(() => {
@@ -369,8 +399,8 @@ const DayView = ({
     const gapSize = 0.3; // pixels - creates visual spacing between appointments
 
     // Apply vertical zoom to position and height
-    const zoomedPosition = position * verticalZoom;
-    const zoomedHeight = (height - gapSize) * verticalZoom; // Reduce height to create gap
+    const zoomedPosition = position * effectiveZoom;
+    const zoomedHeight = (height - gapSize) * effectiveZoom; // Reduce height to create gap
 
     const leftOffset = 60; // Time label width
     const rightOffset = 10;
@@ -511,12 +541,18 @@ const DayView = ({
       </div>
 
       {/* Time slots */}
-      <div className='flex-1 overflow-y-auto'>
+      <div
+        className='flex-1 overflow-y-auto'
+        ref={containerRef}
+      >
         <div
           className='relative'
           style={{
-            height: `${(workingHours.end - workingHours.start) * 60 * verticalZoom
+            height: `${(workingHours.end - workingHours.start) * 60 * effectiveZoom
               }px`,
+            minHeight: '100%',
+            backgroundImage: `linear-gradient(to right, white 3rem, transparent 3rem), repeating-linear-gradient(to bottom, #f3f4f6 0, #f3f4f6 1px, transparent 1px, transparent ${15 * effectiveZoom
+              }px)`,
           }}
         >
           {(blockingImprevuSegments.length > 0 || hasBlockingImprevu) && (
@@ -564,24 +600,24 @@ const DayView = ({
                 {/* Time slot area */}
                 <div
                   className='flex-1 border-t border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors'
-                  style={{ height: `${60 * verticalZoom}px` }}
+                  style={{ height: `${60 * effectiveZoom}px` }}
                   onClick={(e) => handleTimeSlotClick(timeSlot, e)}
                 >
                   <div className='h-full w-full relative'>
                     {/* 15-minute mark */}
                     <div
                       className='absolute left-0 right-0 border-t border-gray-100'
-                      style={{ top: `${15 * verticalZoom}px` }}
+                      style={{ top: `${15 * effectiveZoom}px` }}
                     />
                     {/* 30-minute mark */}
                     <div
                       className='absolute left-0 right-0 border-t border-gray-100'
-                      style={{ top: `${30 * verticalZoom}px` }}
+                      style={{ top: `${30 * effectiveZoom}px` }}
                     />
                     {/* 45-minute mark */}
                     <div
                       className='absolute left-0 right-0 border-t border-gray-100'
-                      style={{ top: `${45 * verticalZoom}px` }}
+                      style={{ top: `${45 * effectiveZoom}px` }}
                     />
                   </div>
                 </div>
@@ -594,6 +630,7 @@ const DayView = ({
             <div
               className='absolute left-0 right-0 z-20 pointer-events-none'
               style={{ top: `${currentTimePosition}px` }}
+
             >
               <div className='relative flex items-center'>
                 {/* Circle */}

@@ -293,7 +293,7 @@ const AgendaPage = () => {
         <div
           className={`
             ${activeTab ? 'lg:w-1/2' : 'flex-1'} 
-            transition-all duration-300 overflow-y-auto
+            transition-all duration-300
           `}
         >
           <CalendarSection

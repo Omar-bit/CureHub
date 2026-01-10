@@ -452,6 +452,8 @@ const WeekView = ({
           className='relative'
           style={{
             height: `${(workingHours.end - workingHours.start) * 60}px`,
+            minHeight: '100%',
+            backgroundImage: `repeating-linear-gradient(to bottom, #f3f4f6 0, #f3f4f6 1px, transparent 1px, transparent 60px)`,
           }}
         >
           {/* Time slots grid */}
