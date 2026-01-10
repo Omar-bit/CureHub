@@ -185,6 +185,30 @@ export const consultationTypesAPI = {
     api.delete(`/consultation-types/${id}`).then((res) => res.data),
 };
 
+export const modeExerciceAPI = {
+  // Get all mode exercice with optional query parameters
+  getAll: (query = {}) => {
+    const params = new URLSearchParams(query).toString();
+    const url = params ? `/mode-exercice?${params}` : '/mode-exercice';
+    return api.get(url).then((res) => res.data);
+  },
+
+  // Get a specific mode exercice by ID
+  getById: (id) => api.get(`/mode-exercice/${id}`).then((res) => res.data),
+
+  // Create a new mode exercice
+  create: (data) =>
+    api.post('/mode-exercice', data).then((res) => res.data),
+
+  // Update an existing mode exercice
+  update: (id, data) =>
+    api.patch(`/mode-exercice/${id}`, data).then((res) => res.data),
+
+  // Delete a mode exercice
+  delete: (id) =>
+    api.delete(`/mode-exercice/${id}`).then((res) => res.data),
+};
+
 export const timeplanAPI = {
   // Get all timeplans for the authenticated doctor
   getAll: () => api.get('/timeplan').then((res) => res.data),

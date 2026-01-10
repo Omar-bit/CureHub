@@ -21,6 +21,7 @@ import TimeplanPage from './pages/TimeplanPage';
 import MessagingPage from './pages/MessagingPage';
 import ProfileSettingsPage from './pages/ProfileSettingsPage';
 import PTOPage from './pages/PTOPage';
+import ModeExercicePage from './pages/ModeExercicePage';
 import HeroSection from './components/HeroSection';
 import FeaturesSection from './components/FeaturesSection';
 import PricingSection from './components/PricingSection';
@@ -97,6 +98,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <PTOPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path='/settings/mode-exercice'
+                element={
+                  <ProtectedRoute>
+                    <ModeExercicePage />
                   </ProtectedRoute>
                 }
               />

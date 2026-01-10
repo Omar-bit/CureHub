@@ -23,6 +23,7 @@ import { ImprevuModule } from './imprevu/imprevu.module';
 import { AgendaPreferencesModule } from './agenda-preferences/agenda-preferences.module';
 import { PTOModule } from './pto/pto.module';
 import { AiModule } from './ai/ai.module';
+import { ModeExerciceModule } from './mode-exercice/mode-exercice.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { AiModule } from './ai/ai.module';
     AgendaPreferencesModule,
     PTOModule,
     AiModule,
+    ModeExerciceModule,
   ],
   controllers: [AppController],
   providers: [AppService],

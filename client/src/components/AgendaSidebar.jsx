@@ -136,6 +136,13 @@ const AgendaSidebar = () => {
       icon: Globe,
       path: '/settings/language',
     },
+    {
+      id: 'mode-exercice',
+      label: "Mode d'exercice",
+      icon: Settings,
+      path: '/settings/mode-exercice',
+
+    }
   ];
 
   // Fetch incomplete task count

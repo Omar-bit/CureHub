@@ -84,6 +84,7 @@ model DoctorProfile {
   imprevus             Imprevu[]
   agendaPreferences    AgendaPreferences?
   ptos                 DoctorPTO[]
+  modeExercices        ModeExercice[]
 
   @@map("doctor_profiles")
 }
@@ -666,4 +667,20 @@ model DoctorPTO {
   @@index([doctorId])
   @@index([startDate, endDate])
   @@map("doctor_pto")
+}
+
+// Mode d'exercice (Exercise Mode) model
+model ModeExercice {
+  id           String        @id @default(cuid())
+  doctorId     String
+  doctor       DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  name         String // Mode d'exercice name
+  nomDesPlages Boolean       @default(false) // Nom des plages toggle
+  color        String        @default("#3B82F6") // Hex color code
+  description  String?       @db.Text // Description succinte (optional)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([doctorId])
+  @@map("mode_exercice")
 }
