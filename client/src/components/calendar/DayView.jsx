@@ -729,7 +729,7 @@ const DayView = ({
             return (
               <div
                 key={`availability-${segment.consultationTypeId}-${index}`}
-                className="absolute z-10 pointer-events-none"
+                className="absolute opacity-80 z-10 pointer-events-none"
                 style={{
                   top: `${segment.top}px`,
                   height: `${segment.height}px`,
