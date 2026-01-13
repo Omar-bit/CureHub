@@ -237,14 +237,9 @@ model PatientRelationship {
 model DoctorConsultationType {
   id             String           @id @default(cuid())
   name           String
-  color          String // Hex color code for UI display
   modeExerciceId String // Reference to ModeExercice (replaces location)
   modeExercice   ModeExercice     @relation(fields: [modeExerciceId], references: [id], onDelete: Cascade)
-  duration       Int // Duration in minutes
-  restAfter      Int // Rest time after consultation in minutes
-  type           ConsultationType
-  canBookBefore  Int // How many minutes before consultation can be booked
-  price          Float // Price in the doctor's currency
+  color          String           @default("#3B82F6") // Hex color code for UI display
   enabled        Boolean          @default(true)
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt

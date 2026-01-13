@@ -125,7 +125,7 @@ const PatientActesTab = ({ patient }) => {
               className='w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0'
               style={{
                 backgroundColor: consultationType.isEnabled
-                  ? `${consultationType.color}20`
+                  ? `${consultationType.modeExercice?.color || '#3B82F6'}20`
                   : '#e5e7eb',
               }}
             >
@@ -140,10 +140,10 @@ const PatientActesTab = ({ patient }) => {
                   className='inline-flex items-center px-2 py-0.5 rounded text-xs font-medium'
                   style={{
                     backgroundColor: consultationType.isEnabled
-                      ? `${consultationType.color}20`
+                      ? `${consultationType.modeExercice?.color || '#3B82F6'}20`
                       : '#e5e7eb',
                     color: consultationType.isEnabled
-                      ? consultationType.color
+                      ? consultationType.modeExercice?.color || '#3B82F6'
                       : '#6b7280',
                   }}
                 >

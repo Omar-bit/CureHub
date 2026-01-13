@@ -562,9 +562,11 @@ const ImprevuFormSheet = ({ imprevu, isOpen, onClose, onSave }) => {
                                       className='mt-2'
                                       style={{
                                         color:
-                                          appointment.consultationType.color,
+                                          appointment.consultationType
+                                            ?.modeExercice?.color || '#3B82F6',
                                         borderColor:
-                                          appointment.consultationType.color,
+                                          appointment.consultationType
+                                            ?.modeExercice?.color || '#3B82F6',
                                       }}
                                     >
                                       {appointment.consultationType.name}

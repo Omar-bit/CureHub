@@ -242,7 +242,15 @@ const WeekView = ({
 
   // Helper to get day of week from date (returns MONDAY, TUESDAY, etc.)
   const getDayOfWeek = (date) => {
-    const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+    const days = [
+      'SUNDAY',
+      'MONDAY',
+      'TUESDAY',
+      'WEDNESDAY',
+      'THURSDAY',
+      'FRIDAY',
+      'SATURDAY',
+    ];
     return days[date.getDay()];
   };
 
@@ -261,7 +269,8 @@ const WeekView = ({
         (tp) =>
           tp.dayOfWeek === dayOfWeek &&
           tp.specificDate &&
-          CalendarUtils.formatDate(new Date(tp.specificDate), 'yyyy-MM-dd') === dateStr &&
+          CalendarUtils.formatDate(new Date(tp.specificDate), 'yyyy-MM-dd') ===
+            dateStr &&
           tp.isActive
       );
 
@@ -276,7 +285,9 @@ const WeekView = ({
       }
 
       const segments = [];
-      const activeSlots = timeplan.timeSlots.filter((slot) => slot.isActive && slot.isActive !== false);
+      const activeSlots = timeplan.timeSlots.filter(
+        (slot) => slot.isActive && slot.isActive !== false
+      );
 
       activeSlots.forEach((slot) => {
         if (!slot.consultationTypes || slot.consultationTypes.length === 0) {
@@ -295,12 +306,22 @@ const WeekView = ({
 
         // Check if slot overlaps with working hours
         const slotEndHour = endHour + (endMinute > 0 ? 0.01 : 0);
-        if (slotEndHour <= workingHours.start || startHour >= workingHours.end) {
+        if (
+          slotEndHour <= workingHours.start ||
+          startHour >= workingHours.end
+        ) {
           return;
         }
 
-        const duration = CalendarUtils.getAppointmentDuration(startDate, endDate);
-        const top = CalendarUtils.getTimeSlotPosition(startTimeStr, workingHours.start, 60);
+        const duration = CalendarUtils.getAppointmentDuration(
+          startDate,
+          endDate
+        );
+        const top = CalendarUtils.getTimeSlotPosition(
+          startTimeStr,
+          workingHours.start,
+          60
+        );
         const height = CalendarUtils.getTimeSlotHeight(duration, 60);
 
         if (height <= 0) {
@@ -312,7 +333,7 @@ const WeekView = ({
           .map((ct) => {
             // Handle both nested structure (ct.consultationType) and flat structure
             const consultationType = ct.consultationType || ct;
-            return consultationType && consultationType.color ? consultationType : null;
+            return consultationType;
           })
           .filter((ct) => ct !== null);
 
@@ -325,18 +346,22 @@ const WeekView = ({
         const gapSize = 1; // Gap size in pixels between lines
         const totalBarWidth = 3; // Total width for the bar area in pixels
         const totalGaps = numTypes > 1 ? (numTypes - 1) * gapSize : 0;
-        const barWidth = numTypes > 1 ? (totalBarWidth - totalGaps) / numTypes : totalBarWidth;
+        const barWidth =
+          numTypes > 1 ? (totalBarWidth - totalGaps) / numTypes : totalBarWidth;
 
         consultationTypesList.forEach((consultationType, index) => {
           // Calculate position: previous bars + gaps
           const leftOffset = index * (barWidth + gapSize);
-          
+
           segments.push({
             top,
             height,
             left: leftOffset, // Pixel offset from start
             width: barWidth, // Pixel width of each bar
-            color: consultationType.color || '#gray',
+            color:
+              consultationType.modeExercice?.color ||
+              consultationType.color ||
+              '#3B82F6',
             name: consultationType.name || 'Consultation',
             startTime: slot.startTime,
             endTime: slot.endTime,
@@ -401,7 +426,13 @@ const WeekView = ({
         const height = CalendarUtils.getTimeSlotHeight(duration, 60);
 
         if (height > 0) {
-          segments.push({ top, height, type: 'imprevu', label: 'Jour fermé (imprévu)', imprevu });
+          segments.push({
+            top,
+            height,
+            type: 'imprevu',
+            label: 'Jour fermé (imprévu)',
+            imprevu,
+          });
         }
       });
 
@@ -441,7 +472,15 @@ const WeekView = ({
         const height = CalendarUtils.getTimeSlotHeight(duration, 60);
 
         if (height > 0) {
-          segments.push({ top, height, type: 'pto', label: pto.label ? `Jour fermé (${pto.label})` : 'Jour fermé (Congés)', pto });
+          segments.push({
+            top,
+            height,
+            type: 'pto',
+            label: pto.label
+              ? `Jour fermé (${pto.label})`
+              : 'Jour fermé (Congés)',
+            pto,
+          });
         }
       });
 
@@ -556,19 +595,21 @@ const WeekView = ({
           <div className='inline-flex rounded-lg border border-gray-300 p-1'>
             <button
               onClick={() => onViewChange?.('day')}
-              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${currentView === 'day'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-700 hover:bg-gray-100'
-                }`}
+              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                currentView === 'day'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
             >
               Day
             </button>
             <button
               onClick={() => onViewChange?.('week')}
-              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${currentView === 'week'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-700 hover:bg-gray-100'
-                }`}
+              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                currentView === 'week'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
             >
               Week
             </button>
@@ -590,16 +631,18 @@ const WeekView = ({
               }}
             >
               <div
-                className={`text-sm font-medium ${CalendarUtils.isToday(day) ? 'text-blue-600' : 'text-gray-700'
-                  }`}
+                className={`text-sm font-medium ${
+                  CalendarUtils.isToday(day) ? 'text-blue-600' : 'text-gray-700'
+                }`}
               >
                 {CalendarUtils.formatDate(day, isTabOpen ? 'EEE' : 'EEEE')}
               </div>
               <div
-                className={`text-lg ${CalendarUtils.isToday(day)
-                  ? 'text-blue-600 font-bold'
-                  : 'text-gray-900'
-                  }`}
+                className={`text-lg ${
+                  CalendarUtils.isToday(day)
+                    ? 'text-blue-600 font-bold'
+                    : 'text-gray-900'
+                }`}
               >
                 {CalendarUtils.formatDate(day, 'd')}
               </div>
@@ -642,8 +685,9 @@ const WeekView = ({
                         className='absolute inset-0'
                         style={{
                           top: 0,
-                          height: `${(workingHours.end - workingHours.start) * 60
-                            }px`,
+                          height: `${
+                            (workingHours.end - workingHours.start) * 60
+                          }px`,
                         }}
                       >
                         {isBlockedDay && (
@@ -665,10 +709,11 @@ const WeekView = ({
                             <div
                               className='absolute left-2 right-2 flex justify-center'
                               style={{
-                                top: `${blockingSegments.length > 0
-                                  ? Math.max(blockingSegments[0].top, 8)
-                                  : 8
-                                  }px`,
+                                top: `${
+                                  blockingSegments.length > 0
+                                    ? Math.max(blockingSegments[0].top, 8)
+                                    : 8
+                                }px`,
                               }}
                             >
                               <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium text-slate-700 bg-slate-200/90 border border-slate-300/70 shadow-sm'>
@@ -696,26 +741,28 @@ const WeekView = ({
                             </div>
                           )}
                         {/* Availability Bars - Thin vertical lines at left edge of day column (next to time labels) */}
-                        {getAvailabilitySegmentsForDay(day).map((segment, segIndex) => {
-                          const segmentLeft = segment.left || 0; // Pixel offset from start of bar area
-                          const segmentWidth = segment.width || 3; // Pixel width of the bar
-                          
-                          return (
-                            <div
-                              key={`availability-${dayIndex}-${segment.consultationTypeId}-${segIndex}`}
-                              className="absolute rounded-[100%] overflow-hidden shadow-md opacity-80 z-10 pointer-events-none"
-                              style={{
-                                top: `${segment.top}px`,
-                                height: `${segment.height}px`,
-                                left: `${segmentLeft}px`,
-                                width: `${segmentWidth}px`,
-                                backgroundColor: segment.color,
-                                borderRadius: '1px',
-                              }}
-                              title={`${segment.name} - ${segment.startTime} à ${segment.endTime}`}
-                            />
-                          );
-                        })}
+                        {getAvailabilitySegmentsForDay(day).map(
+                          (segment, segIndex) => {
+                            const segmentLeft = segment.left || 0; // Pixel offset from start of bar area
+                            const segmentWidth = segment.width || 3; // Pixel width of the bar
+
+                            return (
+                              <div
+                                key={`availability-${dayIndex}-${segment.consultationTypeId}-${segIndex}`}
+                                className='absolute rounded-[100%] overflow-hidden shadow-md opacity-80 z-10 pointer-events-none'
+                                style={{
+                                  top: `${segment.top}px`,
+                                  height: `${segment.height}px`,
+                                  left: `${segmentLeft}px`,
+                                  width: `${segmentWidth}px`,
+                                  backgroundColor: segment.color,
+                                  borderRadius: '1px',
+                                }}
+                                title={`${segment.name} - ${segment.startTime} à ${segment.endTime}`}
+                              />
+                            );
+                          }
+                        )}
                         {getDayAppointmentLayouts(day).map(
                           ({ appointment, column, totalColumns }) => {
                             const colorClasses =
@@ -723,10 +770,11 @@ const WeekView = ({
                             const startTime = CalendarUtils.formatTime(
                               new Date(appointment.startTime)
                             );
-                            const duration = CalendarUtils.getAppointmentDuration(
-                              appointment.startTime,
-                              appointment.endTime
-                            );
+                            const duration =
+                              CalendarUtils.getAppointmentDuration(
+                                appointment.startTime,
+                                appointment.endTime
+                              );
                             const isShort = duration <= 15;
                             const isCancelled =
                               appointment.status === 'CANCELLED';
@@ -777,9 +825,14 @@ const WeekView = ({
                                   totalColumns
                                 )}
                                 className={`
-                                flex ${isShort ? 'items-center' : 'items-start'} gap-0.5 cursor-pointer
-                                ${colorClasses.darkBg
-                                  } transition-all rounded-lg overflow-hidden ${isShort ? 'text-[10px]' : 'text-xs'}
+                                flex ${
+                                  isShort ? 'items-center' : 'items-start'
+                                } gap-0.5 cursor-pointer
+                                ${
+                                  colorClasses.darkBg
+                                } transition-all rounded-lg overflow-hidden ${
+                                  isShort ? 'text-[10px]' : 'text-xs'
+                                }
                                 ${isCancelled ? 'opacity-60' : ''}
                               `}
                                 onClick={(e) => {
@@ -788,16 +841,29 @@ const WeekView = ({
                                 }}
                               >
                                 <div
-                                  className={`${colorClasses.bgColor} text-white px-2 ${isShort ? 'py-0' : 'py-0.5'} font-bold whitespace-nowrap flex-shrink-0 rounded-l-lg flex items-center gap-1`}
+                                  className={`${
+                                    colorClasses.bgColor
+                                  } text-white px-2 ${
+                                    isShort ? 'py-0' : 'py-0.5'
+                                  } font-bold whitespace-nowrap flex-shrink-0 rounded-l-lg flex items-center gap-1`}
                                 >
                                   <span>{startTime}</span>
                                   {statusIcon && <span>{statusIcon}</span>}
                                 </div>
 
-                                <div className={`flex-1 min-w-0 px-1 ${isShort ? 'py-0' : 'py-0.5'}`}>
+                                <div
+                                  className={`flex-1 min-w-0 px-1 ${
+                                    isShort ? 'py-0' : 'py-0.5'
+                                  }`}
+                                >
                                   <div
-                                    className={`${isShort ? 'text-[10px] leading-3' : 'text-xs'} font-medium text-gray-900 truncate ${isCancelled ? 'line-through' : ''
-                                      }`}
+                                    className={`${
+                                      isShort
+                                        ? 'text-[10px] leading-3'
+                                        : 'text-xs'
+                                    } font-medium text-gray-900 truncate ${
+                                      isCancelled ? 'line-through' : ''
+                                    }`}
                                   >
                                     {getAppointmentPatientsDisplay(appointment)}
                                     {!isCancelled &&
@@ -808,22 +874,30 @@ const WeekView = ({
                                       )}
                                   </div>
                                   {isCancelled && (
-                                    <div className={`${isShort ? 'text-[9px]' : 'text-xs'} text-red-600 font-semibold`}>
+                                    <div
+                                      className={`${
+                                        isShort ? 'text-[9px]' : 'text-xs'
+                                      } text-red-600 font-semibold`}
+                                    >
                                       Annulé
                                     </div>
                                   )}
 
                                   {(appointment.description ||
                                     appointment.notes) && (
-                                      <div className={`${isShort ? 'text-[9px]' : 'text-xs'} text-white mt-0.5 truncate`}>
-                                        {truncateText(appointment.description)}
-                                        {appointment.description &&
-                                          appointment.notes
-                                          ? ' • '
-                                          : ''}
-                                        {truncateText(appointment.notes)}
-                                      </div>
-                                    )}
+                                    <div
+                                      className={`${
+                                        isShort ? 'text-[9px]' : 'text-xs'
+                                      } text-white mt-0.5 truncate`}
+                                    >
+                                      {truncateText(appointment.description)}
+                                      {appointment.description &&
+                                      appointment.notes
+                                        ? ' • '
+                                        : ''}
+                                      {truncateText(appointment.notes)}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             );

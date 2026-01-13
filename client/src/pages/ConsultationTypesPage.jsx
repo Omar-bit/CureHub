@@ -1,16 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Plus,
-  Edit,
-  Trash2,
-  MapPin,
-  Clock,
-  DollarSign,
-  Eye,
-  EyeOff,
-  Grid3X3,
-  List,
-} from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, EyeOff, Grid3X3, List } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { ConfirmDialog } from '../components/ui/confirm-dialog';
@@ -63,8 +52,9 @@ const ConsultationTypesPage = () => {
         (type) =>
           type.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (type.modeExercice?.name &&
-            type.modeExercice.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          type.type.toLowerCase().includes(searchTerm.toLowerCase())
+            type.modeExercice.name
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase()))
       );
       setFilteredTypes(filtered);
     }
@@ -100,17 +90,6 @@ const ConsultationTypesPage = () => {
     loadConsultationTypes();
   };
 
-  const getTypeDisplay = (type) => {
-    switch (type) {
-      case 'REGULAR':
-        return 'Regular';
-      case 'URGENT':
-        return 'Urgent';
-      default:
-        return type;
-    }
-  };
-
   // Table columns definition
   const tableColumns = [
     {
@@ -120,7 +99,7 @@ const ConsultationTypesPage = () => {
         <div className='flex items-center gap-3'>
           <div
             className='w-3 h-3 rounded-full border border-gray-300'
-            style={{ backgroundColor: row.color }}
+            style={{ backgroundColor: row.color || '#3B82F6' }}
           />
           <span className='font-medium'>{value}</span>
         </div>
@@ -128,7 +107,7 @@ const ConsultationTypesPage = () => {
     },
     {
       key: 'modeExercice',
-      title: 'Mode d\'exercice',
+      title: "Mode d'exercice",
       render: (value, row) => (
         <div className='flex items-center gap-2'>
           {row.modeExercice ? (
@@ -146,32 +125,22 @@ const ConsultationTypesPage = () => {
       ),
     },
     {
-      key: 'type',
-      title: 'Type',
-      render: (value) => getTypeDisplay(value),
-    },
-    {
-      key: 'duration',
-      title: 'Duration',
+      key: 'actes',
+      title: 'Actes',
       render: (value, row) => (
-        <div className='flex items-center gap-1'>
-          <Clock className='h-4 w-4 text-muted-foreground' />
-          <span>{value} min</span>
-          {row.restAfter > 0 && (
-            <span className='text-muted-foreground text-sm'>
-              + {row.restAfter} min
-            </span>
+        <div className='flex flex-wrap gap-1'>
+          {row.actes && row.actes.length > 0 ? (
+            row.actes.map((relation, idx) => (
+              <span
+                key={idx}
+                className='inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800'
+              >
+                {relation.acte?.name || 'Unknown'}
+              </span>
+            ))
+          ) : (
+            <span className='text-gray-400 text-sm'>No actes</span>
           )}
-        </div>
-      ),
-    },
-    {
-      key: 'price',
-      title: 'Price',
-      render: (value) => (
-        <div className='flex items-center gap-1'>
-          <DollarSign className='h-4 w-4 text-muted-foreground' />
-          <span className='font-medium'>${value}</span>
         </div>
       ),
     },
@@ -361,7 +330,9 @@ const ConsultationTypesPage = () => {
                     <div className='flex items-center gap-3'>
                       <div
                         className='w-4 h-4 rounded-full border-2 border-white shadow-sm'
-                        style={{ backgroundColor: consultationType.color }}
+                        style={{
+                          backgroundColor: consultationType.color || '#3B82F6',
+                        }}
                       />
                       <div>
                         <h3 className='font-semibold text-lg'>
@@ -372,13 +343,14 @@ const ConsultationTypesPage = () => {
                             <>
                               <div
                                 className='w-3 h-3 rounded-full border border-white shadow-sm'
-                                style={{ backgroundColor: consultationType.modeExercice.color }}
+                                style={{
+                                  backgroundColor:
+                                    consultationType.modeExercice.color,
+                                }}
                               />
                               <span>{consultationType.modeExercice.name}</span>
-                              <span className='mx-1'>•</span>
                             </>
                           ) : null}
-                          <span>{getTypeDisplay(consultationType.type)}</span>
                         </div>
                       </div>
                     </div>
@@ -399,28 +371,21 @@ const ConsultationTypesPage = () => {
 
                   {/* Details */}
                   <div className='space-y-3 mb-6'>
-                    <div className='flex items-center gap-2 text-sm'>
-                      <Clock className='h-4 w-4 text-muted-foreground' />
-                      <span>{consultationType.duration} min duration</span>
-                      {consultationType.restAfter > 0 && (
-                        <span className='text-muted-foreground'>
-                          + {consultationType.restAfter} min rest
-                        </span>
+                    <div className='flex flex-wrap gap-1'>
+                      {consultationType.actes &&
+                      consultationType.actes.length > 0 ? (
+                        consultationType.actes.map((relation, idx) => (
+                          <span
+                            key={idx}
+                            className='inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800'
+                          >
+                            {relation.acte?.name || 'Unknown'}
+                          </span>
+                        ))
+                      ) : (
+                        <span className='text-gray-400 text-sm'>No actes</span>
                       )}
                     </div>
-
-                    <div className='flex items-center gap-2 text-sm'>
-                      <DollarSign className='h-4 w-4 text-muted-foreground' />
-                      <span className='font-medium'>
-                        ${consultationType.price}
-                      </span>
-                    </div>
-
-                    {consultationType.canBookBefore > 0 && (
-                      <div className='text-sm text-muted-foreground'>
-                        Can book {consultationType.canBookBefore} min before
-                      </div>
-                    )}
                   </div>
 
                   {/* Actions */}

@@ -22,7 +22,11 @@ export class TimeplanService {
           include: {
             consultationTypes: {
               include: {
-                consultationType: true,
+                consultationType: {
+                  include: {
+                    modeExercice: true,
+                  },
+                },
               },
             },
           },

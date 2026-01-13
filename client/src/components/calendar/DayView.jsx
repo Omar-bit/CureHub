@@ -130,7 +130,15 @@ const DayView = ({
 
   // Helper to get day of week from date (returns MONDAY, TUESDAY, etc.)
   const getDayOfWeek = (date) => {
-    const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+    const days = [
+      'SUNDAY',
+      'MONDAY',
+      'TUESDAY',
+      'WEDNESDAY',
+      'THURSDAY',
+      'FRIDAY',
+      'SATURDAY',
+    ];
     return days[date.getDay()];
   };
 
@@ -148,7 +156,8 @@ const DayView = ({
       (tp) =>
         tp.dayOfWeek === dayOfWeek &&
         tp.specificDate &&
-        CalendarUtils.formatDate(new Date(tp.specificDate), 'yyyy-MM-dd') === dateStr &&
+        CalendarUtils.formatDate(new Date(tp.specificDate), 'yyyy-MM-dd') ===
+          dateStr &&
         tp.isActive
     );
 
@@ -163,7 +172,9 @@ const DayView = ({
     }
 
     const segments = [];
-    const activeSlots = timeplan.timeSlots.filter((slot) => slot.isActive && slot.isActive !== false);
+    const activeSlots = timeplan.timeSlots.filter(
+      (slot) => slot.isActive && slot.isActive !== false
+    );
 
     activeSlots.forEach((slot) => {
       if (!slot.consultationTypes || slot.consultationTypes.length === 0) {
@@ -192,7 +203,10 @@ const DayView = ({
         workingHours.start,
         60 * effectiveZoom
       );
-      const height = CalendarUtils.getTimeSlotHeight(duration, 60 * effectiveZoom);
+      const height = CalendarUtils.getTimeSlotHeight(
+        duration,
+        60 * effectiveZoom
+      );
 
       if (height <= 0) {
         return;
@@ -203,7 +217,7 @@ const DayView = ({
         .map((ct) => {
           // Handle both nested structure (ct.consultationType) and flat structure
           const consultationType = ct.consultationType || ct;
-          return consultationType && consultationType.color ? consultationType : null;
+          return consultationType;
         })
         .filter((ct) => ct !== null);
 
@@ -216,18 +230,24 @@ const DayView = ({
       const gapSize = 1; // Gap size in pixels between lines
       const totalBarWidth = 3; // Total width for the bar area in pixels
       const totalGaps = numTypes > 1 ? (numTypes - 1) * gapSize : 0;
-      const barWidth = numTypes > 1 ? (totalBarWidth - totalGaps+5) / numTypes : totalBarWidth;
+      const barWidth =
+        numTypes > 1
+          ? (totalBarWidth - totalGaps + 5) / numTypes
+          : totalBarWidth;
 
       consultationTypesList.forEach((consultationType, index) => {
         // Calculate position: previous bars + gaps
         const leftOffset = index * (barWidth + gapSize);
-        
+
         segments.push({
           top,
           height,
           left: leftOffset, // Pixel offset from start
           width: barWidth, // Pixel width of each bar
-          color: consultationType.color || '#gray',
+          color:
+            consultationType.modeExercice?.color ||
+            consultationType.color ||
+            '#3B82F6',
           name: consultationType.name || 'Consultation',
           startTime: slot.startTime,
           endTime: slot.endTime,
@@ -237,7 +257,13 @@ const DayView = ({
     });
 
     return segments;
-  }, [timeplans, currentDate, workingHours.start, workingHours.end, effectiveZoom]);
+  }, [
+    timeplans,
+    currentDate,
+    workingHours.start,
+    workingHours.end,
+    effectiveZoom,
+  ]);
 
   const blockingImprevuSegments = React.useMemo(() => {
     if (!imprevus || imprevus.length === 0) {
@@ -288,7 +314,13 @@ const DayView = ({
       );
 
       if (height > 0) {
-        segments.push({ top, height, type: 'imprevu', label: 'Jour fermé (imprévu)', imprevu });
+        segments.push({
+          top,
+          height,
+          type: 'imprevu',
+          label: 'Jour fermé (imprévu)',
+          imprevu,
+        });
       }
     });
 
@@ -328,7 +360,15 @@ const DayView = ({
       );
 
       if (height > 0) {
-        segments.push({ top, height, type: 'pto', label: pto.label ? `Jour fermé (${pto.label})` : 'Jour fermé (Congés)', pto });
+        segments.push({
+          top,
+          height,
+          type: 'pto',
+          label: pto.label
+            ? `Jour fermé (${pto.label})`
+            : 'Jour fermé (Congés)',
+          pto,
+        });
       }
     });
 
@@ -339,7 +379,7 @@ const DayView = ({
     workingHours.start,
     workingHours.end,
     effectiveZoom,
-    ptos
+    ptos,
   ]);
 
   const hasBlockingImprevu = React.useMemo(() => {
@@ -572,8 +612,9 @@ const DayView = ({
 
     // When tab is open, constrain appointments to not extend beyond visible area
     const maxWidthConstraint = isTabOpen ? 'min(100%, 50vw)' : '100%';
-    const availableWidth = `calc(${maxWidthConstraint} - ${leftOffset + rightOffset
-      }px)`;
+    const availableWidth = `calc(${maxWidthConstraint} - ${
+      leftOffset + rightOffset
+    }px)`;
     const columnWidth =
       totalColumns > 1
         ? `calc(${availableWidth} / ${totalColumns})`
@@ -685,19 +726,21 @@ const DayView = ({
           <div className='inline-flex rounded-lg border border-gray-300 p-1'>
             <button
               onClick={() => onViewChange?.('day')}
-              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${currentView === 'day'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-700 hover:bg-gray-100'
-                }`}
+              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                currentView === 'day'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
             >
               Day
             </button>
             <button
               onClick={() => onViewChange?.('week')}
-              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${currentView === 'week'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-700 hover:bg-gray-100'
-                }`}
+              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                currentView === 'week'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
             >
               Week
             </button>
@@ -706,18 +749,17 @@ const DayView = ({
       </div>
 
       {/* Time slots */}
-      <div
-        className='flex-1 overflow-y-auto'
-        ref={containerRef}
-      >
+      <div className='flex-1 overflow-y-auto' ref={containerRef}>
         <div
           className='relative'
           style={{
-            height: `${(workingHours.end - workingHours.start) * 60 * effectiveZoom
-              }px`,
+            height: `${
+              (workingHours.end - workingHours.start) * 60 * effectiveZoom
+            }px`,
             minHeight: '100%',
-            backgroundImage: `linear-gradient(to right, white 3rem, transparent 3rem), repeating-linear-gradient(to bottom, #f3f4f6 0, #f3f4f6 1px, transparent 1px, transparent ${15 * effectiveZoom
-              }px)`,
+            backgroundImage: `linear-gradient(to right, white 3rem, transparent 3rem), repeating-linear-gradient(to bottom, #f3f4f6 0, #f3f4f6 1px, transparent 1px, transparent ${
+              15 * effectiveZoom
+            }px)`,
           }}
         >
           {/* Availability Bars - Thin vertical lines next to time labels */}
@@ -725,11 +767,11 @@ const DayView = ({
             const timeLabelWidth = 48; // w-12 = 48px (3rem)
             const segmentLeft = segment.left || 0; // Pixel offset from start of bar area
             const segmentWidth = segment.width || 3; // Pixel width of the bar
-            
+
             return (
               <div
                 key={`availability-${segment.consultationTypeId}-${index}`}
-                className="absolute rounded-[100%] overflow-hidden shadow-md opacity-80 z-10 pointer-events-none"
+                className='absolute rounded-[100%] overflow-hidden shadow-md opacity-80 z-10 pointer-events-none'
                 style={{
                   top: `${segment.top}px`,
                   height: `${segment.height}px`,
@@ -765,14 +807,17 @@ const DayView = ({
               <div
                 className='absolute left-8'
                 style={{
-                  top: `${blockingImprevuSegments.length > 0
-                    ? Math.max(blockingImprevuSegments[0].top, 8)
-                    : 8
-                    }px`,
+                  top: `${
+                    blockingImprevuSegments.length > 0
+                      ? Math.max(blockingImprevuSegments[0].top, 8)
+                      : 8
+                  }px`,
                 }}
               >
                 <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium text-slate-700 bg-slate-200/90 border border-slate-300/70 shadow-sm'>
-                  {blockingImprevuSegments.length > 0 ? blockingImprevuSegments[0].label : 'Jour fermé (imprévu)'}
+                  {blockingImprevuSegments.length > 0
+                    ? blockingImprevuSegments[0].label
+                    : 'Jour fermé (imprévu)'}
                 </span>
               </div>
             </div>
@@ -818,7 +863,6 @@ const DayView = ({
             <div
               className='absolute left-0 right-0 z-20 pointer-events-none'
               style={{ top: `${currentTimePosition}px` }}
-
             >
               <div className='relative flex items-center'>
                 {/* Circle */}
@@ -853,8 +897,11 @@ const DayView = ({
                 key={appointment.id}
                 style={getAppointmentStyle(appointment, column, totalColumns)}
                 className={`
-                  flex ${isShort ? 'items-center' : 'items-start'} gap-2 cursor-pointer
-                  ${colorClasses.darkBg
+                  flex ${
+                    isShort ? 'items-center' : 'items-start'
+                  } gap-2 cursor-pointer
+                  ${
+                    colorClasses.darkBg
                   } transition-all rounded-lg overflow-hidden
                   ${isCancelled ? 'opacity-60' : ''}
                 `}
@@ -862,16 +909,28 @@ const DayView = ({
               >
                 {/* Time Badge */}
                 <div
-                  className={`${colorClasses.bgColor} text-white px-3 ${isShort ? 'py-0' : 'py-1'} font-bold text-xs whitespace-nowrap flex-shrink-0 rounded-l-lg flex items-center gap-1.5`}
+                  className={`${colorClasses.bgColor} text-white px-3 ${
+                    isShort ? 'py-0' : 'py-1'
+                  } font-bold text-xs whitespace-nowrap flex-shrink-0 rounded-l-lg flex items-center gap-1.5`}
                 >
-                  <span className={isShort ? 'text-[10px]' : 'text-xs'}>{startTime}</span>
+                  <span className={isShort ? 'text-[10px]' : 'text-xs'}>
+                    {startTime}
+                  </span>
                   {statusIcon && <span>{statusIcon}</span>}
                 </div>
 
                 {/* Appointment Info */}
-                <div className={`flex-1 min-w-0 px-2 ${isShort ? 'py-0' : 'py-0.5'}`}>
+                <div
+                  className={`flex-1 min-w-0 px-2 ${
+                    isShort ? 'py-0' : 'py-0.5'
+                  }`}
+                >
                   {/* Patient Name with Consultation Motif and Private Notes */}
-                  <div className={`${isShort ? 'text-[10px] leading-3' : 'text-xs'} font-medium text-gray-900 truncate`}>
+                  <div
+                    className={`${
+                      isShort ? 'text-[10px] leading-3' : 'text-xs'
+                    } font-medium text-gray-900 truncate`}
+                  >
                     <span className={isCancelled ? 'line-through' : ''}>
                       {getAppointmentPatientsDisplay(appointment)}{' '}
                       {(appointment.description || appointment.notes) && (

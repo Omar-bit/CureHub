@@ -2,7 +2,6 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -10,14 +9,14 @@ import {
   UpdateConsultationTypeDto,
   ConsultationTypeQueryDto,
 } from './dto/consultation-type.dto';
-import { DoctorConsultationType, ConsultationType } from '@prisma/client';
+import { DoctorConsultationType } from '@prisma/client';
 
 @Injectable()
 export class ConsultationTypesService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(doctorId: string, query: ConsultationTypeQueryDto = {}) {
-    const { enabledOnly, modeExerciceId, type } = query;
+    const { enabledOnly, modeExerciceId } = query;
 
     const where: any = {
       doctorId,
@@ -29,10 +28,6 @@ export class ConsultationTypesService {
 
     if (modeExerciceId) {
       where.modeExerciceId = modeExerciceId;
-    }
-
-    if (type) {
-      where.type = type;
     }
 
     return this.prisma.doctorConsultationType.findMany({
@@ -50,14 +45,22 @@ export class ConsultationTypesService {
             description: true,
           },
         },
-        duration: true,
-        restAfter: true,
-        type: true,
-        canBookBefore: true,
-        price: true,
         enabled: true,
         createdAt: true,
         updatedAt: true,
+        actes: {
+          select: {
+            acte: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+                duration: true,
+                regularPrice: true,
+              },
+            },
+          },
+        },
       },
     });
   }
@@ -81,14 +84,22 @@ export class ConsultationTypesService {
               description: true,
             },
           },
-          duration: true,
-          restAfter: true,
-          type: true,
-          canBookBefore: true,
-          price: true,
           enabled: true,
           createdAt: true,
           updatedAt: true,
+          actes: {
+            select: {
+              acte: {
+                select: {
+                  id: true,
+                  name: true,
+                  color: true,
+                  duration: true,
+                  regularPrice: true,
+                },
+              },
+            },
+          },
         },
       },
     );
@@ -115,18 +126,20 @@ export class ConsultationTypesService {
       );
     }
 
+    const { acteIds, ...rest } = createDto;
+
+    // Filter out null values from acteIds
+    const validActeIds = acteIds?.filter((id) => id !== null) ?? [];
+
     return this.prisma.doctorConsultationType.create({
       data: {
-        name: createDto.name,
-        color: createDto.color,
-        modeExerciceId: createDto.modeExerciceId,
-        duration: createDto.duration,
-        restAfter: createDto.restAfter,
-        type: createDto.type,
-        canBookBefore: createDto.canBookBefore,
-        price: createDto.price,
-        enabled: createDto.enabled ?? true,
+        ...rest,
         doctorId,
+        actes: {
+          create: validActeIds?.map((acteId) => ({
+            acte: { connect: { id: acteId } },
+          })),
+        },
       },
       select: {
         id: true,
@@ -140,14 +153,22 @@ export class ConsultationTypesService {
             description: true,
           },
         },
-        duration: true,
-        restAfter: true,
-        type: true,
-        canBookBefore: true,
-        price: true,
         enabled: true,
         createdAt: true,
         updatedAt: true,
+        actes: {
+          select: {
+            acte: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+                duration: true,
+                regularPrice: true,
+              },
+            },
+          },
+        },
       },
     });
   }
@@ -177,9 +198,24 @@ export class ConsultationTypesService {
       }
     }
 
+    const { acteIds, ...rest } = updateDto;
+
+    const data: any = { ...rest };
+
+    if (acteIds) {
+      // Filter out null values from acteIds
+      const validActeIds = acteIds.filter((id) => id !== null);
+      data.actes = {
+        deleteMany: {},
+        create: validActeIds.map((acteId) => ({
+          acte: { connect: { id: acteId } },
+        })),
+      };
+    }
+
     return this.prisma.doctorConsultationType.update({
       where: { id },
-      data: updateDto,
+      data,
       select: {
         id: true,
         name: true,
@@ -192,14 +228,22 @@ export class ConsultationTypesService {
             description: true,
           },
         },
-        duration: true,
-        restAfter: true,
-        type: true,
-        canBookBefore: true,
-        price: true,
         enabled: true,
         createdAt: true,
         updatedAt: true,
+        actes: {
+          select: {
+            acte: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+                duration: true,
+                regularPrice: true,
+              },
+            },
+          },
+        },
       },
     });
   }
@@ -228,35 +272,17 @@ export class ConsultationTypesService {
     const defaultTypes = [
       {
         name: 'Consultation générale',
-        color: '#3B82F6', // Blue
         modeExerciceId: modeExerciceMap.get('au cabinet'),
-        duration: 30,
-        restAfter: 10,
-        type: ConsultationType.REGULAR,
-        canBookBefore: 1440, // 24 hours
-        price: 50.0,
         enabled: true,
       },
       {
         name: 'Téléconsultation',
-        color: '#10B981', // Green
         modeExerciceId: modeExerciceMap.get('en visio'),
-        duration: 20,
-        restAfter: 5,
-        type: ConsultationType.REGULAR,
-        canBookBefore: 720, // 12 hours
-        price: 30.0,
         enabled: true,
       },
       {
         name: 'Visite à domicile',
-        color: '#EF4444', // Red
         modeExerciceId: modeExerciceMap.get('à domicile'),
-        duration: 45,
-        restAfter: 15,
-        type: ConsultationType.URGENT,
-        canBookBefore: 60, // 1 hour
-        price: 100.0,
         enabled: true,
       },
     ];

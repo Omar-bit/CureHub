@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Modal, ModalContent, ModalFooter } from './ui/modal';
 import { FormInput, FormSelect } from './ui/form-field';
 import { Button } from './ui/button';
-import { consultationTypesAPI, modeExerciceAPI } from './../services/api';
+import {
+  consultationTypesAPI,
+  modeExerciceAPI,
+  acteAPI,
+} from './../services/api';
 import { showSuccess, showError } from './../lib/toast';
-
-const TYPE_OPTIONS = [
-  { value: 'REGULAR', label: 'Regular' },
-  { value: 'URGENT', label: 'Urgent' },
-];
 
 const ENABLED_OPTIONS = [
   { value: 'true', label: 'Enabled' },
@@ -25,38 +24,42 @@ const ConsultationTypeForm = ({
     name: '',
     color: '#3B82F6',
     modeExerciceId: '',
-    duration: '',
-    restAfter: '',
-    type: '',
-    canBookBefore: '',
-    price: '',
+    acteIds: [],
     enabled: 'true',
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [modeExercices, setModeExercices] = useState([]);
+  const [actes, setActes] = useState([]);
   const [loadingModeExercices, setLoadingModeExercices] = useState(false);
+  const [loadingActes, setLoadingActes] = useState(false);
 
   const isEditing = !!consultationType;
 
-  // Load mode exercices when form opens
+  // Load mode exercices and actes when form opens
   useEffect(() => {
-    const loadModeExercices = async () => {
+    const loadData = async () => {
       if (isOpen) {
         setLoadingModeExercices(true);
+        setLoadingActes(true);
         try {
-          const data = await modeExerciceAPI.getAll();
-          setModeExercices(data || []);
+          const [modeData, actesData] = await Promise.all([
+            modeExerciceAPI.getAll(),
+            acteAPI.getAll(),
+          ]);
+          setModeExercices(modeData || []);
+          setActes(actesData || []);
         } catch (error) {
-          console.error('Failed to load mode exercices:', error);
-          showError('Failed to load mode exercices');
+          console.error('Failed to load data:', error);
+          showError('Failed to load required data');
         } finally {
           setLoadingModeExercices(false);
+          setLoadingActes(false);
         }
       }
     };
 
-    loadModeExercices();
+    loadData();
   }, [isOpen]);
 
   // Initialize form data when editing
@@ -69,11 +72,9 @@ const ConsultationTypeForm = ({
           consultationType.modeExerciceId ||
           consultationType.modeExercice?.id ||
           '',
-        duration: consultationType.duration?.toString() || '',
-        restAfter: consultationType.restAfter?.toString() || '',
-        type: consultationType.type || '',
-        canBookBefore: consultationType.canBookBefore?.toString() || '',
-        price: consultationType.price?.toString() || '',
+        acteIds: consultationType.actes
+          ? consultationType.actes.map((a) => a.acte?.id)
+          : [],
         enabled:
           consultationType.enabled !== undefined
             ? consultationType.enabled.toString()
@@ -85,11 +86,7 @@ const ConsultationTypeForm = ({
         name: '',
         color: '#3B82F6',
         modeExerciceId: '',
-        duration: '',
-        restAfter: '',
-        type: '',
-        canBookBefore: '',
-        price: '',
+        acteIds: [],
         enabled: 'true',
       });
     }
@@ -109,34 +106,15 @@ const ConsultationTypeForm = ({
       newErrors.color = 'Please enter a valid hex color (e.g., #3B82F6)';
     }
 
-    // Mode exercice is optional, no validation needed
-
-    if (!formData.duration) {
-      newErrors.duration = 'Duration is required';
-    } else if (parseInt(formData.duration) < 1) {
-      newErrors.duration = 'Duration must be at least 1 minute';
-    }
-
-    if (formData.restAfter !== '' && parseInt(formData.restAfter) < 0) {
-      newErrors.restAfter = 'Rest after must be 0 or more minutes';
-    }
-
-    if (!formData.type) {
-      newErrors.type = 'Type is required';
-    }
-
-    if (formData.canBookBefore !== '' && parseInt(formData.canBookBefore) < 0) {
-      newErrors.canBookBefore = 'Can book before must be 0 or more minutes';
-    }
-
-    if (!formData.price) {
-      newErrors.price = 'Price is required';
-    } else if (parseFloat(formData.price) < 0) {
-      newErrors.price = 'Price must be 0 or more';
-    }
     if (!formData.modeExerciceId) {
       newErrors.modeExerciceId = 'Mode exercice is required';
     }
+
+    // Note: acteIds validation is optional, assuming a consultation type might have no actes initially,
+    // but usually it should have at least one. For now keeping it optional or adding if needed.
+    // if (formData.acteIds.length === 0) {
+    //   newErrors.acteIds = 'At least one acte is required';
+    // }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -155,11 +133,7 @@ const ConsultationTypeForm = ({
         name: formData.name.trim(),
         color: formData.color.trim(),
         modeExerciceId: formData.modeExerciceId,
-        duration: parseInt(formData.duration),
-        restAfter: parseInt(formData.restAfter) || 0,
-        type: formData.type,
-        canBookBefore: parseInt(formData.canBookBefore) || 0,
-        price: parseFloat(formData.price),
+        acteIds: formData.acteIds,
         enabled: formData.enabled === 'true',
       };
 
@@ -191,6 +165,17 @@ const ConsultationTypeForm = ({
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: '' }));
     }
+  };
+
+  const handleActeToggle = (acteId) => {
+    setFormData((prev) => {
+      const currentIds = prev.acteIds;
+      if (currentIds.includes(acteId)) {
+        return { ...prev, acteIds: currentIds.filter((id) => id !== acteId) };
+      } else {
+        return { ...prev, acteIds: [...currentIds, acteId] };
+      }
+    });
   };
 
   const handleClose = () => {
@@ -227,12 +212,10 @@ const ConsultationTypeForm = ({
               value={formData.color}
               onChange={(e) => handleInputChange('color', e.target.value)}
               error={errors.color}
-              helperText='Choose a color to identify this consultation type'
               disabled={isLoading}
+              className='h-10 w-full p-1 cursor-pointer'
             />
-          </div>
 
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <FormSelect
               required
               label="Mode d'exercice"
@@ -241,79 +224,12 @@ const ConsultationTypeForm = ({
               onChange={(e) =>
                 handleInputChange('modeExerciceId', e.target.value)
               }
-              // error={errors.modeExerciceId}
               options={modeExercices.map((me) => ({
                 value: me.id,
                 label: me.name,
               }))}
               placeholder="Sélectionner un mode d'exercice"
               disabled={isLoading || loadingModeExercices}
-            />
-
-            <FormSelect
-              label='Type'
-              required
-              value={formData.type}
-              onChange={(e) => handleInputChange('type', e.target.value)}
-              error={errors.type}
-              options={TYPE_OPTIONS}
-              placeholder='Select type'
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-            <FormInput
-              label='Duration (minutes)'
-              required
-              type='number'
-              min='1'
-              value={formData.duration}
-              onChange={(e) => handleInputChange('duration', e.target.value)}
-              error={errors.duration}
-              placeholder='30'
-              disabled={isLoading}
-            />
-
-            <FormInput
-              label='Rest After (minutes)'
-              type='number'
-              min='0'
-              value={formData.restAfter}
-              onChange={(e) => handleInputChange('restAfter', e.target.value)}
-              error={errors.restAfter}
-              placeholder='0'
-              helperText='Time to rest after consultation'
-              disabled={isLoading}
-            />
-
-            <FormInput
-              label='Can Book Before (minutes)'
-              type='number'
-              min='0'
-              value={formData.canBookBefore}
-              onChange={(e) =>
-                handleInputChange('canBookBefore', e.target.value)
-              }
-              error={errors.canBookBefore}
-              placeholder='30'
-              helperText='How long before consultation can be booked'
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-            <FormInput
-              label='Price'
-              required
-              type='number'
-              min='0'
-              step='0.01'
-              value={formData.price}
-              onChange={(e) => handleInputChange('price', e.target.value)}
-              error={errors.price}
-              placeholder='50.00'
-              disabled={isLoading}
             />
 
             <FormSelect
@@ -325,6 +241,46 @@ const ConsultationTypeForm = ({
               options={ENABLED_OPTIONS}
               disabled={isLoading}
             />
+          </div>
+
+          <div className='space-y-2'>
+            <label className='text-sm font-medium'>Associated Actes</label>
+            <div className='border rounded-md p-4 max-h-60 overflow-y-auto space-y-2'>
+              {loadingActes ? (
+                <div className='text-center text-gray-500 py-4'>
+                  Loading actes...
+                </div>
+              ) : actes.length === 0 ? (
+                <div className='text-center text-gray-500 py-4'>
+                  No actes available. Please create actes first.
+                </div>
+              ) : (
+                actes.map((acte) => (
+                  <div key={acte.id} className='flex items-center space-x-2'>
+                    <input
+                      type='checkbox'
+                      id={`acte-${acte.id}`}
+                      checked={formData.acteIds.includes(acte.id)}
+                      onChange={() => handleActeToggle(acte.id)}
+                      className='h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                    />
+                    <label
+                      htmlFor={`acte-${acte.id}`}
+                      className='text-sm text-gray-700 flex items-center gap-2 cursor-pointer select-none'
+                    >
+                      <span
+                        className='w-3 h-3 rounded-full'
+                        style={{ backgroundColor: acte.color }}
+                      ></span>
+                      {acte.name} ({acte.duration} min - {acte.regularPrice}€)
+                    </label>
+                  </div>
+                ))
+              )}
+            </div>
+            {errors.acteIds && (
+              <p className='text-sm text-red-500'>{errors.acteIds}</p>
+            )}
           </div>
         </form>
       </ModalContent>

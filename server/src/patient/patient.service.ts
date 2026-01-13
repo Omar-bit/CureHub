@@ -638,8 +638,6 @@ export class PatientService {
               description: true,
             },
           },
-          duration: true,
-          price: true,
         },
         orderBy: {
           name: 'asc',
@@ -720,6 +718,7 @@ export class PatientService {
           select: {
             id: true,
             name: true,
+            color: true,
           },
         },
       },
