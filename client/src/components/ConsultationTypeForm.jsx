@@ -241,7 +241,7 @@ const ConsultationTypeForm = ({
               onChange={(e) =>
                 handleInputChange('modeExerciceId', e.target.value)
               }
-              error={errors.modeExerciceId}
+              // error={errors.modeExerciceId}
               options={modeExercices.map((me) => ({
                 value: me.id,
                 label: me.name,

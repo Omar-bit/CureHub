@@ -24,6 +24,7 @@ import { AgendaPreferencesModule } from './agenda-preferences/agenda-preferences
 import { PTOModule } from './pto/pto.module';
 import { AiModule } from './ai/ai.module';
 import { ModeExerciceModule } from './mode-exercice/mode-exercice.module';
+import { ActeModule } from './acte/acte.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { ModeExerciceModule } from './mode-exercice/mode-exercice.module';
     PTOModule,
     AiModule,
     ModeExerciceModule,
+    ActeModule,
   ],
   controllers: [AppController],
   providers: [AppService],

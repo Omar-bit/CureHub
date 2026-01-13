@@ -85,6 +85,7 @@ model DoctorProfile {
   agendaPreferences    AgendaPreferences?
   ptos                 DoctorPTO[]
   modeExercices        ModeExercice[]
+  actes                Acte[]
 
   @@map("doctor_profiles")
 }
@@ -234,19 +235,19 @@ model PatientRelationship {
 
 // Consultation Type model for doctors to define their consultation offerings
 model DoctorConsultationType {
-  id            String               @id @default(cuid())
-  name          String
-  color         String // Hex color code for UI display
+  id             String           @id @default(cuid())
+  name           String
+  color          String // Hex color code for UI display
   modeExerciceId String // Reference to ModeExercice (replaces location)
-  modeExercice   ModeExercice @relation(fields: [modeExerciceId], references: [id], onDelete: Cascade)
-  duration      Int // Duration in minutes
-  restAfter     Int // Rest time after consultation in minutes
-  type          ConsultationType
-  canBookBefore Int // How many minutes before consultation can be booked
-  price         Float // Price in the doctor's currency
-  enabled       Boolean              @default(true)
-  createdAt     DateTime             @default(now())
-  updatedAt     DateTime             @updatedAt
+  modeExercice   ModeExercice     @relation(fields: [modeExerciceId], references: [id], onDelete: Cascade)
+  duration       Int // Duration in minutes
+  restAfter      Int // Rest time after consultation in minutes
+  type           ConsultationType
+  canBookBefore  Int // How many minutes before consultation can be booked
+  price          Float // Price in the doctor's currency
+  enabled        Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   // Relations
   doctorId String
@@ -258,6 +259,9 @@ model DoctorConsultationType {
 
   // Patient access control
   patientAccess PatientConsultationTypeAccess[]
+
+  // Actes that can be placed during this consultation type
+  actes ActeConsultationType[]
 
   @@map("doctor_consultation_types")
 }
@@ -687,4 +691,67 @@ model ModeExercice {
 
   @@index([doctorId])
   @@map("mode_exercice")
+}
+
+// Canal enum for Acte booking channels
+enum ActeCanal {
+  INTERNET
+  TELEPHONE
+}
+
+// Acte (Act/Procedure) model - different from consultation types
+// Represents medical procedures that can be scheduled during consultation time slots
+model Acte {
+  id                 String  @id @default(cuid())
+  name               String // Nom dans votre agenda
+  displayedElsewhere String? // Affiché ailleurs (alternate name/display)
+  color              String // Hex color code for UI display
+  regularPrice       Float? // Tarifé habituel (regular price)
+
+  // Duration and placement settings
+  duration          Int // Durée/procédure (duration in minutes)
+  placementDuration Int // Aura à placer auprès (duration to allocate in minutes)
+  minReservationGap Int // Réserver entre (minimum gap before next appointment in minutes)
+  stopUntilNextAppt Int // Arrêter jusqu'à (stop booking until X minutes after appointment ends)
+
+  // Patient eligibility
+  eligibilityRule       String? @db.Text // Qui peut réserver cet acte? (eligibility criteria/description)
+  blockReservationAfter Int? // Bloquer la réservation après (block after X appointments)
+
+  // Reservation settings
+  canals String // JSON array of ActeCanal values (INTERNET, TELEPHONE)
+
+  // Instructions and notifications
+  instructions       String? @db.Text // Consignes (instructions to give patient)
+  reminderType       String? // Type of reminder (Informations de base)
+  reminderMessage    String? @db.Text // Personnalisation du message (custom reminder message)
+  notifyConfirmation Boolean @default(true) // Confirmations du RDV - pré-visite
+  notifyReminder     Boolean @default(true) // Confirmations du RDV - pré-patient
+
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  doctorId String
+  doctor   DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  // Many-to-many relationship with consultation types through ActeConsultationType
+  consultationTypes ActeConsultationType[]
+
+  @@index([doctorId])
+  @@map("actes")
+}
+
+// Junction table: Acte can be placed during specific consultation types' time slots
+model ActeConsultationType {
+  id                 String                 @id @default(cuid())
+  acteId             String
+  acte               Acte                   @relation(fields: [acteId], references: [id], onDelete: Cascade)
+  consultationTypeId String
+  consultationType   DoctorConsultationType @relation(fields: [consultationTypeId], references: [id], onDelete: Cascade)
+  createdAt          DateTime               @default(now())
+
+  @@unique([acteId, consultationTypeId]) // Prevent duplicate associations
+  @@map("acte_consultation_types")
 }

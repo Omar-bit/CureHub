@@ -18,6 +18,7 @@ import {
   Database,
   Calendar,
   Clock,
+  Activity,
 } from 'lucide-react';
 
 const SettingsPage = () => {
@@ -40,6 +41,14 @@ const SettingsPage = () => {
     },
     ...(user?.role === 'DOCTOR'
       ? [
+          {
+            id: 'actes',
+            title: 'Actes',
+            description: 'Définissez vos actes et procédures',
+            icon: Activity,
+            onClick: () => navigate('/settings/actes'),
+            items: ['Gérer les actes', 'Tarification', 'Durées'],
+          },
           {
             id: 'consultation-types',
             title: 'Consultation Types',

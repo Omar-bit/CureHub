@@ -21,6 +21,7 @@ import {
   Bell,
   Lock,
   Globe,
+  Activity,
 } from 'lucide-react';
 import { agendaPreferencesAPI, taskAPI } from '../services/api';
 
@@ -84,8 +85,14 @@ const agendaTools = [
 ];
 
 const AgendaSidebar = () => {
-  const { activeTab, setActiveTab, isSidebarOpen, setIsSidebarOpen, incompleteTaskCount, updateIncompleteTaskCount } =
-    useAgenda();
+  const {
+    activeTab,
+    setActiveTab,
+    isSidebarOpen,
+    setIsSidebarOpen,
+    incompleteTaskCount,
+    updateIncompleteTaskCount,
+  } = useAgenda();
   const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -104,19 +111,19 @@ const AgendaSidebar = () => {
     },
     ...(user?.role === 'DOCTOR'
       ? [
-        {
-          id: 'consultation-types',
-          label: 'Consultation Types',
-          icon: Calendar,
-          path: '/settings/consultation-types',
-        },
-        {
-          id: 'timeplan',
-          label: 'Timeplan',
-          icon: Clock,
-          path: '/settings/timeplan',
-        },
-      ]
+          {
+            id: 'consultation-types',
+            label: 'Consultation Types',
+            icon: Calendar,
+            path: '/settings/consultation-types',
+          },
+          {
+            id: 'timeplan',
+            label: 'Timeplan',
+            icon: Clock,
+            path: '/settings/timeplan',
+          },
+        ]
       : []),
     {
       id: 'pto',
@@ -141,8 +148,13 @@ const AgendaSidebar = () => {
       label: "Mode d'exercice",
       icon: Settings,
       path: '/settings/mode-exercice',
-
-    }
+    },
+    {
+      id: 'acte',
+      label: 'Actes',
+      icon: Activity,
+      path: '/settings/actes',
+    },
   ];
 
   // Fetch incomplete task count
@@ -175,7 +187,8 @@ const AgendaSidebar = () => {
     const Icon = item.icon;
     const showTaskBadge = item.id === 'tasks' && incompleteTaskCount > 0;
     const showNavBadge = item.badgeCount && item.badgeCount > 0;
-    const badgeCount = item.id === 'tasks' ? incompleteTaskCount : item.badgeCount;
+    const badgeCount =
+      item.id === 'tasks' ? incompleteTaskCount : item.badgeCount;
     return (
       <button
         key={item.id}
@@ -183,9 +196,10 @@ const AgendaSidebar = () => {
         className={`cursor-pointer
           p-2
           w-full flex flex-col gap-1 justify-center items-center text-sm font-medium rounded-md transition-colors relative
-          ${isActive
-            ? 'bg-white text-gray-900 shadow-lg'
-            : 'text-gray-600 hover:bg-white hover:text-gray-900'
+          ${
+            isActive
+              ? 'bg-white text-gray-900 shadow-lg'
+              : 'text-gray-600 hover:bg-white hover:text-gray-900'
           }
         `}
         title={item.label}
@@ -205,16 +219,18 @@ const AgendaSidebar = () => {
     const Icon = item.icon;
     const showTaskBadge = item.id === 'tasks' && incompleteTaskCount > 0;
     const showNavBadge = item.badgeCount && item.badgeCount > 0;
-    const badgeCount = item.id === 'tasks' ? incompleteTaskCount : item.badgeCount;
+    const badgeCount =
+      item.id === 'tasks' ? incompleteTaskCount : item.badgeCount;
     return (
       <button
         key={item.id}
         onClick={() => handleItemClick(item)}
         className={`
           w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors relative
-          ${isActive
-            ? 'bg-white text-gray-900 shadow-sm'
-            : 'text-gray-600 hover:bg-white hover:text-gray-900'
+          ${
+            isActive
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-600 hover:bg-white hover:text-gray-900'
           }
         `}
       >
@@ -255,8 +271,9 @@ const AgendaSidebar = () => {
 
         {/* Agenda Tools (Flexible Middle - Scrollable) */}
         <div
-          className={`flex-1 overflow-y-auto agenda-tools min-h-0 ${isMobile ? 'px-4' : 'px-2'
-            }`}
+          className={`flex-1 overflow-y-auto agenda-tools min-h-0 ${
+            isMobile ? 'px-4' : 'px-2'
+          }`}
           style={{
             '--sb-thumb-color': mainColor,
           }}
@@ -272,9 +289,10 @@ const AgendaSidebar = () => {
               <button
                 onClick={() => setIsToolsExpanded(!isToolsExpanded)}
                 className={`
-                  ${isMobile
-                    ? 'w-full flex items-center px-3 py-2'
-                    : 'w-full flex flex-col items-center justify-center p-2'
+                  ${
+                    isMobile
+                      ? 'w-full flex items-center px-3 py-2'
+                      : 'w-full flex flex-col items-center justify-center p-2'
                   }
                   text-gray-600 hover:bg-white hover:text-gray-900 rounded-md transition-colors
                 `}
@@ -300,23 +318,27 @@ const AgendaSidebar = () => {
           <button
             onClick={() => setIsSettingsPanelOpen(true)}
             className={`cursor-pointer
-              ${isMobile
-                ? 'w-full flex items-center px-3 py-2'
-                : 'p-2 w-full flex flex-col gap-1 justify-center items-center'
+              ${
+                isMobile
+                  ? 'w-full flex items-center px-3 py-2'
+                  : 'p-2 w-full flex flex-col gap-1 justify-center items-center'
               }
               text-sm font-medium rounded-md transition-colors
-              ${isSettingsPanelOpen
-                ? 'bg-white text-gray-900 shadow-lg'
-                : 'text-gray-600 hover:bg-white hover:text-gray-900'
+              ${
+                isSettingsPanelOpen
+                  ? 'bg-white text-gray-900 shadow-lg'
+                  : 'text-gray-600 hover:bg-white hover:text-gray-900'
               }
             `}
-            title="Paramètres"
+            title='Paramètres'
           >
             <Settings className='h-5 w-5' />
             {isMobile ? (
               <span className='ml-3'>Paramètres</span>
             ) : (
-              <p className='text-[10px] truncate w-full text-center'>Paramètres</p>
+              <p className='text-[10px] truncate w-full text-center'>
+                Paramètres
+              </p>
             )}
           </button>
         </div>
@@ -409,9 +431,10 @@ const AgendaSidebar = () => {
                   }}
                   className={`
                     w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
-                    ${isActive
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:bg-white hover:text-gray-900'
+                    ${
+                      isActive
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:bg-white hover:text-gray-900'
                     }
                   `}
                 >

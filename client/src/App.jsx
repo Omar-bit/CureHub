@@ -27,6 +27,7 @@ import FeaturesSection from './components/FeaturesSection';
 import PricingSection from './components/PricingSection';
 import Footer from './components/Footer';
 import { AgendaProvider } from './contexts/AgendaContext';
+import ActesPage from './pages/ActesPage';
 
 // Landing page component
 const LandingPage = () => (
@@ -82,6 +83,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ConsultationTypesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path='/settings/actes'
+                element={
+                  <ProtectedRoute>
+                    <ActesPage />
                   </ProtectedRoute>
                 }
               />

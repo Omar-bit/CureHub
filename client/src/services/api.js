@@ -636,3 +636,21 @@ export const ptoAPI = {
     return api.get(`/pto/holidays/list?${query}`).then((res) => res.data);
   },
 };
+
+// Acte API
+export const acteAPI = {
+  // Get all actes
+  getAll: () => api.get('/api/actes').then((res) => res.data),
+
+  // Get a specific acte by ID
+  getById: (id) => api.get(`/api/actes/${id}`).then((res) => res.data),
+
+  // Create a new acte
+  create: (data) => api.post('/api/actes', data).then((res) => res.data),
+
+  // Update an existing acte
+  update: (id, data) => api.patch(`/api/actes/${id}`, data).then((res) => res.data),
+
+  // Delete an acte
+  delete: (id) => api.delete(`/api/actes/${id}`).then((res) => res.data),
+};
