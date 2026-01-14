@@ -5,33 +5,32 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { useAuth } from '../contexts/AuthContext';
 import { showSuccess, showError } from '../lib/toast';
 import { patientAuthAPI } from '../services/api';
+import { splitPatientName, buildPatientName } from '../lib/patient';
 
 const PatientIdentityTab = ({ patientData, onUpdate }) => {
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Parse patient name to first and last name
-  const parsePatientName = (fullName) => {
-    if (!fullName) return { firstName: '', lastName: '' };
-    const parts = fullName.trim().split(/\s+/);
-    if (parts.length <= 1) {
-      return { firstName: parts[0] || '', lastName: '' };
-    }
-    const lastName = parts[parts.length - 1];
-    const firstName = parts.slice(0, -1).join(' ');
-    return { firstName, lastName };
-  };
-
-  const buildPatientName = (firstName, lastName) => {
-    const parts = [];
-    if (firstName) parts.push(firstName);
-    if (lastName) parts.push(lastName);
-    return parts.join(' ');
-  };
-
+  // Use imported patient name utilities
   const { firstName: initialFirstName, lastName: initialLastName } =
-    parsePatientName(patientData?.name);
+    splitPatientName(patientData?.name);
+
+  // Format phone number as XX.XX.XX.XX.XX (max 10 digits)
+  const formatPhoneNumber = (phone) => {
+    if (!phone) return '';
+    const digits = phone.replace(/\D/g, '');
+    // Limit to 10 digits
+    const limitedDigits = digits.slice(0, 10);
+    if (limitedDigits.length === 0) return '';
+
+    let formatted = '';
+    for (let i = 0; i < limitedDigits.length; i += 2) {
+      if (i > 0) formatted += '.';
+      formatted += limitedDigits.slice(i, i + 2);
+    }
+    return formatted;
+  };
 
   const [formData, setFormData] = useState({
     firstName: initialFirstName || '',
@@ -49,9 +48,16 @@ const PatientIdentityTab = ({ patientData, onUpdate }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    // Format phone number on change
+    let finalValue = value;
+    if (name === 'phoneNumber') {
+      finalValue = formatPhoneNumber(value);
+    }
+
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: finalValue,
     }));
   };
 
@@ -81,6 +87,23 @@ const PatientIdentityTab = ({ patientData, onUpdate }) => {
       // Update localStorage with new patient data
       if (response) {
         localStorage.setItem('patientUser', JSON.stringify(response));
+
+        // Also update form data with the response to ensure UI is in sync
+        const { firstName: newFirstName, lastName: newLastName } =
+          splitPatientName(response.name);
+        setFormData({
+          firstName: newFirstName || '',
+          lastName: newLastName || '',
+          gender: response.gender || 'FEMALE',
+          dateOfBirth: response.dateOfBirth
+            ? new Date(response.dateOfBirth).toISOString().split('T')[0]
+            : '',
+          email: response.email || '',
+          phoneNumber: response.phoneNumber || '',
+          address: response.address || '',
+          postalCode: response.postalCode || '',
+          city: response.city || '',
+        });
       }
 
       showSuccess('Profil mis à jour avec succès');
@@ -129,11 +152,7 @@ const PatientIdentityTab = ({ patientData, onUpdate }) => {
                   Civilitè *
                 </label>
                 <p className='text-foreground font-medium mt-1'>
-                  {formData.gender === 'FEMALE'
-                    ? 'Madame'
-                    : formData.gender === 'MALE'
-                    ? 'Monsieur'
-                    : 'Autre'}
+                  {formData.gender === 'FEMALE' ? 'Madame' : 'Monsieur'}
                 </p>
               </div>
               <div>
@@ -259,7 +278,7 @@ const PatientIdentityTab = ({ patientData, onUpdate }) => {
               >
                 <option value='FEMALE'>Madame</option>
                 <option value='MALE'>Monsieur</option>
-                <option value='OTHER'>Autre</option>
+                {/* <option value='OTHER'>Autre</option> */}
               </select>
             </div>
             <div className='space-y-2'>
@@ -323,6 +342,7 @@ const PatientIdentityTab = ({ patientData, onUpdate }) => {
               value={formData.phoneNumber}
               onChange={handleChange}
               placeholder='06.75.45.42.38'
+              maxLength='14'
             />
           </div>
 

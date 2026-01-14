@@ -547,6 +547,10 @@ export class AuthService {
     // Prepare update payload
     const updatePayload: any = {};
 
+    // Handle full name if provided
+    if (updateData.name !== undefined) {
+      updatePayload.name = updateData.name;
+    }
     if (updateData.firstName !== undefined) {
       updatePayload.firstName = updateData.firstName;
     }
@@ -577,6 +581,12 @@ export class AuthService {
       updatePayload.city = updateData.city;
     }
 
+    // If no fields to update, return current patient
+    if (Object.keys(updatePayload).length === 0) {
+      const { password: _, ...patientWithoutPassword } = patient;
+      return patientWithoutPassword;
+    }
+
     const updatedPatient = await this.prisma.patient.update({
       where: { id: patientId },
       data: updatePayload,
@@ -601,6 +611,11 @@ export class AuthService {
 
     if (patient.isDeleted || patient.isBlocked) {
       throw new UnauthorizedException('Patient account is not accessible');
+    }
+
+    // Check if patient has a password set
+    if (!patient.password) {
+      throw new BadRequestException('No password is set for this patient.');
     }
 
     // Verify current password

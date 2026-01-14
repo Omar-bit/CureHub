@@ -399,6 +399,16 @@ const PatientProfilePage = ({ patientData }) => {
       {/* Show forms below cards */}
       {showIdentity && (
         <div className='max-w-2xl mx-auto mt-8'>
+          <Button
+            variant='outline'
+            onClick={() => {
+              setShowIdentity(false);
+              setShowPassword(false);
+            }}
+            className='mb-4'
+          >
+            ← Retour
+          </Button>
           <PatientIdentityTab
             patientData={updatedPatientData || patientData}
             onUpdate={handlePatientUpdate}
@@ -407,6 +417,16 @@ const PatientProfilePage = ({ patientData }) => {
       )}
       {showPassword && (
         <div className='max-w-2xl mx-auto mt-8'>
+          <Button
+            variant='outline'
+            onClick={() => {
+              setShowIdentity(false);
+              setShowPassword(false);
+            }}
+            className='mb-4'
+          >
+            ← Retour
+          </Button>
           <PatientPasswordTab />
         </div>
       )}

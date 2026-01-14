@@ -8,6 +8,7 @@ import {
   HttpStatus,
   Res,
   Patch,
+  BadRequestException,
 } from '@nestjs/common';
 import { I18nLang } from 'nestjs-i18n';
 import type { Response } from 'express';
@@ -209,7 +210,11 @@ export class AuthController {
   @Get('patient/profile')
   @UseGuards(JwtAuthGuard)
   async getPatientProfile(@CurrentUser() user: any) {
-    return await this.authService.getPatientProfile(user.sub);
+    const patientId = user.sub || user.id;
+    if (!patientId) {
+      throw new BadRequestException('Patient ID not found in token');
+    }
+    return await this.authService.getPatientProfile(patientId);
   }
 
   @Patch('patient/profile')
@@ -218,8 +223,12 @@ export class AuthController {
     @CurrentUser() user: any,
     @Body() updatePatientProfileDto: any,
   ) {
+    const patientId = user.sub || user.id;
+    if (!patientId) {
+      throw new BadRequestException('Patient ID not found in token');
+    }
     return await this.authService.updatePatientProfile(
-      user.sub,
+      patientId,
       updatePatientProfileDto,
     );
   }
@@ -231,8 +240,12 @@ export class AuthController {
     @CurrentUser() user: any,
     @Body() changePasswordDto: any,
   ) {
+    const patientId = user.sub || user.id;
+    if (!patientId) {
+      throw new BadRequestException('Patient ID not found in token');
+    }
     return await this.authService.changePatientPassword(
-      user.sub,
+      patientId,
       changePasswordDto,
     );
   }
