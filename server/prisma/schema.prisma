@@ -204,6 +204,8 @@ model Patient {
 
   // Disabled consultation types for this patient
   disabledConsultationTypes PatientConsultationTypeAccess[]
+  // Disabled actes for this patient
+  disabledActes             PatientActeAccess[]
 
   @@map("patients")
 }
@@ -528,6 +530,8 @@ model PatientDocument {
   @@map("patient_documents")
 }
 
+// Patient acte access control
+// Tracks which actes are enabled/disabled for specific patients
 // Patient consultation type access control
 // Tracks which consultation types are disabled for specific patients
 model PatientConsultationTypeAccess {
@@ -544,6 +548,24 @@ model PatientConsultationTypeAccess {
 
   @@unique([patientId, consultationTypeId]) // One record per patient-consultation type pair
   @@map("patient_consultation_type_access")
+}
+
+// Patient acte access control
+// Tracks which actes are enabled/disabled for specific patients
+model PatientActeAccess {
+  id        String   @id @default(cuid())
+  patientId String
+  acteId    String
+  isEnabled Boolean  @default(true) // false means disabled for this patient
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  acte    Acte    @relation(fields: [acteId], references: [id], onDelete: Cascade)
+
+  @@unique([patientId, acteId]) // One record per patient-acte pair
+  @@map("patient_acte_access")
 }
 
 // Appointment document model
@@ -741,6 +763,7 @@ model Acte {
   // Many-to-many relationship with consultation types through ActeConsultationType
   consultationTypes ActeConsultationType[]
   appointments      Appointment[]
+  patientAccess     PatientActeAccess[]
 
   @@index([doctorId])
   @@map("actes")

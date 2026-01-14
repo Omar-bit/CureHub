@@ -142,6 +142,18 @@ export const patientAPI = {
       .patch(`/patients/${patientId}/consultation-type-access`, accessData)
       .then((res) => res.data),
 
+  // Acte Access API
+
+  // Get all actes with their access status for a patient
+  getActeAccess: (patientId) =>
+    api.get(`/patients/${patientId}/acte-access`).then((res) => res.data),
+
+  // Update acte access for a patient
+  updateActeAccess: (patientId, accessData) =>
+    api
+      .patch(`/patients/${patientId}/acte-access`, accessData)
+      .then((res) => res.data),
+
   // Send email to patient
   sendEmail: (patientId, data) =>
     api.post(`/patients/${patientId}/send-email`, data).then((res) => res.data),
@@ -197,16 +209,14 @@ export const modeExerciceAPI = {
   getById: (id) => api.get(`/mode-exercice/${id}`).then((res) => res.data),
 
   // Create a new mode exercice
-  create: (data) =>
-    api.post('/mode-exercice', data).then((res) => res.data),
+  create: (data) => api.post('/mode-exercice', data).then((res) => res.data),
 
   // Update an existing mode exercice
   update: (id, data) =>
     api.patch(`/mode-exercice/${id}`, data).then((res) => res.data),
 
   // Delete a mode exercice
-  delete: (id) =>
-    api.delete(`/mode-exercice/${id}`).then((res) => res.data),
+  delete: (id) => api.delete(`/mode-exercice/${id}`).then((res) => res.data),
 };
 
 export const timeplanAPI = {
@@ -407,7 +417,7 @@ export const documentsApi = {
     formData.append('patientId', patientId);
     if (category) formData.append('category', category);
     if (description) formData.append('description', description);
-     if (originalName) formData.append('originalName', originalName);
+    if (originalName) formData.append('originalName', originalName);
 
     return api
       .post('/patient-documents/upload', formData, {
@@ -649,7 +659,8 @@ export const acteAPI = {
   create: (data) => api.post('/api/actes', data).then((res) => res.data),
 
   // Update an existing acte
-  update: (id, data) => api.patch(`/api/actes/${id}`, data).then((res) => res.data),
+  update: (id, data) =>
+    api.patch(`/api/actes/${id}`, data).then((res) => res.data),
 
   // Delete an acte
   delete: (id) => api.delete(`/api/actes/${id}`).then((res) => res.data),

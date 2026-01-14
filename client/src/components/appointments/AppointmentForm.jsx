@@ -91,6 +91,7 @@ const AppointmentForm = ({
   const [patientConsultationAccess, setPatientConsultationAccess] = useState(
     {}
   ); // Store consultation type access for each patient
+  const [patientActeAccess, setPatientActeAccess] = useState({}); // Store acte access for each patient
   const [durationPerPatient, setDurationPerPatient] = useState(20); // Duration per patient in minutes
   const [isManualDuration, setIsManualDuration] = useState(false); // Track if duration was manually changed
   const [useManualTime, setUseManualTime] = useState(false); // Track if using manual time input
@@ -278,18 +279,19 @@ const AppointmentForm = ({
     }
   }, [initialPatients, appointment]);
 
-  // Fetch consultation type access for selected patients
+  // Fetch consultation type access and acte access for selected patients
   useEffect(() => {
     const fetchPatientAccess = async () => {
-      const accessMap = {};
+      const consultationAccessMap = {};
+      const acteAccessMap = {};
       for (const patient of selectedPatients) {
         if (patient.id && !patient.visitor) {
           try {
-            const access = await patientAPI.getConsultationTypeAccess(
+            const ctAccess = await patientAPI.getConsultationTypeAccess(
               patient.id
             );
             // Create a map of consultation type ID to isEnabled status
-            accessMap[patient.id] = access.reduce((acc, ct) => {
+            consultationAccessMap[patient.id] = ctAccess.reduce((acc, ct) => {
               acc[ct.id] = ct.isEnabled;
               return acc;
             }, {});
@@ -298,17 +300,34 @@ const AppointmentForm = ({
               `Failed to fetch consultation type access for patient ${patient.id}:`,
               error
             );
-            accessMap[patient.id] = {};
+            consultationAccessMap[patient.id] = {};
+          }
+
+          try {
+            const acteAccess = await patientAPI.getActeAccess(patient.id);
+            // Create a map of acte ID to isEnabled status
+            acteAccessMap[patient.id] = acteAccess.reduce((acc, acte) => {
+              acc[acte.id] = acte.isEnabled;
+              return acc;
+            }, {});
+          } catch (error) {
+            console.error(
+              `Failed to fetch acte access for patient ${patient.id}:`,
+              error
+            );
+            acteAccessMap[patient.id] = {};
           }
         }
       }
-      setPatientConsultationAccess(accessMap);
+      setPatientConsultationAccess(consultationAccessMap);
+      setPatientActeAccess(acteAccessMap);
     };
 
     if (selectedPatients.length > 0) {
       fetchPatientAccess();
     } else {
       setPatientConsultationAccess({});
+      setPatientActeAccess({});
     }
   }, [selectedPatients]);
 
@@ -622,6 +641,25 @@ const AppointmentForm = ({
     });
   };
 
+  // Check if an acte is enabled for all selected patients
+  const isActeAvailable = (acteId) => {
+    // If no patients selected or all are visitors, all actes are available
+    if (
+      selectedPatients.length === 0 ||
+      selectedPatients.every((p) => p.visitor)
+    ) {
+      return true;
+    }
+
+    // Check if the acte is enabled for all patients
+    return selectedPatients.every((patient) => {
+      if (patient.visitor) return true; // Visitor patients can access all actes
+      const access = patientActeAccess[patient.id];
+      if (!access) return true; // If we don't have access data yet, assume enabled
+      return access[acteId] !== false; // Enabled if not explicitly disabled
+    });
+  };
+
   const validateForm = () => {
     const newErrors = {};
 
@@ -644,6 +682,12 @@ const AppointmentForm = ({
 
     if (!formData.consultationTypeId) {
       newErrors.consultationTypeId = 'Consultation type is required';
+    }
+
+    // Validate that selected acte is available for all patients
+    if (!isActeAvailable(formData.consultationTypeId)) {
+      newErrors.consultationTypeId =
+        'The selected acte is not available for one or more patients';
     }
 
     // Allow scheduling appointments in the past (for historical records)
@@ -1393,13 +1437,16 @@ const AppointmentForm = ({
                             selectedConsultationTypeGroupId
                       );
                     })
+                    .filter((acte) => isActeAvailable(acte.id)) // Filter out disabled actes for selected patients
                     .map((acte) => {
-                      // Use acte ID for checking availability if needed, or pass
-                      const isAvailable = true; // Simplified for now, or use isConsultationTypeAvailable(acte.id) if applicable
+                      // Use acte ID for checking availability
+                      const isAvailable = isActeAvailable(acte.id);
                       return (
                         <div
                           key={acte.id}
-                          onClick={() => handleConsultationTypeSelect(acte)}
+                          onClick={() =>
+                            isAvailable && handleConsultationTypeSelect(acte)
+                          }
                           className={`p-3 rounded-lg transition-colors ${
                             isAvailable
                               ? 'cursor-pointer hover:bg-gray-50'

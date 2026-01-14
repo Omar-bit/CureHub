@@ -17,6 +17,7 @@ import { EmailService } from '../email/email.service';
 import { CreatePatientRelationshipDto } from './dto/create-patient-relationship.dto';
 import { UpdatePatientPermissionsDto } from './dto/update-patient-permissions.dto';
 import { UpdatePatientConsultationTypeAccessDto } from './dto/patient-consultation-type-access.dto';
+import { UpdatePatientActeAccessDto } from './dto/patient-acte-access.dto';
 
 @Injectable()
 export class PatientService {
@@ -801,6 +802,111 @@ export class PatientService {
     return {
       success: true,
       message: `Email envoyé avec succès à ${patient.email}`,
+    };
+  }
+
+  /**
+   * Get all actes with their access status for a patient
+   */
+  async getPatientActeAccess(patientId: string, doctorId: string) {
+    // Verify patient belongs to doctor
+    await this.findOne(patientId, doctorId);
+
+    // Get all actes for the doctor
+    const actes = await this.prisma.acte.findMany({
+      where: {
+        doctorId,
+        enabled: true, // Only show enabled actes
+      },
+      select: {
+        id: true,
+        name: true,
+        color: true,
+        duration: true,
+        regularPrice: true,
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+
+    // Get patient-specific access settings
+    const accessSettings = await this.prisma.patientActeAccess.findMany({
+      where: {
+        patientId,
+      },
+      select: {
+        acteId: true,
+        isEnabled: true,
+      },
+    });
+
+    // Create a map for quick lookup
+    const accessMap = new Map(
+      accessSettings.map((access) => [access.acteId, access.isEnabled]),
+    );
+
+    // Combine actes with their access status
+    return actes.map((acte) => ({
+      ...acte,
+      isEnabled: accessMap.has(acte.id) ? accessMap.get(acte.id) : true, // Default to enabled
+    }));
+  }
+
+  /**
+   * Update acte access for a patient
+   */
+  async updatePatientActeAccess(
+    patientId: string,
+    doctorId: string,
+    accessDto: UpdatePatientActeAccessDto,
+  ) {
+    // Verify patient belongs to doctor
+    await this.findOne(patientId, doctorId);
+
+    // Verify acte belongs to doctor
+    const acte = await this.prisma.acte.findFirst({
+      where: {
+        id: accessDto.acteId,
+        doctorId,
+      },
+    });
+
+    if (!acte) {
+      throw new NotFoundException('Acte not found');
+    }
+
+    // Upsert the access record
+    const access = await this.prisma.patientActeAccess.upsert({
+      where: {
+        patientId_acteId: {
+          patientId,
+          acteId: accessDto.acteId,
+        },
+      },
+      create: {
+        patientId,
+        acteId: accessDto.acteId,
+        isEnabled: accessDto.isEnabled,
+      },
+      update: {
+        isEnabled: accessDto.isEnabled,
+      },
+      include: {
+        acte: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
+      },
+    });
+
+    return {
+      acteId: access.acteId,
+      acteName: access.acte.name,
+      isEnabled: access.isEnabled,
     };
   }
 }

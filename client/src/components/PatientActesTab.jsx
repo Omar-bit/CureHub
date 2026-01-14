@@ -1,82 +1,55 @@
 import React, { useState, useEffect } from 'react';
 import { Switch } from './ui/switch';
-import { Loader2, MapPin, Clock, Euro } from 'lucide-react';
+import { Loader2, Clock, Euro } from 'lucide-react';
 import { patientAPI } from '../services/api';
 import { showSuccess, showError } from '../lib/toast';
 
 const PatientActesTab = ({ patient }) => {
-  const [consultationTypes, setConsultationTypes] = useState([]);
+  const [actes, setActes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(null);
 
   useEffect(() => {
     if (patient?.id) {
-      loadConsultationTypeAccess();
+      loadActeAccess();
     }
   }, [patient?.id]);
 
-  const loadConsultationTypeAccess = async () => {
+  const loadActeAccess = async () => {
     try {
       setLoading(true);
-      const data = await patientAPI.getConsultationTypeAccess(patient.id);
-      setConsultationTypes(data);
+      const data = await patientAPI.getActeAccess(patient.id);
+      setActes(data);
     } catch (error) {
-      console.error('Failed to load consultation type access:', error);
-      showError('Échec du chargement des types de consultation');
+      console.error('Failed to load acte access:', error);
+      showError('Échec du chargement des actes');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleToggleAccess = async (consultationTypeId, currentStatus) => {
+  const handleToggleAccess = async (acteId, currentStatus) => {
     try {
-      setUpdating(consultationTypeId);
-      await patientAPI.updateConsultationTypeAccess(patient.id, {
-        consultationTypeId,
+      setUpdating(acteId);
+      await patientAPI.updateActeAccess(patient.id, {
+        acteId,
         isEnabled: !currentStatus,
       });
 
       // Update local state
-      setConsultationTypes((prev) =>
-        prev.map((ct) =>
-          ct.id === consultationTypeId
-            ? { ...ct, isEnabled: !currentStatus }
-            : ct
+      setActes((prev) =>
+        prev.map((acte) =>
+          acte.id === acteId ? { ...acte, isEnabled: !currentStatus } : acte
         )
       );
 
-      showSuccess(
-        !currentStatus
-          ? 'Type de consultation activé'
-          : 'Type de consultation désactivé'
-      );
+      showSuccess(!currentStatus ? 'Acte activé' : 'Acte désactivé');
     } catch (error) {
-      console.error('Failed to update consultation type access:', error);
+      console.error('Failed to update acte access:', error);
       showError('Échec de la mise à jour');
     } finally {
       setUpdating(null);
     }
-  };
-
-  const getModeExerciceLabel = (modeExercice) => {
-    return modeExercice?.name || 'Non spécifié';
-  };
-
-  const getModeExerciceIcon = (modeExercice) => {
-    const name = modeExercice?.name?.toLowerCase() || '';
-    if (
-      name.includes('tele') ||
-      name.includes('télé') ||
-      name.includes('visio') ||
-      name.includes('video') ||
-      name.includes('online')
-    ) {
-      return '🌐';
-    }
-    if (name.includes('domicile') || name.includes('home')) {
-      return '🏠';
-    }
-    return '🏥';
   };
 
   if (loading) {
@@ -90,10 +63,10 @@ const PatientActesTab = ({ patient }) => {
     );
   }
 
-  if (consultationTypes.length === 0) {
+  if (actes.length === 0) {
     return (
       <div className='text-center text-muted-foreground py-8'>
-        <p>Aucun type de consultation disponible</p>
+        <p>Aucun acte disponible</p>
       </div>
     );
   }
@@ -103,77 +76,61 @@ const PatientActesTab = ({ patient }) => {
       <div className='flex items-center justify-between mb-4'>
         <div>
           <h3 className='text-sm font-medium text-muted-foreground'>
-            Gérer l'accès aux types de consultation
+            Gérer l'accès aux actes
           </h3>
           <p className='text-xs text-muted-foreground mt-1'>
-            Activer ou désactiver les types de consultation pour ce patient
+            Activer ou désactiver les actes pour ce patient
           </p>
         </div>
       </div>
 
-      {consultationTypes.map((consultationType) => (
+      {actes.map((acte) => (
         <div
-          key={consultationType.id}
+          key={acte.id}
           className={`flex items-center justify-between p-4 border rounded-lg transition-all ${
-            consultationType.isEnabled
+            acte.isEnabled
               ? 'bg-white hover:bg-muted/30'
               : 'bg-muted/50 opacity-60'
           }`}
         >
           <div className='flex items-center gap-3 flex-1'>
             <div
-              className='w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0'
+              className='w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0 font-semibold text-white'
               style={{
-                backgroundColor: consultationType.isEnabled
-                  ? `${consultationType.modeExercice?.color || '#3B82F6'}20`
-                  : '#e5e7eb',
+                backgroundColor: acte.isEnabled
+                  ? acte.color || '#3B82F6'
+                  : '#d1d5db',
               }}
             >
-              {getModeExerciceIcon(consultationType.modeExercice)}
+              {acte.name?.charAt(0)?.toUpperCase() || '•'}
             </div>
             <div className='flex-1 min-w-0'>
               <div className='flex items-center gap-2'>
                 <p className='font-medium text-foreground truncate'>
-                  {consultationType.name}
+                  {acte.name}
                 </p>
-                <span
-                  className='inline-flex items-center px-2 py-0.5 rounded text-xs font-medium'
-                  style={{
-                    backgroundColor: consultationType.isEnabled
-                      ? `${consultationType.modeExercice?.color || '#3B82F6'}20`
-                      : '#e5e7eb',
-                    color: consultationType.isEnabled
-                      ? consultationType.modeExercice?.color || '#3B82F6'
-                      : '#6b7280',
-                  }}
-                >
-                  {getModeExerciceLabel(consultationType.modeExercice)}
-                </span>
               </div>
               <div className='flex items-center gap-4 mt-1 text-xs text-muted-foreground'>
                 <div className='flex items-center gap-1'>
                   <Clock className='w-3 h-3' />
-                  <span>{consultationType.duration} min</span>
+                  <span>{acte.duration} min</span>
                 </div>
                 <div className='flex items-center gap-1'>
                   <Euro className='w-3 h-3' />
-                  <span>{consultationType.price.toFixed(2)}</span>
+                  <span>{(acte.regularPrice || 0).toFixed(2)}</span>
                 </div>
               </div>
             </div>
           </div>
 
           <div className='flex items-center gap-3'>
-            {updating === consultationType.id ? (
+            {updating === acte.id ? (
               <Loader2 className='w-4 h-4 animate-spin text-muted-foreground' />
             ) : (
               <Switch
-                checked={consultationType.isEnabled}
+                checked={acte.isEnabled}
                 onCheckedChange={() =>
-                  handleToggleAccess(
-                    consultationType.id,
-                    consultationType.isEnabled
-                  )
+                  handleToggleAccess(acte.id, acte.isEnabled)
                 }
                 disabled={updating !== null}
               />

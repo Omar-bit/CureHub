@@ -27,6 +27,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CreatePatientRelationshipDto } from './dto/create-patient-relationship.dto';
 import { UpdatePatientPermissionsDto } from './dto/update-patient-permissions.dto';
 import { UpdatePatientConsultationTypeAccessDto } from './dto/patient-consultation-type-access.dto';
+import { UpdatePatientActeAccessDto } from './dto/patient-acte-access.dto';
 
 @Controller('patients')
 @UseGuards(JwtAuthGuard)
@@ -238,6 +239,42 @@ export class PatientController {
     }
 
     return this.patientService.updatePatientConsultationTypeAccess(
+      patientId,
+      user.doctorProfile.id,
+      accessDto,
+    );
+  }
+
+  // Acte Access Endpoints
+
+  @Get(':id/acte-access')
+  async getPatientActeAccess(
+    @CurrentUser() user: any,
+    @Param('id') patientId: string,
+  ) {
+    // Ensure user is a doctor and has a doctor profile
+    if (user.role !== 'DOCTOR' || !user.doctorProfile?.id) {
+      throw new Error('Only doctors can access patient acte settings');
+    }
+
+    return this.patientService.getPatientActeAccess(
+      patientId,
+      user.doctorProfile.id,
+    );
+  }
+
+  @Patch(':id/acte-access')
+  async updatePatientActeAccess(
+    @CurrentUser() user: any,
+    @Param('id') patientId: string,
+    @Body() accessDto: UpdatePatientActeAccessDto,
+  ) {
+    // Ensure user is a doctor and has a doctor profile
+    if (user.role !== 'DOCTOR' || !user.doctorProfile?.id) {
+      throw new Error('Only doctors can update patient acte settings');
+    }
+
+    return this.patientService.updatePatientActeAccess(
       patientId,
       user.doctorProfile.id,
       accessDto,
