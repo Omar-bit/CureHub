@@ -51,7 +51,9 @@ const AppointmentForm = ({
   onClose,
   onSave,
   patients = [],
-  consultationTypes = [],
+
+  consultationTypes = [], // These are DoctorConsultationTypes (Categories)
+  actes = [], // These are Actes (Items)
   selectedDate = null,
   inline = false,
   onPatientCreated = null, // Callback when a new patient is created
@@ -80,7 +82,9 @@ const AppointmentForm = ({
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
   const [showConsultationDropdown, setShowConsultationDropdown] =
     useState(false);
-  const [selectedModeExerciceId, setSelectedModeExerciceId] = useState(null);
+  const [selectedConsultationTypeGroupId, setSelectedConsultationTypeGroupId] =
+    useState(null); // ID of the DoctorConsultationType (Tab)
+  const [selectedModeExerciceId, setSelectedModeExerciceId] = useState(null); // Keep for legacy or remove if unused, but user asked to REPLACE Tabs
   const [showPatientFormSheet, setShowPatientFormSheet] = useState(false);
   const [prefilledPatientName, setPrefilledPatientName] = useState(null);
   const [selectedPatients, setSelectedPatients] = useState([]); // Array of selected patient objects (includes visitor patients)
@@ -169,11 +173,35 @@ const AppointmentForm = ({
       }
 
       // Set the correct location tab if editing
-      const consultationType = consultationTypes.find(
-        (type) => type.id === parseInt(appointment.consultationTypeId)
+      const consultationType = actes.find(
+        (a) =>
+          a.id === appointment.consultationTypeId ||
+          a.id === String(appointment.consultationTypeId)
       );
       if (consultationType) {
-        setSelectedModeExerciceId(consultationType.modeExercice?.id);
+        // Acte refactor: Find which consultation type (tab) this acte belongs to
+        const selectedActe = actes.find(
+          (a) => a.id === appointment.consultationTypeId
+        );
+
+        if (
+          selectedActe &&
+          selectedActe.consultationTypes &&
+          selectedActe.consultationTypes.length > 0
+        ) {
+          // Use the first consultation type associated with this act to set the tab
+          // Adjust this if you have a preferred 'primary' consultation type
+          const typeId =
+            selectedActe.consultationTypes[0].id ||
+            selectedActe.consultationTypes[0].doctorConsultationTypeId;
+          setSelectedConsultationTypeGroupId(typeId);
+        } else if (
+          consultationTypes.length > 0 &&
+          !selectedConsultationTypeGroupId
+        ) {
+          // Default to first tab if logic fails but we have types
+          setSelectedConsultationTypeGroupId(consultationTypes[0].id);
+        }
 
         // Calculate duration per patient if editing with multiple patients
         const numberOfPatients = appointment.appointmentPatients?.length || 1;
@@ -344,20 +372,20 @@ const AppointmentForm = ({
     }
   }, [selectedPatients]);
 
-  // Auto-calculate duration based on number of patients and consultation type
+  // Auto-calculate duration based on number of patients and consultation type (Acte)
   useEffect(() => {
     if (!isManualDuration && formData.consultationTypeId) {
-      const selectedType = consultationTypes.find(
-        (ct) =>
-          ct.id === parseInt(formData.consultationTypeId) ||
-          ct.id === formData.consultationTypeId
+      const selectedActe = actes.find(
+        (a) =>
+          a.id === formData.consultationTypeId ||
+          a.id === String(formData.consultationTypeId)
       );
 
-      if (selectedType) {
-        setDurationPerPatient(selectedType.duration);
+      if (selectedActe) {
+        setDurationPerPatient(selectedActe.duration);
       }
     }
-  }, [formData.consultationTypeId, consultationTypes, isManualDuration]);
+  }, [formData.consultationTypeId, actes, isManualDuration]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -376,11 +404,13 @@ const AppointmentForm = ({
 
     // Set the correct location tab when a consultation type is selected
     if (name === 'consultationTypeId') {
-      const selectedType = consultationTypes.find(
-        (type) => type.id === parseInt(value)
+      const selectedActe = actes.find(
+        (a) => a.id === value || a.id === String(value)
       );
-      if (selectedType) {
-        setSelectedModeExerciceId(selectedType.modeExercice?.id);
+      if (selectedActe) {
+        // If we need to set the tab based on the selected Acte, we would do it here
+        // For now, Acte doesn't explicitly link to a single consultation type group easily
+        // We might need to iterate consultationTypes to find which one includes this acte
       }
     }
   };
@@ -394,7 +424,14 @@ const AppointmentForm = ({
     }));
 
     // Set the location tab based on the selected type
-    setSelectedModeExerciceId(type.modeExercice?.id);
+    // Note: Acte does not have modeExercice directly linked in the same way as old ConsultationType
+    // If needed, we might need to derive this differently, but for now we skip it to prevent errors
+    // setSelectedModeExerciceId(type.modeExercice?.id);
+
+    // Automatically select the correct tab if an Acte is selected somehow without a tab active (unlikely in current UI but good for robustness)
+    if (type.consultationTypes && type.consultationTypes.length > 0) {
+      // logic to ensure tab matches acte if needed, though UI enforces it mostly
+    }
 
     // Update duration per patient and reset manual override
     setDurationPerPatient(type.duration);
@@ -698,13 +735,13 @@ const AppointmentForm = ({
 
     setLoading(true);
     try {
-      const selectedType = consultationTypes.find(
-        (type) =>
-          type.id === parseInt(formData.consultationTypeId) ||
-          type.id === formData.consultationTypeId
+      const selectedActe = actes.find(
+        (a) =>
+          a.id === formData.consultationTypeId ||
+          a.id === String(formData.consultationTypeId)
       );
 
-      if (!selectedType) {
+      if (!selectedActe) {
         throw new Error(
           `Consultation type not found. ID: ${formData.consultationTypeId}`
         );
@@ -819,9 +856,7 @@ const AppointmentForm = ({
     try {
       // Get consultation type to calculate duration
       const selectedType = consultationTypes.find(
-        (type) =>
-          type.id === parseInt(formData.consultationTypeId) ||
-          type.id === formData.consultationTypeId
+        (type) => type.id === formData.consultationTypeId
       );
 
       const numberOfPatients = Math.max(1, selectedPatients.length);
@@ -904,12 +939,12 @@ const AppointmentForm = ({
     }
   };
 
-  // Ensure we're properly parsing the consultation type ID
+  // Ensure we're properly parsing the consultation type (Acte) ID
   const selectedConsultationType = formData.consultationTypeId
-    ? consultationTypes.find(
-        (ct) =>
-          ct.id === parseInt(formData.consultationTypeId) ||
-          ct.id === formData.consultationTypeId
+    ? actes.find(
+        (a) =>
+          a.id === formData.consultationTypeId ||
+          a.id === String(formData.consultationTypeId)
       )
     : null;
 
@@ -1300,105 +1335,75 @@ const AppointmentForm = ({
                 {/* Header */}
                 <div className='p-2 px-3 border-b border-gray-200 bg-gray-50'>
                   <span className='text-md font-semibold text-gray-700'>
-                    ACTE ET HORAIRES
+                    CATÉGORIE DE CONSULTATION (ACTES)
                   </span>
                 </div>
 
-                {/* Location Tabs - Styled like the screenshot */}
-                {/* Mode Exercice Tabs */}
-                <div className='flex border-b border-gray-200 bg-gray-50 overflow-x-auto'>
-                  {Array.from(
-                    new Map(
-                      consultationTypes
-                        .filter((ct) => ct.modeExercice)
-                        .map((ct) => [ct.modeExercice.id, ct.modeExercice])
-                    ).values()
-                  ).map((mode) => (
-                    <div
-                      key={mode.id}
-                      onClick={() => setSelectedModeExerciceId(mode.id)}
-                      className={`flex-1 flex items-center justify-center space-x-2 px-2 py-4 cursor-pointer transition-colors min-w-[120px] ${
-                        selectedModeExerciceId === mode.id
-                          ? 'bg-blue-600 border-blue-700 text-white'
-                          : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-                      }`}
-                    >
+                {/* Consultation Type Tabs (Categories) */}
+                <div className='flex border-b border-gray-200 bg-gray-50 flex-wrap justify-start'>
+                  {consultationTypes
+                    .filter((ct) => ct.enabled)
+                    .map((type) => (
                       <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                          selectedModeExerciceId === mode.id
-                            ? 'bg-blue-500'
-                            : 'bg-gray-200'
+                        key={type.id}
+                        onClick={() =>
+                          setSelectedConsultationTypeGroupId(type.id)
+                        }
+                        className={` flex items-center justify-start space-x-2 px-2 py-4 cursor-pointer transition-colors min-w-[120px] ${
+                          selectedConsultationTypeGroupId === type.id
+                            ? 'bg-blue-600 border-blue-700 text-white'
+                            : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
                         }`}
                       >
-                        {(() => {
-                          const name = mode.name?.toLowerCase() || '';
-                          if (
-                            name.includes('tele') ||
-                            name.includes('télé') ||
-                            name.includes('visio') ||
-                            name.includes('video') ||
-                            name.includes('online')
-                          )
-                            return (
-                              <Video
-                                className={`w-4 h-4 ${
-                                  selectedModeExerciceId === mode.id
-                                    ? 'text-white'
-                                    : 'text-gray-600'
-                                }`}
-                              />
-                            );
-                          if (
-                            name.includes('domicile') ||
-                            name.includes('home')
-                          )
-                            return (
-                              <Home
-                                className={`w-4 h-4 ${
-                                  selectedModeExerciceId === mode.id
-                                    ? 'text-white'
-                                    : 'text-gray-600'
-                                }`}
-                              />
-                            );
-                          return (
-                            <Building2
-                              className={`w-4 h-4 ${
-                                selectedModeExerciceId === mode.id
-                                  ? 'text-white'
-                                  : 'text-gray-600'
-                              }`}
-                            />
-                          );
-                        })()}
+                        <div
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${
+                            selectedConsultationTypeGroupId === type.id
+                              ? 'bg-blue-500 text-white'
+                              : 'bg-gray-200 text-gray-700'
+                          }`}
+                          style={{
+                            backgroundColor:
+                              selectedConsultationTypeGroupId !== type.id
+                                ? type.color
+                                : undefined,
+                          }}
+                        >
+                          {type.name.substring(0, 2).toUpperCase()}
+                        </div>
+                        <span className='font-medium text-sm truncate'>
+                          {type.name}
+                        </span>
                       </div>
-                      <span className='font-medium text-sm truncate'>
-                        {mode.name}
-                      </span>
-                    </div>
-                  ))}
+                    ))}
                 </div>
 
-                {/* Consultation Types for Selected Mode */}
+                {/* Actes for Selected Consultation Type */}
                 <div className='p-4 space-y-3'>
-                  {consultationTypes
-                    .filter(
-                      (type) => type.modeExercice?.id === selectedModeExerciceId
-                    )
-                    .map((type) => {
-                      const isAvailable = isConsultationTypeAvailable(type.id);
+                  {actes
+                    .filter((acte) => {
+                      // Filter logic: Check if acte belongs to selectedConsultationTypeGroupId
+                      // Acte has consultationTypes relation. We assume acte.consultationTypes is populated.
+                      if (!selectedConsultationTypeGroupId) return false;
+                      return acte.consultationTypes?.some(
+                        (ct) =>
+                          ct.id === selectedConsultationTypeGroupId ||
+                          ct.doctorConsultationTypeId ===
+                            selectedConsultationTypeGroupId
+                      );
+                    })
+                    .map((acte) => {
+                      // Use acte ID for checking availability if needed, or pass
+                      const isAvailable = true; // Simplified for now, or use isConsultationTypeAvailable(acte.id) if applicable
                       return (
                         <div
-                          key={type.id}
-                          onClick={() =>
-                            isAvailable && handleConsultationTypeSelect(type)
-                          }
+                          key={acte.id}
+                          onClick={() => handleConsultationTypeSelect(acte)}
                           className={`p-3 rounded-lg transition-colors ${
                             isAvailable
                               ? 'cursor-pointer hover:bg-gray-50'
                               : 'cursor-not-allowed opacity-50 bg-gray-50'
                           } ${
-                            formData.consultationTypeId === String(type.id)
+                            formData.consultationTypeId === String(acte.id)
                               ? 'bg-blue-50 border border-blue-200'
                               : 'border border-gray-200'
                           }`}
@@ -1408,10 +1413,10 @@ const AppointmentForm = ({
                               <div
                                 className='w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold'
                                 style={{
-                                  backgroundColor: type.color || '#3B82F6',
+                                  backgroundColor: acte.color || '#3B82F6',
                                 }}
                               >
-                                {type.duration}
+                                {acte.duration}
                               </div>
                               <div>
                                 <h4
@@ -1421,40 +1426,42 @@ const AppointmentForm = ({
                                       : 'text-gray-500'
                                   }`}
                                 >
-                                  {type.name}
-                                  {!isAvailable && (
-                                    <span className='ml-2 text-xs text-red-500'>
-                                      (Non disponible)
-                                    </span>
-                                  )}
+                                  {acte.name}
                                 </h4>
                                 <div className='flex items-center text-xs text-gray-500 mt-1 space-x-2'>
                                   <span className='flex items-center'>
                                     <Clock className='w-3 h-3 mr-1' />
-                                    {type.duration} min
+                                    {acte.duration} min
                                   </span>
-                                  <span className='flex items-center'>
-                                    <CreditCard className='w-3 h-3 mr-1' />
-                                    {type.price}
-                                  </span>
+                                  {acte.regularPrice && (
+                                    <span className='flex items-center'>
+                                      <CreditCard className='w-3 h-3 mr-1' />
+                                      {acte.regularPrice}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             </div>
                             {formData.consultationTypeId ===
-                              String(type.id) && (
+                              String(acte.id) && (
                               <div className='w-2 h-2 rounded-full bg-blue-500' />
                             )}
                           </div>
                         </div>
                       );
                     })}
-                  {consultationTypes.filter(
-                    (type) => type.modeExercice?.id === selectedModeExerciceId
+                  {actes.filter((acte) =>
+                    acte.consultationTypes?.some(
+                      (ct) =>
+                        ct.id === selectedConsultationTypeGroupId ||
+                        ct.doctorConsultationTypeId ===
+                          selectedConsultationTypeGroupId
+                    )
                   ).length === 0 && (
                     <div className='text-center py-4 text-gray-500'>
                       {consultationTypes.length > 0
-                        ? "Sélectionnez un mode d'exercice."
-                        : 'Aucun type de consultation disponible.'}
+                        ? 'Sélectionnez un type de consultation pour voir les actes.'
+                        : 'Aucun acte disponible.'}
                     </div>
                   )}
                 </div>

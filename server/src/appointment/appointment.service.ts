@@ -373,11 +373,11 @@ export class AppointmentService {
 
       // Get old and new consultation type names
       const oldType = appointment.consultationTypeId
-        ? await this.prisma.doctorConsultationType.findUnique({
+        ? await this.prisma.acte.findUnique({
             where: { id: appointment.consultationTypeId },
           })
         : null;
-      const newType = await this.prisma.doctorConsultationType.findUnique({
+      const newType = await this.prisma.acte.findUnique({
         where: { id: consultationTypeId },
       });
 
@@ -836,19 +836,17 @@ export class AppointmentService {
     consultationTypeId: string,
     doctorId: string,
   ): Promise<void> {
-    const consultationType = await this.prisma.doctorConsultationType.findFirst(
-      {
-        where: {
-          id: consultationTypeId,
-          doctorId,
-          enabled: true,
-        },
+    const consultationType = await this.prisma.acte.findFirst({
+      where: {
+        id: consultationTypeId,
+        doctorId,
+        enabled: true,
       },
-    );
+    });
 
     if (!consultationType) {
       throw new NotFoundException(
-        'Consultation type not found or not available',
+        'Acte (Consultation type) not found or not available',
       );
     }
   }
@@ -935,24 +933,27 @@ export class AppointmentService {
     // Get the day of the week for the given date
     const dayOfWeek = this.getDayOfWeek(date);
 
+    // Normalize date to start of day for specificDate comparison
+    const startOfRequestedDay = new Date(date);
+    startOfRequestedDay.setHours(0, 0, 0, 0);
+
     // Get doctor's timeplan for the day
-    const timeplan = await this.prisma.doctorTimeplan.findFirst({
+    // First, try to find a specific date timeplan, then fall back to the recurring weekly timeplan
+    let timeplan = await this.prisma.doctorTimeplan.findFirst({
       where: {
         doctorId,
         dayOfWeek,
         isActive: true,
+        // First, prioritize specific date timeplans that match the requested date
+        specificDate: {
+          gte: startOfRequestedDay,
+          lt: new Date(startOfRequestedDay.getTime() + 24 * 60 * 60 * 1000),
+        },
       },
       include: {
         timeSlots: {
           where: {
             isActive: true,
-            ...(consultationTypeId && {
-              consultationTypes: {
-                some: {
-                  consultationTypeId,
-                },
-              },
-            }),
           },
           include: {
             consultationTypes: {
@@ -965,7 +966,39 @@ export class AppointmentService {
       },
     });
 
+    // If no specific date timeplan found, fall back to the recurring weekly timeplan
+    if (!timeplan) {
+      timeplan = await this.prisma.doctorTimeplan.findFirst({
+        where: {
+          doctorId,
+          dayOfWeek,
+          isActive: true,
+          specificDate: null, // Recurring weekly timeplan
+        },
+        include: {
+          timeSlots: {
+            where: {
+              isActive: true,
+            },
+            include: {
+              consultationTypes: {
+                include: {
+                  consultationType: true,
+                },
+              },
+            },
+          },
+        },
+      });
+    }
+
     if (!timeplan || timeplan.timeSlots.length === 0) {
+      console.log(
+        'DEBUG: No timeplan found for doctor',
+        doctorId,
+        'on day',
+        dayOfWeek,
+      );
       return {
         date: date.toISOString().split('T')[0],
         consultationTypeId,
@@ -973,19 +1006,37 @@ export class AppointmentService {
       };
     }
 
-    // Get consultation type details if specified
-    let consultationType: any = null;
+    // Get Acte details if specified
+    let acte: any = null;
+    const acteConsultationTypeIds: string[] = [];
+
     if (consultationTypeId) {
-      consultationType = await this.prisma.doctorConsultationType.findFirst({
+      acte = await this.prisma.acte.findFirst({
         where: {
           id: consultationTypeId,
           doctorId,
           enabled: true,
         },
+        include: {
+          consultationTypes: {
+            include: {
+              consultationType: true,
+            },
+          },
+        },
       });
 
-      if (!consultationType) {
-        throw new NotFoundException('Consultation type not found');
+      if (!acte) {
+        throw new NotFoundException(
+          `Acte with ID ${consultationTypeId} not found`,
+        );
+      }
+
+      // Extract the consultation type IDs that this Acte can be placed in
+      if (acte.consultationTypes && acte.consultationTypes.length > 0) {
+        for (const acteConsultationType of acte.consultationTypes) {
+          acteConsultationTypeIds.push(acteConsultationType.consultationTypeId);
+        }
       }
     }
 
@@ -1066,8 +1117,44 @@ export class AppointmentService {
     // Generate all possible 15-minute slots for each time slot
     const allSlots: { time: string; available: boolean }[] = [];
 
-    console.log(new Date());
+    console.log('DEBUG: getAvailableSlots called');
+    console.log('DEBUG: consultationTypeId (Acte ID):', consultationTypeId);
+    console.log('DEBUG: acteConsultationTypeIds:', acteConsultationTypeIds);
+    console.log(
+      'DEBUG: Timeplan Slots Count:',
+      timeplan?.timeSlots?.length || 0,
+    );
+
+    if (!timeplan || timeplan.timeSlots.length === 0) {
+      return {
+        date: date.toISOString().split('T')[0],
+        consultationTypeId,
+        slots: [],
+      };
+    }
+
     for (const timeSlot of timeplan.timeSlots) {
+      // Filter Logic:
+      // If an Acte is selected (consultationTypeId exists), the time slot MUST support at least one
+      // of the Acte's associated Consultation Types.
+      if (consultationTypeId && acteConsultationTypeIds.length > 0) {
+        // Check if any of the time slot's consultation types match the Acte's allowed consultation types
+        const slotSupportsActe = timeSlot.consultationTypes.some((tsCt) =>
+          acteConsultationTypeIds.includes(tsCt.consultationTypeId),
+        );
+
+        if (!slotSupportsActe) {
+          console.log(
+            `DEBUG: Slot ${timeSlot.startTime} skipped. Acte requires consultation types: [${acteConsultationTypeIds.join(', ')}]`,
+          );
+          continue; // Skip this slot if it doesn't support the selected Acte
+        } else {
+          console.log(
+            `DEBUG: Slot ${timeSlot.startTime} accepted for Acte ${consultationTypeId}`,
+          );
+        }
+      }
+
       const slots = this.generateQuarterHourSlots(
         timeSlot.startTime,
         timeSlot.endTime,
@@ -1075,7 +1162,7 @@ export class AppointmentService {
         existingAppointments,
         blockingImprevus,
         blockingPTOs,
-        consultationType,
+        acte,
       );
       allSlots.push(...slots);
     }
@@ -1088,11 +1175,68 @@ export class AppointmentService {
       )
       .sort((a, b) => a.time.localeCompare(b.time));
 
-    return {
-      date: date.toISOString().split('T')[0],
+    // DEBUG: Count matching slots for diagnosis
+    let matchingSlotsCount = 0;
+    if (consultationTypeId && acteConsultationTypeIds.length > 0) {
+      for (const timeSlot of timeplan.timeSlots) {
+        const slotSupportsActe = timeSlot.consultationTypes.some((tsCt) =>
+          acteConsultationTypeIds.includes(tsCt.consultationTypeId),
+        );
+        if (slotSupportsActe) matchingSlotsCount++;
+      }
+    }
+
+    // Use local time components for the response date string to avoid timezone shifts
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const localDateStr = `${year}-${month}-${day}`;
+
+    const response: any = {
+      date: localDateStr,
       consultationTypeId,
       slots: uniqueSlots,
     };
+
+    // Include debug information only when not in production
+    if (process.env.NODE_ENV !== 'production') {
+      const timeSlotsDebug = timeplan.timeSlots.map((ts: any) => ({
+        id: ts.id,
+        startTime: ts.startTime,
+        endTime: ts.endTime,
+        consultationTypeIds: ts.consultationTypes.map(
+          (c: any) => c.consultationTypeId,
+        ),
+      }));
+
+      response.debug = {
+        requestedDate: date.toISOString(),
+        dayOfWeek,
+        timeplanId: timeplan.id,
+        timeplanSpecificDate: timeplan.specificDate || null,
+        totalTimeSlotsInPlan: timeplan.timeSlots.length,
+        timeSlots: timeSlotsDebug,
+        acteFound: !!acte,
+        acteId: acte?.id || null,
+        acteConsultationTypeIds,
+        counts: {
+          existingAppointments: existingAppointments.length,
+          blockingImprevus: blockingImprevus.length,
+          blockingPTOs: blockingPTOs.length,
+          generatedSlots: allSlots.length,
+          uniqueSlots: uniqueSlots.length,
+          matchingTimeSlots: timeSlotsDebug.filter((s: any) =>
+            acteConsultationTypeIds.length > 0
+              ? s.consultationTypeIds.some((id: string) =>
+                  acteConsultationTypeIds.includes(id),
+                )
+              : true,
+          ).length,
+        },
+      };
+    }
+
+    return response as any;
   }
 
   private getDayOfWeek(date: Date): DayOfWeek {
@@ -1134,10 +1278,15 @@ export class AppointmentService {
     // Generate slots based on consultation type duration
     // Slots are spaced by the consultation duration to ensure back-to-back appointments
     const current = new Date(start);
-    const consultationDuration = consultationType
-      ? consultationType.duration
-      : 15; // Default 15 minutes
-    const restAfter = consultationType ? consultationType.restAfter : 0;
+    // Ensure we have numeric duration/rest values; fallback to sensible defaults
+    const consultationDuration =
+      consultationType && typeof consultationType.duration === 'number'
+        ? consultationType.duration
+        : 15; // Default 15 minutes
+    const restAfter =
+      consultationType && typeof consultationType.restAfter === 'number'
+        ? consultationType.restAfter
+        : 0;
     const totalSlotDuration = consultationDuration + restAfter;
 
     while (current < end) {
@@ -1188,7 +1337,8 @@ export class AppointmentService {
           return current >= ptoStart && current <= ptoEnd;
         });
 
-        const available = !hasConflict && !isPast && !isBlockedByImprevu && !isBlockedByPTO;
+        const available =
+          !hasConflict && !isPast && !isBlockedByImprevu && !isBlockedByPTO;
 
         slots.push({
           time: timeString,
@@ -1208,6 +1358,12 @@ export class AppointmentService {
     patientId: string,
     consultationTypeId: string,
   ): Promise<boolean> {
+    // TODO: Update schema to support patient access for Actes if needed
+    // currently PatientConsultationTypeAccess is linked to DoctorConsultationType
+    // For now, we assume all patients can access all Actes unless specific logic is added
+    return true;
+
+    /*
     const access = await this.prisma.patientConsultationTypeAccess.findUnique({
       where: {
         patientId_consultationTypeId: {
@@ -1219,6 +1375,7 @@ export class AppointmentService {
 
     // If no record exists, default to enabled
     return access ? access.isEnabled : true;
+    */
   }
 
   /**

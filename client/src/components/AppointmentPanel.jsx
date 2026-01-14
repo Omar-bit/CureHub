@@ -3,6 +3,7 @@ import { AppointmentForm, AppointmentDetails } from './appointments';
 import {
   appointmentAPI,
   patientAPI,
+  acteAPI,
   consultationTypesAPI,
   timeplanAPI,
 } from '../services/api';
@@ -21,6 +22,7 @@ const AppointmentPanel = ({
 }) => {
   const [patients, setPatients] = useState([]);
   const [consultationTypes, setConsultationTypes] = useState([]);
+  const [actes, setActes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentMode, setCurrentMode] = useState(mode);
   const [currentAppointment, setCurrentAppointment] = useState(appointment);
@@ -45,12 +47,14 @@ const AppointmentPanel = ({
       setLoading(true);
 
       // Load data in parallel
-      const [patientsData, consultationTypesData] = await Promise.all([
+      const [patientsData, actesData, consultationTypesData] = await Promise.all([
         patientAPI.getAll(),
+        acteAPI.getAll(),
         consultationTypesAPI.getAll(),
       ]);
 
       setPatients(patientsData.patients || patientsData || []);
+      setActes(actesData.actes || actesData || []);
       setConsultationTypes(
         consultationTypesData.consultationTypes || consultationTypesData || []
       );
@@ -302,6 +306,7 @@ const AppointmentPanel = ({
                 onPatientCreated={handlePatientCreated}
                 patients={patients}
                 consultationTypes={consultationTypes}
+                actes={actes}
                 selectedDate={selectedDateTime}
                 inline={true} // Add inline prop
                 initialPatients={initialPatientsForForm}

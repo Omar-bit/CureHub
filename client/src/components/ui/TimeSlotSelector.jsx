@@ -19,9 +19,9 @@ const TimeSlotSelector = ({
   const [startDayOffset, setStartDayOffset] = useState(0); // Offset for navigation
   const [selectedDayIndex, setSelectedDayIndex] = useState(0); // Currently selected day
 
-  // Get consultation type details
+  // Get consultation type details (IDs are strings)
   const consultationType = consultationTypes.find(
-    (ct) => ct.id === parseInt(consultationTypeId)
+    (ct) => ct.id === consultationTypeId
   );
 
   const duration = totalDuration || consultationType?.duration || 30;
@@ -177,10 +177,11 @@ const TimeSlotSelector = ({
                 <div key={index} className='flex-shrink-0 w-32'>
                   {/* Day Header */}
                   <div
-                    className={`text-center p-3 rounded-t-lg border ${isSelected
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-300 bg-gray-50'
-                      }`}
+                    className={`text-center p-3 rounded-t-lg border ${
+                      isSelected
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-300 bg-gray-50'
+                    }`}
                   >
                     <div className='text-xs font-medium uppercase text-gray-500'>
                       {dayName}
@@ -215,10 +216,11 @@ const TimeSlotSelector = ({
                                 handleDaySelect(index, day.date);
                                 handleTimeSelect(slot.time, day.date);
                               }}
-                              className={`w-full px-3 py-2 text-sm rounded-md transition-colors text-center flex items-center justify-center gap-2 ${isSlotSelected
-                                ? 'bg-amber-400 text-white font-medium'
-                                : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-                                }`}
+                              className={`w-full px-3 py-2 text-sm rounded-md transition-colors text-center flex items-center justify-center gap-2 ${
+                                isSlotSelected
+                                  ? 'bg-amber-400 text-white font-medium'
+                                  : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
+                              }`}
                             >
                               <span>{slot.displayTime}</span>
                               {isSlotSelected && (
