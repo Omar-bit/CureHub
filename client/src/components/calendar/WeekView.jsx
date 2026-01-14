@@ -21,6 +21,7 @@ const WeekView = ({
   appointments = [],
   imprevus = [],
   ptos = [],
+  timeplans = [],
   onDateChange,
   onAppointmentClick,
   onTimeSlotClick,
