@@ -93,7 +93,11 @@ const ImprevuFormSheet = ({ imprevu, isOpen, onClose, onSave }) => {
     try {
       const data = await consultationTypesAPI.getAll();
       console.log('Consultation types response:', data);
-      setConsultationTypes(data.consultationTypes || data || []);
+      // Handle both array and object responses
+      const types = Array.isArray(data)
+        ? data
+        : data?.consultationTypes || data || [];
+      setConsultationTypes(types);
     } catch (error) {
       console.error('Error fetching consultation types:', error);
       showError('Failed to fetch consultation types');
@@ -221,7 +225,7 @@ const ImprevuFormSheet = ({ imprevu, isOpen, onClose, onSave }) => {
       return affectedAppointments;
     }
     return affectedAppointments.filter((apt) =>
-      formData.consultationTypeIds.includes(apt.consultationType?.id)
+      formData.consultationTypeIds.includes(apt.consultationTypeDetailsId)
     );
   };
 
@@ -411,7 +415,7 @@ const ImprevuFormSheet = ({ imprevu, isOpen, onClose, onSave }) => {
                         type.id
                       );
                       const appointmentCount = affectedAppointments.filter(
-                        (apt) => apt.consultationType?.id === type.id
+                        (apt) => apt.consultationTypeDetailsId === type.id
                       ).length;
 
                       console.log(
