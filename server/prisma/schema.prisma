@@ -235,14 +235,14 @@ model PatientRelationship {
 
 // Consultation Type model for doctors to define their consultation offerings
 model DoctorConsultationType {
-  id             String           @id @default(cuid())
+  id             String       @id @default(cuid())
   name           String
   modeExerciceId String // Reference to ModeExercice (replaces location)
-  modeExercice   ModeExercice     @relation(fields: [modeExerciceId], references: [id], onDelete: Cascade)
-  color          String           @default("#3B82F6") // Hex color code for UI display
-  enabled        Boolean          @default(true)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  modeExercice   ModeExercice @relation(fields: [modeExerciceId], references: [id], onDelete: Cascade)
+  color          String       @default("#3B82F6") // Hex color code for UI display
+  enabled        Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   // Relations
   doctorId String
@@ -250,7 +250,7 @@ model DoctorConsultationType {
 
   // Timeplan relations
   timeSlotConsultationTypes TimeSlotConsultationType[]
-  // appointments              Appointment[] // Removed as Appointment now links to Acte
+  appointments              Appointment[]
 
   // Patient access control
   patientAccess PatientConsultationTypeAccess[]
@@ -379,7 +379,14 @@ model Appointment {
   appointmentPatients AppointmentPatient[] // Multiple patients support
 
   consultationTypeId String?
-  consultationType   Acte? @relation(fields: [consultationTypeId], references: [id], onDelete: SetNull)
+  consultationType   Acte?   @relation(fields: [consultationTypeId], references: [id], onDelete: SetNull)
+
+  // Link to the consultation type (category) details in addition to the Acte
+  consultationTypeDetailsId String?
+  consultationTypeDetails   DoctorConsultationType? @relation(fields: [consultationTypeDetailsId], references: [id], onDelete: SetNull)
+
+  // Explicit appointment location (defaults to physical/onsite)
+  location ConsultationLocation @default(ONSITE)
 
   documents AppointmentDocument[] // Appointment documents
   history   AppointmentHistory[] // Appointment history

@@ -45,9 +45,67 @@ export class AppointmentController {
     return req.user.doctorProfile.id;
   }
 
+  // Get the location from the appointment. Prefer the database `location` field,
+  // then try to derive from `consultationTypeDetails.modeExercice.name`, then legacy `consultationType.location`.
+  private computeAppointmentLocation(appointment: any): string {
+    // If appointment already has a location field from the database, use it
+    if (appointment?.location) {
+      return appointment.location;
+    }
+
+    // Otherwise, derive from modeExercice or fallback
+    const modeName = (
+      appointment?.consultationTypeDetails?.modeExercice?.name ||
+      appointment?.consultationType?.location ||
+      ''
+    )
+      .toString()
+      .toLowerCase();
+
+    if (
+      modeName.includes('visio') ||
+      modeName.includes('tele') ||
+      modeName.includes('video')
+    )
+      return 'ONLINE';
+    if (modeName.includes('domicile') || modeName.includes('home'))
+      return 'ATHOME';
+    return 'ONSITE';
+  }
+
+  private attachLocationToAppointment(appointment: any) {
+    if (!appointment) return appointment;
+    return {
+      ...appointment,
+      location: this.computeAppointmentLocation(appointment),
+    };
+  }
+
+  private attachLocationToAppointments(list: any) {
+    // If the service returned a plain array of appointments
+    if (Array.isArray(list)) {
+      return list.map((a) => this.attachLocationToAppointment(a));
+    }
+
+    // If the service returned a paginated object { appointments: [], total, ... }
+    if (list && Array.isArray(list.appointments)) {
+      return {
+        ...list,
+        appointments: list.appointments.map((a: any) =>
+          this.attachLocationToAppointment(a),
+        ),
+      };
+    }
+
+    // Unknown shape - return as-is
+    return list;
+  }
+
   @Post()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Create a new appointment' })
+  // Note: payload may include `consultationTypeDetailsId` to link the appointment
+  // to a `DoctorConsultationType` in addition to the `Acte` (consultationTypeId).
   @ApiResponse({ status: 201, description: 'Appointment created successfully' })
   @ApiResponse({
     status: 400,
@@ -60,10 +118,9 @@ export class AppointmentController {
   @UseGuards(JwtAuthGuard)
   create(@Request() req, @Body() createAppointmentDto: CreateAppointmentDto) {
     const doctorProfileId = this.getDoctorProfileId(req);
-    return this.appointmentService.create(
-      doctorProfileId,
-      createAppointmentDto,
-    );
+    return this.appointmentService
+      .create(doctorProfileId, createAppointmentDto)
+      .then((appt) => this.attachLocationToAppointment(appt));
   }
   // A3MAL KACHAA AAA
   @Get()
@@ -74,12 +131,12 @@ export class AppointmentController {
     description: 'Appointments retrieved successfully',
   })
   @UseGuards(JwtAuthGuard)
-  findAll(@Request() req, @Query() query: GetAppointmentsDto) {
-    // YOU NEED TO FIX THIS 
-    // READ THIS 
-    // !todo later update query to retreive all appointments for the doctor in a specefic duration otherwise the query will be heavy and too long 
+  async findAll(@Request() req, @Query() query: GetAppointmentsDto) {
+    // NOTE: This endpoint returns an array of appointments; attach a computed
+    // `location` property to each appointment for easier client rendering.
     const doctorProfileId = this.getDoctorProfileId(req);
-    return this.appointmentService.findAll(doctorProfileId, query);
+    const list = await this.appointmentService.findAll(doctorProfileId, query);
+    return this.attachLocationToAppointments(list);
   }
 
   @Get('upcoming')
@@ -92,10 +149,9 @@ export class AppointmentController {
   @UseGuards(JwtAuthGuard)
   getUpcoming(@Request() req, @Query('limit') limit?: number) {
     const doctorProfileId = this.getDoctorProfileId(req);
-    return this.appointmentService.getUpcomingAppointments(
-      doctorProfileId,
-      limit,
-    );
+    return this.appointmentService
+      .getUpcomingAppointments(doctorProfileId, limit)
+      .then((list) => this.attachLocationToAppointments(list));
   }
 
   @Get('available-slots')
@@ -139,12 +195,12 @@ export class AppointmentController {
     @Query() query: GetAvailableSlotsDto,
   ): Promise<AvailableSlotsResponse> {
     const doctorProfileId = this.getDoctorProfileId(req);
-    
+
     // Parse date string explicitly to avoid timezone issues
     // "2026-01-12" should always mean January 12, 2026 in local time
     const [year, month, day] = query.date.split('-').map(Number);
     const date = new Date(year, month - 1, day);
-    
+
     return this.appointmentService.getAvailableSlots(
       doctorProfileId,
       date,
@@ -161,10 +217,9 @@ export class AppointmentController {
   @UseGuards(JwtAuthGuard)
   getByDate(@Request() req, @Param('date') date: string) {
     const doctorProfileId = this.getDoctorProfileId(req);
-    return this.appointmentService.getAppointmentsByDate(
-      doctorProfileId,
-      new Date(date),
-    );
+    return this.appointmentService
+      .getAppointmentsByDate(doctorProfileId, new Date(date))
+      .then((list) => this.attachLocationToAppointments(list));
   }
 
   @Get(':id')
@@ -178,7 +233,9 @@ export class AppointmentController {
   @UseGuards(JwtAuthGuard)
   findOne(@Request() req, @Param('id') id: string) {
     const doctorProfileId = this.getDoctorProfileId(req);
-    return this.appointmentService.findOne(id, doctorProfileId);
+    return this.appointmentService
+      .findOne(id, doctorProfileId)
+      .then((a) => this.attachLocationToAppointment(a));
   }
 
   @Patch(':id')
@@ -197,11 +254,9 @@ export class AppointmentController {
     @Body() updateAppointmentDto: UpdateAppointmentDto,
   ) {
     const doctorProfileId = this.getDoctorProfileId(req);
-    return this.appointmentService.update(
-      id,
-      doctorProfileId,
-      updateAppointmentDto,
-    );
+    return this.appointmentService
+      .update(id, doctorProfileId, updateAppointmentDto)
+      .then((a) => this.attachLocationToAppointment(a));
   }
 
   @Patch(':id/status')

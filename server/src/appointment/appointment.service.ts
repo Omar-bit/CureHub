@@ -54,6 +54,7 @@ export class AppointmentService {
       patientId,
       patientIds,
       consultationTypeId,
+      consultationTypeDetailsId,
       startTime,
       endTime,
       skipConflictCheck,
@@ -100,6 +101,14 @@ export class AppointmentService {
       }
     }
 
+    // Verify consultation type (category) belongs to doctor (if provided)
+    if (consultationTypeDetailsId) {
+      await this.verifyDoctorConsultationTypeBelongsToDoctor(
+        consultationTypeDetailsId,
+        doctorId,
+      );
+    }
+
     // Check for time conflicts (unless skipConflictCheck is true)
     if (!skipConflictCheck) {
       await this.checkTimeConflicts(
@@ -142,6 +151,7 @@ export class AppointmentService {
         doctorId,
         patientId: patientsToAdd.length > 0 ? patientsToAdd[0] : null, // First patient as primary for backward compatibility
         consultationTypeId,
+        consultationTypeDetailsId: consultationTypeDetailsId || undefined,
         appointmentPatients:
           patientsToAdd.length > 0
             ? {
@@ -164,6 +174,7 @@ export class AppointmentService {
           },
         },
         consultationType: true,
+        consultationTypeDetails: true,
         documents: true,
       },
     });
@@ -304,6 +315,7 @@ export class AppointmentService {
           },
         },
         consultationType: true,
+        consultationTypeDetails: true,
         doctor: {
           select: {
             id: true,
@@ -337,6 +349,7 @@ export class AppointmentService {
       patientId,
       patientIds,
       consultationTypeId,
+      consultationTypeDetailsId,
       startTime,
       endTime,
       skipConflictCheck,
@@ -417,6 +430,42 @@ export class AppointmentService {
           }
         }
       }
+    }
+
+    // Track doctor consultation type (category) changes
+    if (
+      consultationTypeDetailsId &&
+      consultationTypeDetailsId !== appointment.consultationTypeDetailsId
+    ) {
+      await this.verifyDoctorConsultationTypeBelongsToDoctor(
+        consultationTypeDetailsId,
+        doctorId,
+      );
+
+      // Optionally log the doctor consultation type change
+      // Fetch old and new doctor consultation type names (if any)
+      const oldDoctorConsultationTypeName =
+        appointment.consultationTypeDetailsId
+          ? (
+              await this.prisma.doctorConsultationType.findUnique({
+                where: { id: appointment.consultationTypeDetailsId },
+              })
+            )?.name || null
+          : null;
+
+      const newDoctorConsultationType =
+        await this.prisma.doctorConsultationType.findUnique({
+          where: { id: consultationTypeDetailsId },
+        });
+      const newDoctorConsultationTypeName =
+        newDoctorConsultationType?.name || null;
+
+      await this.appointmentHistory.logConsultationTypeChange(
+        id,
+        doctorId,
+        oldDoctorConsultationTypeName,
+        newDoctorConsultationTypeName,
+      );
     }
 
     // Check for time conflicts (if changing time and not skipping conflict check)
@@ -503,7 +552,45 @@ export class AppointmentService {
       ...(startTime && { startTime: new Date(startTime) }),
       ...(endTime && { endTime: new Date(endTime) }),
       ...(consultationTypeId && { consultationTypeId }),
+      ...(consultationTypeDetailsId && { consultationTypeDetailsId }),
     };
+
+    // Persist explicit location if provided by client
+    if (appointmentData.location) {
+      updateData.location = appointmentData.location;
+    }
+
+    // If a new doctor consultation type was provided, derive location from its modeExercice
+    if (consultationTypeDetailsId) {
+      try {
+        const newDoctorConsultationType =
+          await this.prisma.doctorConsultationType.findUnique({
+            where: { id: consultationTypeDetailsId },
+            include: { modeExercice: true },
+          });
+
+        const modeName = (newDoctorConsultationType?.modeExercice?.name || '')
+          .toString()
+          .toLowerCase();
+
+        const derivedLocation =
+          modeName.includes('visio') ||
+          modeName.includes('tele') ||
+          modeName.includes('video')
+            ? 'ONLINE'
+            : modeName.includes('domicile') || modeName.includes('home')
+              ? 'ATHOME'
+              : 'ONSITE';
+
+        updateData.location = derivedLocation;
+      } catch (e) {
+        // If lookup fails, do not block the update; keep existing location
+        console.error(
+          'Failed to derive location from consultationTypeDetailsId',
+          e,
+        );
+      }
+    }
 
     // If patients are being updated
     if (patientsToUpdate) {
@@ -530,6 +617,7 @@ export class AppointmentService {
           },
         },
         consultationType: true,
+        consultationTypeDetails: true,
         documents: true,
       },
     });
@@ -581,6 +669,7 @@ export class AppointmentService {
           },
         },
         consultationType: true,
+        consultationTypeDetails: true,
         documents: true,
       },
     });
@@ -847,6 +936,27 @@ export class AppointmentService {
     if (!consultationType) {
       throw new NotFoundException(
         'Acte (Consultation type) not found or not available',
+      );
+    }
+  }
+
+  private async verifyDoctorConsultationTypeBelongsToDoctor(
+    consultationTypeId: string,
+    doctorId: string,
+  ): Promise<void> {
+    const consultationType = await this.prisma.doctorConsultationType.findFirst(
+      {
+        where: {
+          id: consultationTypeId,
+          doctorId,
+          enabled: true,
+        },
+      },
+    );
+
+    if (!consultationType) {
+      throw new NotFoundException(
+        'Consultation type (category) not found or not available',
       );
     }
   }

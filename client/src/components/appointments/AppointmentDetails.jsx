@@ -280,7 +280,9 @@ const AppointmentDetails = ({
 
     // If clicking the same chip that is already active, toggle back to SCHEDULED
     const isTogglingOff = selectedStatusChip === chipName;
-    const targetStatus = isTogglingOff ? 'SCHEDULED' : STATUS_CHIP_TO_APPOINTMENT_STATUS[chipName];
+    const targetStatus = isTogglingOff
+      ? 'SCHEDULED'
+      : STATUS_CHIP_TO_APPOINTMENT_STATUS[chipName];
 
     if (!targetStatus) return;
 
@@ -325,7 +327,10 @@ const AppointmentDetails = ({
 
       // Automatically decrement absence count for all patients when status changes from absent to another status
       // This includes toggling off the absent status
-      if (previousChip === 'absent' && (chipName !== 'absent' || isTogglingOff)) {
+      if (
+        previousChip === 'absent' &&
+        (chipName !== 'absent' || isTogglingOff)
+      ) {
         for (const patient of allPatients) {
           if (patient?.id) {
             try {
@@ -414,7 +419,52 @@ const AppointmentDetails = ({
 
   // Get consultation badge color and icon based on consultation type location
   const getConsultationBadgeStyle = () => {
-    const location = appointment.consultationType?.location;
+    // Prefer explicit `appointment.location` when provided by the server
+    if (appointment?.location) {
+      const loc = appointment.location.toString().toUpperCase();
+      switch (loc) {
+        case 'ONLINE':
+          return {
+            bgColor: 'bg-blue-100',
+            textColor: 'text-blue-700',
+            icon: <VideoOn className='w-4 h-4 text-blue-600' />,
+            label: 'Téléconsultation',
+          };
+        case 'ATHOME':
+          return {
+            bgColor: 'bg-red-100',
+            textColor: 'text-red-700',
+            icon: <Home className='w-4 h-4 text-red-600' />,
+            label: 'Visite à domicile',
+          };
+        case 'ONSITE':
+        default:
+          return {
+            bgColor: 'bg-green-100',
+            textColor: 'text-green-700',
+            icon: <Building2 className='w-4 h-4 text-green-600' />,
+            label: 'Consultation au cabinet',
+          };
+      }
+    }
+
+    // Fallback: derive location from `consultationTypeDetails.modeExercice.name` or legacy `consultationType.location`
+    const modeName = (
+      appointment.consultationTypeDetails?.modeExercice?.name ||
+      appointment.consultationType?.location ||
+      ''
+    )
+      .toString()
+      .toLowerCase();
+
+    const location =
+      modeName.includes('visio') ||
+      modeName.includes('tele') ||
+      modeName.includes('video')
+        ? 'ONLINE'
+        : modeName.includes('domicile') || modeName.includes('home')
+        ? 'ATHOME'
+        : 'ONSITE';
 
     switch (location) {
       case 'ONLINE':
@@ -593,11 +643,36 @@ const AppointmentDetails = ({
     showError('Cannot delete patient from appointment view');
   };
 
+  // Helper to derive appointment location from new or legacy fields
+  const deriveAppointmentLocation = () => {
+    // Prefer explicit `appointment.location` if present on the object
+    if (appointment?.location)
+      return appointment.location.toString().toUpperCase();
+
+    const modeName = (
+      appointment.consultationTypeDetails?.modeExercice?.name ||
+      appointment.consultationType?.location ||
+      ''
+    )
+      .toString()
+      .toLowerCase();
+
+    if (
+      modeName.includes('visio') ||
+      modeName.includes('tele') ||
+      modeName.includes('video')
+    )
+      return 'ONLINE';
+    if (modeName.includes('domicile') || modeName.includes('home'))
+      return 'ATHOME';
+    return 'ONSITE';
+  };
+
   // Handle switching appointment location between ONSITE and ONLINE
   const handleSwitchLocation = async () => {
     if (!onLocationSwitch) return;
 
-    const currentLocation = appointment.consultationType?.location || 'ONSITE';
+    const currentLocation = deriveAppointmentLocation();
     const newLocation = currentLocation === 'ONSITE' ? 'ONLINE' : 'ONSITE';
 
     setIsSwitchingLocation(true);
@@ -630,8 +705,7 @@ const AppointmentDetails = ({
   };
 
   // Check if appointment is ONSITE or ONLINE for switch button display
-  const isOnlineAppointment =
-    appointment.consultationType?.location === 'ONLINE';
+  const isOnlineAppointment = deriveAppointmentLocation() === 'ONLINE';
 
   const content = (
     <>
@@ -716,40 +790,45 @@ const AppointmentDetails = ({
           <button
             onClick={() => handleStatusChipClick('waiting')}
             disabled={isStatusUpdating}
-            className={`cursor-pointer px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${selectedStatusChip === 'waiting'
-              ? 'bg-purple-500 text-white'
-              : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
-              }`}
+            className={`cursor-pointer px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
+              selectedStatusChip === 'waiting'
+                ? 'bg-purple-500 text-white'
+                : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
+            }`}
           >
             <MapPin
-              className={`w-4 h-4 ${selectedStatusChip === 'waiting'
-                ? 'text-white'
-                : 'text-purple-500'
-                }`}
+              className={`w-4 h-4 ${
+                selectedStatusChip === 'waiting'
+                  ? 'text-white'
+                  : 'text-purple-500'
+              }`}
             />
             En salle d'attente
           </button>
           <button
             onClick={() => handleStatusChipClick('seen')}
             disabled={isStatusUpdating}
-            className={`cursor-pointer px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${selectedStatusChip === 'seen'
-              ? 'bg-green-500 text-white'
-              : 'bg-green-50 text-green-700 hover:bg-green-100'
-              }`}
+            className={`cursor-pointer px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
+              selectedStatusChip === 'seen'
+                ? 'bg-green-500 text-white'
+                : 'bg-green-50 text-green-700 hover:bg-green-100'
+            }`}
           >
             <Eye
-              className={`w-4 h-4 ${selectedStatusChip === 'seen' ? 'text-white' : 'text-green-500'
-                }`}
+              className={`w-4 h-4 ${
+                selectedStatusChip === 'seen' ? 'text-white' : 'text-green-500'
+              }`}
             />
             Patient vu
           </button>
           <button
             onClick={() => handleStatusChipClick('absent')}
             disabled={isStatusUpdating}
-            className={`cursor-pointer px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${selectedStatusChip === 'absent'
-              ? 'text-white'
-              : 'hover:opacity-80'
-              }`}
+            className={`cursor-pointer px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
+              selectedStatusChip === 'absent'
+                ? 'text-white'
+                : 'hover:opacity-80'
+            }`}
             style={{
               backgroundColor:
                 selectedStatusChip === 'absent' ? '#f9516a' : '#fef2f2',
@@ -767,16 +846,18 @@ const AppointmentDetails = ({
           <button
             onClick={() => handleStatusChipClick('cancelled')}
             disabled={isStatusUpdating}
-            className={`cursor-pointer px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${selectedStatusChip === 'cancelled'
-              ? 'bg-gray-500 text-white'
-              : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-              }`}
+            className={`cursor-pointer px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
+              selectedStatusChip === 'cancelled'
+                ? 'bg-gray-500 text-white'
+                : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+            }`}
           >
             <X
-              className={`w-4 h-4 ${selectedStatusChip === 'cancelled'
-                ? 'text-white'
-                : 'text-gray-500'
-                }`}
+              className={`w-4 h-4 ${
+                selectedStatusChip === 'cancelled'
+                  ? 'text-white'
+                  : 'text-gray-500'
+              }`}
             />
             Annulé
           </button>
@@ -869,8 +950,9 @@ const AppointmentDetails = ({
             <button
               onClick={handleSwitchLocation}
               disabled={!onLocationSwitch || isSwitchingLocation}
-              className={`relative inline-flex items-center h-8 w-16 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isOnlineAppointment ? 'bg-purple-500' : 'bg-green-500'
-                }`}
+              className={`relative inline-flex items-center h-8 w-16 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                isOnlineAppointment ? 'bg-purple-500' : 'bg-green-500'
+              }`}
               title={
                 isOnlineAppointment
                   ? 'Convertir en RDV Cabinet'
@@ -879,8 +961,9 @@ const AppointmentDetails = ({
             >
               {/* Toggle knob with icon */}
               <span
-                className={`inline-flex items-center justify-center w-6 h-6 bg-white rounded-full shadow-md transform transition-transform ${isOnlineAppointment ? 'translate-x-9' : 'translate-x-1'
-                  } ${isSwitchingLocation ? 'animate-pulse' : ''}`}
+                className={`inline-flex items-center justify-center w-6 h-6 bg-white rounded-full shadow-md transform transition-transform ${
+                  isOnlineAppointment ? 'translate-x-9' : 'translate-x-1'
+                } ${isSwitchingLocation ? 'animate-pulse' : ''}`}
               >
                 {isOnlineAppointment ? (
                   <VideoOn className='w-3.5 h-3.5 text-purple-600' />
@@ -891,16 +974,18 @@ const AppointmentDetails = ({
               {/* Background icons */}
               <span className='absolute inset-0 flex items-center justify-between px-1.5'>
                 <Building2
-                  className={`w-3.5 h-3.5 ${isOnlineAppointment
-                    ? 'text-purple-200'
-                    : 'text-white opacity-0'
-                    }`}
+                  className={`w-3.5 h-3.5 ${
+                    isOnlineAppointment
+                      ? 'text-purple-200'
+                      : 'text-white opacity-0'
+                  }`}
                 />
                 <VideoOn
-                  className={`w-3.5 h-3.5 ${isOnlineAppointment
-                    ? 'text-white opacity-0'
-                    : 'text-green-200'
-                    }`}
+                  className={`w-3.5 h-3.5 ${
+                    isOnlineAppointment
+                      ? 'text-white opacity-0'
+                      : 'text-green-200'
+                  }`}
                 />
               </span>
             </button>
@@ -1067,10 +1152,11 @@ const AppointmentDetails = ({
                   onDragLeave={handleDragLeave}
                   onDragOver={handleDragOver}
                   onDrop={handleDrop}
-                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${isDragging
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-300 bg-white hover:border-gray-400'
-                    }`}
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                    isDragging
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-300 bg-white hover:border-gray-400'
+                  }`}
                 >
                   <input
                     type='file'
@@ -1147,10 +1233,11 @@ const AppointmentDetails = ({
                                   doc.blockClientDownload
                                 )
                               }
-                              className={`p-1 transition-colors ${doc.blockClientDownload
-                                ? 'text-red-600 hover:text-red-700'
-                                : 'text-gray-400 hover:text-gray-600'
-                                }`}
+                              className={`p-1 transition-colors ${
+                                doc.blockClientDownload
+                                  ? 'text-red-600 hover:text-red-700'
+                                  : 'text-gray-400 hover:text-gray-600'
+                              }`}
                               title={
                                 doc.blockClientDownload
                                   ? 'Blocked from client'
@@ -1206,12 +1293,12 @@ const AppointmentDetails = ({
                               >
                                 {doc.shareUntilDate
                                   ? new Date(
-                                    doc.shareUntilDate
-                                  ).toLocaleDateString('fr-FR', {
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                    year: 'numeric',
-                                  })
+                                      doc.shareUntilDate
+                                    ).toLocaleDateString('fr-FR', {
+                                      day: '2-digit',
+                                      month: '2-digit',
+                                      year: 'numeric',
+                                    })
                                   : 'Sélectionner une date'}
                               </span>
                               <Calendar className='w-3.5 h-3.5 text-gray-400' />
@@ -1271,7 +1358,7 @@ const AppointmentDetails = ({
                       </p>
                     </div>
                     <Button
-                      onClick={() => { }}
+                      onClick={() => {}}
                       className='bg-gray-900 text-white hover:bg-gray-800'
                     >
                       Gérer le paiement
@@ -1370,7 +1457,8 @@ const AppointmentDetails = ({
                           entry.createdAt
                         );
                         const doctorName = entry.doctor?.user
-                          ? `${entry.doctor.user.firstName || ''} ${entry.doctor.user.lastName || ''
+                          ? `${entry.doctor.user.firstName || ''} ${
+                              entry.doctor.user.lastName || ''
                             }`.trim()
                           : 'DAVID Nicole';
 
@@ -1573,8 +1661,8 @@ const AppointmentDetails = ({
             patient={selectedPatientForView}
             isOpen={!!selectedPatientForView}
             onClose={() => setSelectedPatientForView(null)}
-            onEdit={() => { }}
-            onDelete={() => { }}
+            onEdit={() => {}}
+            onDelete={() => {}}
             initialTab={selectedPatientTab}
             onView={handlePatientView}
           />
@@ -1596,8 +1684,8 @@ const AppointmentDetails = ({
           patient={selectedPatientForView}
           isOpen={!!selectedPatientForView}
           onClose={() => setSelectedPatientForView(null)}
-          onEdit={() => { }}
-          onDelete={() => { }}
+          onEdit={() => {}}
+          onDelete={() => {}}
           initialTab={selectedPatientTab}
           onView={handlePatientView}
         />

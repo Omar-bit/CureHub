@@ -8,7 +8,7 @@ import {
   IsBoolean,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { AppointmentStatus } from '@prisma/client';
+import { AppointmentStatus, ConsultationLocation } from '@prisma/client';
 
 export class CreateAppointmentDto {
   @ApiProperty({ description: 'Appointment title', required: false })
@@ -81,6 +81,24 @@ export class CreateAppointmentDto {
   @IsString()
   @IsOptional()
   consultationTypeId?: string;
+
+  @ApiProperty({
+    description: 'Consultation category/details ID',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  consultationTypeDetailsId?: string;
+
+  @ApiProperty({
+    description: 'Explicit appointment location',
+    enum: ConsultationLocation,
+    required: false,
+    default: ConsultationLocation.ONSITE,
+  })
+  @IsEnum(ConsultationLocation)
+  @IsOptional()
+  location?: ConsultationLocation;
 
   @ApiProperty({
     description: 'Skip conflict checking (for manual time selection)',

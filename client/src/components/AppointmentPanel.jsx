@@ -47,11 +47,12 @@ const AppointmentPanel = ({
       setLoading(true);
 
       // Load data in parallel
-      const [patientsData, actesData, consultationTypesData] = await Promise.all([
-        patientAPI.getAll(),
-        acteAPI.getAll(),
-        consultationTypesAPI.getAll(),
-      ]);
+      const [patientsData, actesData, consultationTypesData] =
+        await Promise.all([
+          patientAPI.getAll(),
+          acteAPI.getAll(),
+          consultationTypesAPI.getAll(),
+        ]);
 
       setPatients(patientsData.patients || patientsData || []);
       setActes(actesData.actes || actesData || []);
@@ -227,29 +228,62 @@ const AppointmentPanel = ({
         throw new Error('No consultation type found for this appointment');
       }
 
-      // Find a matching consultation type with the new location
-      const matchingConsultationType = consultationTypes.find(
-        (ct) =>
-          ct.location === newLocation &&
-          ct.enabled &&
-          ct.duration === currentConsultationType.duration
+      // Helper: determine if a consultation type's modeExercice indicates the desired location
+      const modeMatchesLocation = (ct, location) => {
+        const name = (ct.modeExercice?.name || '').toLowerCase();
+        if (location === 'ONLINE')
+          return (
+            name.includes('visio') ||
+            name.includes('visi') ||
+            name.includes('tele') ||
+            name.includes('video')
+          );
+        if (location === 'ATHOME')
+          return name.includes('domicile') || name.includes('home');
+        // ONSITE and fallback
+        return (
+          name.includes('cabinet') ||
+          name.includes('sur') ||
+          name.includes('onsite') ||
+          name === ''
+        );
+      };
+
+      // Prefer an enabled consultation type whose modeExercice matches the new location
+      const matchingConsultationTypes = consultationTypes.filter(
+        (ct) => ct.enabled && modeMatchesLocation(ct, newLocation)
       );
 
-      // If no exact match, find any consultation type with the new location
-      const newConsultationType =
-        matchingConsultationType ||
-        consultationTypes.find(
-          (ct) => ct.location === newLocation && ct.enabled
-        );
+      // Try to preserve duration when possible: check acte duration if present
+      const currentDuration =
+        currentConsultationType.duration ||
+        (currentConsultationType.acte &&
+          currentConsultationType.acte.duration) ||
+        null;
+
+      let newConsultationType = null;
+
+      if (currentDuration && matchingConsultationTypes.length > 0) {
+        newConsultationType = matchingConsultationTypes.find((ct) => {
+          const ctDuration = ct.actes?.[0]?.acte?.duration || null;
+          return ctDuration === currentDuration;
+        });
+      }
+
+      // Fallback to first matching type
+      if (!newConsultationType && matchingConsultationTypes.length > 0) {
+        newConsultationType = matchingConsultationTypes[0];
+      }
 
       if (!newConsultationType) {
+        // No matching consultation type found for the desired location: surface a helpful error
         throw new Error(
-          `No consultation type found with location ${newLocation}`
+          `No consultation type found for location ${newLocation}. Please create a consultation type for that mode in settings.`
         );
       }
 
       const updatedAppointment = await appointmentAPI.update(appointment.id, {
-        consultationTypeId: newConsultationType.id,
+        consultationTypeDetailsId: newConsultationType.id,
       });
 
       setCurrentAppointment(updatedAppointment);

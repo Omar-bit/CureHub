@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `appointments` ADD COLUMN `location` ENUM('ONSITE', 'ONLINE', 'ATHOME') NOT NULL DEFAULT 'ONSITE';

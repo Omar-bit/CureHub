@@ -768,6 +768,7 @@ const AppointmentForm = ({
         patientIds: patientIds.length > 0 ? patientIds : undefined, // Send array of patient IDs
         patientId: patientIds.length === 0 ? null : undefined, // null if no patients
         consultationTypeId: formData.consultationTypeId,
+        consultationTypeDetailsId: selectedConsultationTypeGroupId || undefined,
         description: formData.description.trim(),
         notes: formData.notes.trim(),
         notifyConfirmation: formData.notifyConfirmation,
@@ -877,6 +878,7 @@ const AppointmentForm = ({
         patientIds: patientIds.length > 0 ? patientIds : undefined,
         patientId: patientIds.length === 0 ? null : undefined,
         consultationTypeId: formData.consultationTypeId,
+        consultationTypeDetailsId: selectedConsultationTypeGroupId || undefined,
         description: formData.description.trim(),
         notes: formData.notes.trim(),
         notifyConfirmation: formData.notifyConfirmation,

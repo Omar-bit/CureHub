@@ -10,45 +10,45 @@
  */
 export const getConsultationTypeStyles = (location) => {
   switch (location) {
-    case "ONLINE":
+    case 'ONLINE':
       return {
-        bgColor: "bg-blue-500",
-        bgColorLight: "bg-blue-100",
-        textColor: "text-blue-700",
-        textColorLight: "text-blue-800",
-        borderColor: "border-blue-500",
-        darkBg: "bg-blue-600",
-        badgeBg: "bg-blue-100",
-        badgeText: "text-blue-700",
-        label: "Téléconsultation",
-        icon: "💻",
+        bgColor: 'bg-blue-500',
+        bgColorLight: 'bg-blue-100',
+        textColor: 'text-blue-700',
+        textColorLight: 'text-blue-800',
+        borderColor: 'border-blue-500',
+        darkBg: 'bg-blue-600',
+        badgeBg: 'bg-blue-100',
+        badgeText: 'text-blue-700',
+        label: 'Téléconsultation',
+        icon: '💻',
       };
-    case "ATHOME":
+    case 'ATHOME':
       return {
-        bgColor: "bg-red-500",
-        bgColorLight: "bg-red-100",
-        textColor: "text-red-700",
-        textColorLight: "text-red-800",
-        borderColor: "border-red-500",
-        darkBg: "bg-red-600",
-        badgeBg: "bg-red-100",
-        badgeText: "text-red-700",
-        label: "Visite à domicile",
-        icon: "🏠",
+        bgColor: 'bg-red-500',
+        bgColorLight: 'bg-red-100',
+        textColor: 'text-red-700',
+        textColorLight: 'text-red-800',
+        borderColor: 'border-red-500',
+        darkBg: 'bg-red-600',
+        badgeBg: 'bg-red-100',
+        badgeText: 'text-red-700',
+        label: 'Visite à domicile',
+        icon: '🏠',
       };
-    case "ONSITE":
+    case 'ONSITE':
     default:
       return {
-        bgColor: "bg-green-500",
-        bgColorLight: "bg-green-100",
-        textColor: "text-green-700",
-        textColorLight: "text-green-800",
-        borderColor: "border-green-500",
-        darkBg: "bg-green-600",
-        badgeBg: "bg-green-100",
-        badgeText: "text-green-700",
-        label: "Cabinet",
-        icon: "🏥",
+        bgColor: 'bg-green-500',
+        bgColorLight: 'bg-green-100',
+        textColor: 'text-green-700',
+        textColorLight: 'text-green-800',
+        borderColor: 'border-green-500',
+        darkBg: 'bg-green-600',
+        badgeBg: 'bg-green-100',
+        badgeText: 'text-green-700',
+        label: 'Cabinet',
+        icon: '🏥',
       };
   }
 };
@@ -63,29 +63,29 @@ export const getAppointmentColorClasses = (appointment) => {
   const styles = getConsultationTypeStyles(location);
 
   // Handle cancelled/completed status overrides
-  if (appointment.status === "CANCELLED") {
+  if (appointment.status === 'CANCELLED') {
     return {
-      bgColor: "bg-gray-400",
-      textColor: "text-white",
-      bgColorLight: "bg-gray-200",
-      textColorLight: "text-gray-600",
-      darkBg: "bg-gray-500",
+      bgColor: 'bg-gray-400',
+      textColor: 'text-white',
+      bgColorLight: 'bg-gray-200',
+      textColorLight: 'text-gray-600',
+      darkBg: 'bg-gray-500',
     };
   }
 
-  if (appointment.status === "COMPLETED") {
+  if (appointment.status === 'COMPLETED') {
     return {
-      bgColor: "bg-green-600",
-      textColor: "text-white",
-      bgColorLight: "bg-green-100",
-      textColorLight: "text-green-800",
-      darkBg: "bg-green-700",
+      bgColor: 'bg-green-600',
+      textColor: 'text-white',
+      bgColorLight: 'bg-green-100',
+      textColorLight: 'text-green-800',
+      darkBg: 'bg-green-700',
     };
   }
 
   return {
     bgColor: styles.bgColor,
-    textColor: "text-white",
+    textColor: 'text-white',
     bgColorLight: styles.bgColorLight,
     textColorLight: styles.textColorLight,
     darkBg: styles.darkBg,

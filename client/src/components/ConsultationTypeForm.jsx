@@ -229,7 +229,7 @@ const ConsultationTypeForm = ({
                 label: me.name,
               }))}
               placeholder="Sélectionner un mode d'exercice"
-              disabled={isLoading || loadingModeExercices}
+              disabled={isLoading || loadingModeExercices || isEditing}
             />
 
             <FormSelect
