@@ -600,7 +600,7 @@ export class AuthService {
   async changePatientPassword(
     patientId: string,
     changePasswordDto: any,
-  ): Promise<{ message: string }> {
+  ): Promise<{ message: string; success: boolean }> {
     const patient = await this.prisma.patient.findUnique({
       where: { id: patientId },
     });
@@ -637,6 +637,6 @@ export class AuthService {
       data: { password: hashedPassword },
     });
 
-    return { message: 'Password changed successfully' };
+    return { message: 'Password changed successfully', success: true };
   }
 }
