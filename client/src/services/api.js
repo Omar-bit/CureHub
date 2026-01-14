@@ -25,9 +25,15 @@ api.interceptors.response.use(
           localStorage.removeItem('user');
           showError(TOAST_MESSAGES.SESSION_EXPIRED);
 
-          // Only redirect if not already on login or register page
+          // Only redirect if not already on login, register, or patient login page
           const currentPath = window.location.pathname;
-          if (currentPath !== '/login' && currentPath !== '/register') {
+          // Check if on patient login page (/:doctorId/login pattern)
+          const isPatientLoginPage = /^\/[^/]+\/login$/.test(currentPath);
+          if (
+            currentPath !== '/login' &&
+            currentPath !== '/register' &&
+            !isPatientLoginPage
+          ) {
             window.location.href = '/login';
           }
           break;
@@ -664,4 +670,27 @@ export const acteAPI = {
 
   // Delete an acte
   delete: (id) => api.delete(`/api/actes/${id}`).then((res) => res.data),
+};
+
+export const patientAuthAPI = {
+  // Verify patient identity by email or phone
+  verifyIdentifier: (data) =>
+    api.post('/auth/patient/verify-identifier', data).then((res) => res.data),
+
+  // Login with password
+  loginWithPassword: (data) =>
+    api.post('/auth/patient/login-password', data).then((res) => res.data),
+
+  // Verify OTP code
+  verifyOTP: (data) =>
+    api.post('/auth/patient/verify-otp', data).then((res) => res.data),
+
+  // Logout patient
+  logout: () => api.post('/auth/patient/logout').then((res) => res.data),
+
+  // Get patient profile
+  getProfile: () => api.get('/auth/patient/profile').then((res) => res.data),
+
+  // Get patient current info
+  getCurrentPatient: () => api.get('/auth/patient/me').then((res) => res.data),
 };

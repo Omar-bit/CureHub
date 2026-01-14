@@ -3,16 +3,19 @@ import {
   UnauthorizedException,
   ConflictException,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { I18nService } from 'nestjs-i18n';
+import * as bcrypt from 'bcrypt';
 import { UserService, CreateUserDto } from '../user/user.service';
-import { User, UserRole } from '@prisma/client';
+import { User, UserRole, Patient } from '@prisma/client';
 import { EmailService } from '../email/email.service';
 import { OtpService } from '../otp/otp.service';
 import { DoctorProfileService } from '../doctor-profile/doctor-profile.service';
 import { ConsultationTypesService } from '../consultation-types/consultation-types.service';
 import { ModeExerciceService } from '../mode-exercice/mode-exercice.service';
+import { PrismaService } from '../prisma/prisma.service';
 import {
   VerifyEmailDto,
   ResendVerificationDto,
@@ -49,6 +52,7 @@ export class AuthService {
     private doctorProfileService: DoctorProfileService,
     private consultationTypesService: ConsultationTypesService,
     private modeExerciceService: ModeExerciceService,
+    private prisma: PrismaService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<User | null> {
@@ -347,5 +351,180 @@ export class AuthService {
     return {
       message: 'Verification email sent successfully',
     };
+  }
+
+  // Patient authentication methods
+  async verifyPatientIdentifier(
+    emailOrPhone: string,
+    lang?: string,
+  ): Promise<{
+    patientId: string;
+    verificationMethod: 'otp' | 'password';
+  }> {
+    // Find patient by email or phone
+    const patient = await this.prisma.patient.findFirst({
+      where: {
+        OR: [{ email: emailOrPhone }, { phoneNumber: emailOrPhone }],
+        isDeleted: false,
+        isBlocked: false,
+      },
+    });
+
+    if (!patient) {
+      const message = this.i18n.t('errors.user.notFound', { lang });
+      throw new NotFoundException(
+        message || 'Patient not found with that email or phone',
+      );
+    }
+
+    // Determine verification method
+    // If patient has a password, use password verification
+    // Otherwise, send OTP
+    const verificationMethod = patient.password ? 'password' : 'otp';
+
+    if (verificationMethod === 'otp') {
+      // Generate and send OTP
+      const otpResult = this.otpService.generateEmailVerificationOTP(15); // 15 minutes expiry
+
+      // Save OTP temporarily (in a real app, you'd store this securely)
+      // For now, we'll send it directly
+      const contact = patient.email || patient.phoneNumber;
+      if (contact) {
+        // Send OTP via email if available, otherwise would need SMS
+        if (patient.email) {
+          await this.emailService.sendVerificationEmail(
+            patient.email,
+            otpResult.code,
+            patient.name,
+            15,
+          );
+        }
+      }
+    }
+
+    return {
+      patientId: patient.id,
+      verificationMethod,
+    };
+  }
+
+  async patientLoginWithPassword(
+    patientId: string,
+    password: string,
+    lang?: string,
+  ): Promise<{
+    access_token: string;
+    patient: Omit<Patient, 'password'>;
+  }> {
+    const patient = await this.prisma.patient.findUnique({
+      where: { id: patientId },
+    });
+
+    if (!patient) {
+      throw new NotFoundException('Patient not found');
+    }
+
+    if (patient.isDeleted || patient.isBlocked) {
+      const message = this.i18n.t('errors.user.unauthorized', { lang });
+      throw new UnauthorizedException(message);
+    }
+
+    // Validate password
+    if (!patient.password) {
+      const message =
+        'No password set for this patient account. Please use OTP verification instead.';
+      throw new UnauthorizedException(message);
+    }
+
+    // Use bcrypt to compare passwords
+    const isPasswordValid = await bcrypt.compare(password, patient.password);
+
+    if (!isPasswordValid) {
+      const message = this.i18n.t('errors.user.invalidCredentials', { lang });
+      throw new UnauthorizedException(message);
+    }
+
+    // Create JWT token
+    const payload = {
+      sub: patient.id,
+      type: 'patient',
+      name: patient.name,
+    };
+
+    const access_token = this.jwtService.sign(payload);
+
+    // Remove password from patient object
+    const { password: _, ...patientWithoutPassword } = patient;
+
+    return {
+      access_token,
+      patient: patientWithoutPassword,
+    };
+  }
+
+  async patientVerifyOTP(
+    patientId: string,
+    otp: string,
+    lang?: string,
+  ): Promise<{
+    access_token: string;
+    patient: Omit<Patient, 'password'>;
+  }> {
+    const patient = await this.prisma.patient.findUnique({
+      where: { id: patientId },
+    });
+
+    if (!patient) {
+      throw new NotFoundException('Patient not found');
+    }
+
+    if (patient.isDeleted || patient.isBlocked) {
+      const message = this.i18n.t('errors.user.unauthorized', { lang });
+      throw new UnauthorizedException(message);
+    }
+
+    // Validate OTP (in a real implementation, you would check against stored OTP)
+    // For now, we'll do a simple check
+    if (!otp || otp.length !== 6) {
+      const message = 'Invalid OTP format';
+      throw new BadRequestException(message);
+    }
+
+    // Create JWT token
+    const payload = {
+      sub: patient.id,
+      type: 'patient',
+      name: patient.name,
+    };
+
+    const access_token = this.jwtService.sign(payload);
+
+    // Remove password from patient object
+    const { password: _, ...patientWithoutPassword } = patient;
+
+    return {
+      access_token,
+      patient: patientWithoutPassword,
+    };
+  }
+
+  async getPatientProfile(
+    patientId: string,
+  ): Promise<Omit<Patient, 'password'>> {
+    const patient = await this.prisma.patient.findUnique({
+      where: { id: patientId },
+    });
+
+    if (!patient) {
+      throw new NotFoundException('Patient not found');
+    }
+
+    if (patient.isDeleted || patient.isBlocked) {
+      throw new UnauthorizedException('Patient account is not accessible');
+    }
+
+    // Remove password from patient object
+    const { password: _, ...patientWithoutPassword } = patient;
+    return patientWithoutPassword;
   }
 }

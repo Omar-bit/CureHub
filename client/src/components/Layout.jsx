@@ -1,16 +1,28 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocation } from 'react-router-dom';
 import Navigation from './Navigation'; // Landing page navigation
 import AuthenticatedHeader from './AuthenticatedHeader';
 import AgendaSidebar from './AgendaSidebar';
+import PatientLayout from './PatientLayout';
 
 // Layout wrapper that decides which layout to use
 const LayoutContent = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
 
+  // Check if user is a patient by looking for patient session in localStorage
+  const isPatientSession = useMemo(() => {
+    return (
+      typeof window !== 'undefined' && !!localStorage.getItem('patientUser')
+    );
+  }, []);
+
   // Use different layouts based on authentication and route
+  if (isPatientSession) {
+    return <PatientLayout>{children}</PatientLayout>;
+  }
+
   if (isAuthenticated) {
     return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
   }

@@ -445,6 +445,174 @@ export class EmailTemplateService {
   }
 
   /**
+   * Generate patient password change email with new credentials
+   */
+  generatePatientPasswordChangeEmail(data: {
+    firstName: string;
+    email: string;
+    newPassword: string;
+  }): EmailTemplate {
+    const { firstName, email, newPassword } = data;
+
+    const subject = 'CureHub - Vos nouvelles identifiants de connexion';
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="fr">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Nouvelles identifiants - CureHub</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9fafb;
+          }
+          .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 40px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+          }
+          .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2563eb;
+            margin-bottom: 10px;
+          }
+          .credentials-container {
+            background-color: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+          }
+          .credential-item {
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+          }
+          .credential-item:last-child {
+            border-bottom: none;
+          }
+          .credential-label {
+            font-weight: bold;
+            color: #374151;
+          }
+          .credential-value {
+            font-family: 'Courier New', monospace;
+            background-color: #f3f4f6;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-top: 4px;
+          }
+          .info-box {
+            background-color: #dbeafe;
+            border: 1px solid #93c5fd;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 20px 0;
+            font-size: 14px;
+          }
+          .warning {
+            background-color: #fef3cd;
+            border: 1px solid #fde047;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 20px 0;
+            font-size: 14px;
+          }
+          .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 12px;
+            color: #6b7280;
+            text-align: center;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">CureHub</div>
+            <h1>Vos identifiants ont été mis à jour</h1>
+          </div>
+          
+          <p>Bonjour ${firstName},</p>
+          
+          <p>Votre adresse email a été modifiée. Veuillez utiliser les nouvelles identifiants ci-dessous pour accéder à votre compte CureHub.</p>
+          
+          <div class="credentials-container">
+            <h3>Vos nouvelles identifiants :</h3>
+            <div class="credential-item">
+              <div class="credential-label">Email :</div>
+              <div class="credential-value">${email}</div>
+            </div>
+            <div class="credential-item">
+              <div class="credential-label">Mot de passe temporaire :</div>
+              <div class="credential-value">${newPassword}</div>
+            </div>
+          </div>
+          
+          <div class="info-box">
+            <strong>ℹ️ Information :</strong><br>
+            Vos identifiants précédents ne sont plus valides. Vous devez utiliser la nouvelle adresse email et le nouveau mot de passe pour vous connecter.
+          </div>
+          
+          <div class="warning">
+            <strong>⚠️ Avis de sécurité important :</strong>
+            <ul>
+              <li>Veuillez modifier votre mot de passe après votre première connexion</li>
+              <li>Gardez vos identifiants de connexion sécurisés et ne les partagez avec personne</li>
+              <li>Si vous ne reconnaissez pas cette modification, contactez immédiatement votre médecin</li>
+            </ul>
+          </div>
+          
+          <p>Vous pouvez vous connecter à votre compte avec les identifiants ci-dessus. Nous vous recommandons de modifier votre mot de passe lors de votre première connexion pour des raisons de sécurité.</p>
+          
+          <div class="footer">
+            <p>Si vous avez des questions concernant votre compte, veuillez contacter votre prestataire de soins de santé.<br>
+            Ceci est un message automatisé de CureHub.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `
+      Bonjour ${firstName},
+
+      Votre adresse email a été modifiée. Veuillez utiliser les nouvelles identifiants ci-dessous pour accéder à votre compte CureHub.
+
+      Vos nouvelles identifiants :
+      Email : ${email}
+      Mot de passe temporaire : ${newPassword}
+
+      AVIS DE SÉCURITÉ IMPORTANT :
+      - Veuillez modifier votre mot de passe après votre première connexion
+      - Gardez vos identifiants de connexion sécurisés et ne les partagez avec personne
+      - Si vous ne reconnaissez pas cette modification, contactez immédiatement votre médecin
+
+      Vous pouvez vous connecter à votre compte avec les identifiants ci-dessus.
+
+      ---
+      CureHub Team
+    `;
+
+    return { subject, html, text };
+  }
+
+  /**
    * Generate absence notification email for patient
    */
   generateAbsenceNotificationEmail(data: {

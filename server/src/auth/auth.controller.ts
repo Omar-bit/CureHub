@@ -19,6 +19,11 @@ import {
   ResendVerificationDto,
   UpdateProfileDto,
 } from './dto/auth.dto';
+import {
+  PatientVerifyIdentifierDto,
+  PatientLoginPasswordDto,
+  PatientVerifyOTPDto,
+} from './dto/patient-auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -114,5 +119,96 @@ export class AuthController {
     @I18nLang() lang: string,
   ) {
     return await this.authService.resendVerificationEmail(resendDto, lang);
+  }
+
+  // Patient authentication endpoints
+  @Public()
+  @Post('patient/verify-identifier')
+  @HttpCode(HttpStatus.OK)
+  async verifyPatientIdentifier(
+    @Body() verifyDto: PatientVerifyIdentifierDto,
+    @I18nLang() lang: string,
+  ) {
+    return await this.authService.verifyPatientIdentifier(
+      verifyDto.emailOrPhone,
+      lang,
+    );
+  }
+
+  @Public()
+  @Post('patient/login-password')
+  @HttpCode(HttpStatus.OK)
+  async patientLoginWithPassword(
+    @Body() loginDto: PatientLoginPasswordDto,
+    @I18nLang() lang: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.authService.patientLoginWithPassword(
+      loginDto.patientId,
+      loginDto.password,
+      lang,
+    );
+
+    // Set HTTP-only cookie for patient
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    response.cookie('patient_token', result.access_token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      path: '/',
+    });
+
+    return result;
+  }
+
+  @Public()
+  @Post('patient/verify-otp')
+  @HttpCode(HttpStatus.OK)
+  async patientVerifyOTP(
+    @Body() verifyDto: PatientVerifyOTPDto,
+    @I18nLang() lang: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.authService.patientVerifyOTP(
+      verifyDto.patientId,
+      verifyDto.otp,
+      lang,
+    );
+
+    // Set HTTP-only cookie for patient
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    response.cookie('patient_token', result.access_token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      path: '/',
+    });
+
+    return result;
+  }
+
+  @Post('patient/logout')
+  @HttpCode(HttpStatus.OK)
+  async patientLogout(@Res({ passthrough: true }) response: Response) {
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    response.clearCookie('patient_token', {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      path: '/',
+    });
+
+    return { message: 'Patient logged out successfully' };
+  }
+
+  @Get('patient/profile')
+  @UseGuards(JwtAuthGuard)
+  async getPatientProfile(@CurrentUser() user: any) {
+    return await this.authService.getPatientProfile(user.sub);
   }
 }

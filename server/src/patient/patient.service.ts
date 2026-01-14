@@ -214,6 +214,9 @@ export class PatientService {
 
     const { email, dejaVu, ...updateData } = updatePatientDto;
 
+    // Check if email is being changed
+    const isEmailChanged = email && email !== existingPatient.email;
+
     // Check if email already exists for another patient
     if (email) {
       const existingPatientWithEmail = await this.prisma.patient.findFirst({
@@ -230,6 +233,14 @@ export class PatientService {
     }
 
     const updatePayload: any = { ...updateData, email };
+
+    // If email is being changed, generate a new password and send it via email
+    let newPassword: string | null = null;
+    if (isEmailChanged) {
+      newPassword = this.generateRandomPassword();
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      updatePayload.password = hashedPassword;
+    }
 
     if (updatePatientDto.dateOfBirth) {
       updatePayload.dateOfBirth = new Date(updatePatientDto.dateOfBirth);
@@ -253,7 +264,7 @@ export class PatientService {
       }
     }
 
-    return this.prisma.patient.update({
+    const updatedPatient = await this.prisma.patient.update({
       where: { id },
       data: updatePayload,
       select: {
@@ -270,6 +281,23 @@ export class PatientService {
         updatedAt: true,
       },
     });
+
+    // Send email with new password if email was changed
+    if (isEmailChanged && newPassword && email) {
+      try {
+        await this.emailService.sendPatientPasswordChangeEmail(
+          email,
+          existingPatient.name,
+          newPassword,
+        );
+      } catch (error) {
+        console.error('Failed to send password change email:', error);
+        // Don't throw error here as patient is already updated
+        // The password has been set in the database
+      }
+    }
+
+    return updatedPatient;
   }
 
   async remove(id: string, doctorId: string) {

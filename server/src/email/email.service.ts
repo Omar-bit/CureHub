@@ -319,6 +319,35 @@ export class EmailService {
   }
 
   /**
+   * Send patient password change email with new credentials
+   */
+  async sendPatientPasswordChangeEmail(
+    email: string,
+    firstName: string,
+    newPassword: string,
+  ): Promise<boolean> {
+    try {
+      const template =
+        this.emailTemplateService.generatePatientPasswordChangeEmail({
+          firstName,
+          email,
+          newPassword,
+        });
+
+      return await this.sendEmail({
+        to: email,
+        template,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to send patient password change email to ${email}:`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  /**
    * Test email configuration
    */
   async testEmailConfig(): Promise<boolean> {
