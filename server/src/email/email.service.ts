@@ -297,12 +297,14 @@ export class EmailService {
     email: string,
     firstName: string,
     password: string,
+    loginUrl?: string,
   ): Promise<boolean> {
     try {
       const template = this.emailTemplateService.generatePatientWelcomeEmail({
         firstName,
         email,
         password,
+        loginUrl,
       });
 
       return await this.sendEmail({
@@ -325,6 +327,7 @@ export class EmailService {
     email: string,
     firstName: string,
     newPassword: string,
+    loginUrl?: string,
   ): Promise<boolean> {
     try {
       const template =
@@ -332,6 +335,7 @@ export class EmailService {
           firstName,
           email,
           newPassword,
+          loginUrl,
         });
 
       return await this.sendEmail({

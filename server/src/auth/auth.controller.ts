@@ -211,4 +211,29 @@ export class AuthController {
   async getPatientProfile(@CurrentUser() user: any) {
     return await this.authService.getPatientProfile(user.sub);
   }
+
+  @Patch('patient/profile')
+  @UseGuards(JwtAuthGuard)
+  async updatePatientProfile(
+    @CurrentUser() user: any,
+    @Body() updatePatientProfileDto: any,
+  ) {
+    return await this.authService.updatePatientProfile(
+      user.sub,
+      updatePatientProfileDto,
+    );
+  }
+
+  @Post('patient/change-password')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async changePatientPassword(
+    @CurrentUser() user: any,
+    @Body() changePasswordDto: any,
+  ) {
+    return await this.authService.changePatientPassword(
+      user.sub,
+      changePasswordDto,
+    );
+  }
 }

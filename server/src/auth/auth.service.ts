@@ -527,4 +527,101 @@ export class AuthService {
     const { password: _, ...patientWithoutPassword } = patient;
     return patientWithoutPassword;
   }
+
+  async updatePatientProfile(
+    patientId: string,
+    updateData: any,
+  ): Promise<Omit<Patient, 'password'>> {
+    const patient = await this.prisma.patient.findUnique({
+      where: { id: patientId },
+    });
+
+    if (!patient) {
+      throw new NotFoundException('Patient not found');
+    }
+
+    if (patient.isDeleted || patient.isBlocked) {
+      throw new UnauthorizedException('Patient account is not accessible');
+    }
+
+    // Prepare update payload
+    const updatePayload: any = {};
+
+    if (updateData.firstName !== undefined) {
+      updatePayload.firstName = updateData.firstName;
+    }
+    if (updateData.lastName !== undefined) {
+      updatePayload.lastName = updateData.lastName;
+    }
+    if (updateData.gender !== undefined) {
+      updatePayload.gender = updateData.gender;
+    }
+    if (updateData.dateOfBirth !== undefined) {
+      updatePayload.dateOfBirth = updateData.dateOfBirth
+        ? new Date(updateData.dateOfBirth)
+        : null;
+    }
+    if (updateData.email !== undefined) {
+      updatePayload.email = updateData.email;
+    }
+    if (updateData.phoneNumber !== undefined) {
+      updatePayload.phoneNumber = updateData.phoneNumber;
+    }
+    if (updateData.address !== undefined) {
+      updatePayload.address = updateData.address;
+    }
+    if (updateData.postalCode !== undefined) {
+      updatePayload.postalCode = updateData.postalCode;
+    }
+    if (updateData.city !== undefined) {
+      updatePayload.city = updateData.city;
+    }
+
+    const updatedPatient = await this.prisma.patient.update({
+      where: { id: patientId },
+      data: updatePayload,
+    });
+
+    // Remove password from patient object
+    const { password: _, ...patientWithoutPassword } = updatedPatient;
+    return patientWithoutPassword;
+  }
+
+  async changePatientPassword(
+    patientId: string,
+    changePasswordDto: any,
+  ): Promise<{ message: string }> {
+    const patient = await this.prisma.patient.findUnique({
+      where: { id: patientId },
+    });
+
+    if (!patient) {
+      throw new NotFoundException('Patient not found');
+    }
+
+    if (patient.isDeleted || patient.isBlocked) {
+      throw new UnauthorizedException('Patient account is not accessible');
+    }
+
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(
+      changePasswordDto.currentPassword,
+      patient.password,
+    );
+
+    if (!isPasswordValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(changePasswordDto.newPassword, 10);
+
+    // Update password
+    await this.prisma.patient.update({
+      where: { id: patientId },
+      data: { password: hashedPassword },
+    });
+
+    return { message: 'Password changed successfully' };
+  }
 }

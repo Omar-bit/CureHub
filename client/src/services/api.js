@@ -693,4 +693,12 @@ export const patientAuthAPI = {
 
   // Get patient current info
   getCurrentPatient: () => api.get('/auth/patient/me').then((res) => res.data),
+
+  // Update patient profile
+  updateProfile: (data) =>
+    api.patch('/auth/patient/profile', data).then((res) => res.data),
+
+  // Change patient password
+  changePassword: (data) =>
+    api.post('/auth/patient/change-password', data).then((res) => res.data),
 };

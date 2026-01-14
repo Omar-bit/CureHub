@@ -26,6 +26,13 @@ export class PatientService {
     private emailService: EmailService,
   ) {}
 
+  private getLoginUrl(doctorId: string): string {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const patientLoginPath =
+      process.env.PATIENT_LOGIN_URL || '/:doctorId/login';
+    return `${frontendUrl}${patientLoginPath.replace(':doctorId', doctorId)}`;
+  }
+
   async findAll(doctorId: string, query: PatientQueryDto) {
     const { search, gender, includeDeleted = false } = query;
 
@@ -190,10 +197,12 @@ export class PatientService {
     // Send welcome email with password if email is provided
     if (email && password) {
       try {
+        const loginUrl = this.getLoginUrl(doctorId);
         await this.emailService.sendPatientWelcomeEmail(
           patient.email as string,
           patient.name,
           password,
+          loginUrl,
         );
       } catch (error) {
         console.error('Failed to send welcome email:', error);
@@ -285,10 +294,12 @@ export class PatientService {
     // Send email with new password if email was changed
     if (isEmailChanged && newPassword && email) {
       try {
+        const loginUrl = this.getLoginUrl(doctorId);
         await this.emailService.sendPatientPasswordChangeEmail(
           email,
           existingPatient.name,
           newPassword,
+          loginUrl,
         );
       } catch (error) {
         console.error('Failed to send password change email:', error);

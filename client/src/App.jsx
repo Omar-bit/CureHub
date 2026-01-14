@@ -56,7 +56,7 @@ function App() {
               <Route path='/verify-email' element={<EmailVerificationPage />} />
 
               {/* Patient space route */}
-              <Route path='/patient-space' element={<PatientSpacePage />} />
+              <Route path='/patient-space/*' element={<PatientSpacePage />} />
 
               {/* Protected routes */}
               <Route

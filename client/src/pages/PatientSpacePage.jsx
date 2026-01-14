@@ -9,6 +9,12 @@ import {
 } from '../components/ui/card';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from '../components/ui/tabs';
+import {
   Calendar,
   FileText,
   User,
@@ -16,6 +22,8 @@ import {
   Clock,
   MapPin,
 } from 'lucide-react';
+import PatientIdentityTab from '../components/PatientIdentityTab';
+import PatientPasswordTab from '../components/PatientPasswordTab';
 
 const PatientSpacePage = () => {
   const [patientData, setPatientData] = useState(null);
@@ -279,8 +287,16 @@ const PatientSpacePage = () => {
   return <>{renderContent()}</>;
 };
 
-// Patient Profile Page
+// Patient Profile Page (cards style)
 const PatientProfilePage = ({ patientData }) => {
+  const [showIdentity, setShowIdentity] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [updatedPatientData, setUpdatedPatientData] = useState(patientData);
+
+  const handlePatientUpdate = (updatedData) => {
+    setUpdatedPatientData(updatedData);
+  };
+
   return (
     <div className='p-8'>
       <nav className='flex items-center space-x-2 text-sm text-muted-foreground mb-4'>
@@ -290,82 +306,110 @@ const PatientProfilePage = ({ patientData }) => {
       </nav>
       <h1 className='text-3xl font-bold text-foreground mb-8'>Mon profil</h1>
 
-      <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
-        {/* My Identity */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Mon identité</CardTitle>
-          </CardHeader>
-          <CardContent className='space-y-4'>
-            <p className='text-sm text-muted-foreground mb-4'>
-              Gérez vos informations personnelles. Assurez-vous de les maintenir
-              à jour.
-            </p>
-
-            <div className='space-y-3'>
-              <div>
-                <label className='text-sm font-medium text-muted-foreground'>
-                  Nom
-                </label>
-                <p className='text-foreground font-medium'>
-                  {patientData?.name}
-                </p>
-              </div>
-              <div>
-                <label className='text-sm font-medium text-muted-foreground'>
-                  Email
-                </label>
-                <p className='text-foreground font-medium'>
-                  {patientData?.email}
-                </p>
-              </div>
-              <div>
-                <label className='text-sm font-medium text-muted-foreground'>
-                  Téléphone
-                </label>
-                <p className='text-foreground font-medium'>
-                  {patientData?.phoneNumber || 'Non renseigné'}
-                </p>
-              </div>
-              <div>
-                <label className='text-sm font-medium text-muted-foreground'>
-                  Date de naissance
-                </label>
-                <p className='text-foreground font-medium'>
-                  {patientData?.dateOfBirth
-                    ? new Date(patientData.dateOfBirth).toLocaleDateString(
-                        'fr-FR'
-                      )
-                    : 'Non renseignée'}
-                </p>
-              </div>
-            </div>
-
-            <Button className='mt-6'>Modifier</Button>
-          </CardContent>
-        </Card>
-
-        {/* My Password */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Mon mot de passe</CardTitle>
-          </CardHeader>
-          <CardContent className='space-y-4'>
-            <p className='text-sm text-muted-foreground mb-4'>
-              Sécurisez l'accès à votre compte. Ne le communiquez jamais.
-            </p>
-
-            <div className='bg-slate-50 p-4 rounded-lg border border-slate-200'>
-              <p className='text-sm text-muted-foreground mb-2'>
-                Dernier changement
+      {/* Cards row */}
+      {!showIdentity && !showPassword && (
+        <div className='flex flex-col md:flex-row gap-8 justify-center mb-8'>
+          {/* Identity Card */}
+          <div className='flex-1 bg-white rounded-2xl shadow-md p-8 flex flex-col justify-between min-w-[320px] max-w-[420px]'>
+            <div>
+              <h2 className='text-lg font-bold text-foreground mb-2'>
+                Mon identité
+              </h2>
+              <p className='text-muted-foreground mb-4'>
+                Gérez vos informations personnelles. Assurez-vous de les
+                maintenir à jour.
               </p>
-              <p className='text-foreground font-medium'>Il y a 2 mois</p>
             </div>
+            <div className='flex items-end justify-between mt-auto'>
+              {/* Illustration placeholder */}
+              <div className='w-24 h-24 bg-blue-50 rounded-xl flex items-center justify-center'>
+                <svg width='60' height='60' fill='none' viewBox='0 0 60 60'>
+                  <rect width='60' height='60' rx='12' fill='#E0EDFF' />
+                  <rect
+                    x='15'
+                    y='20'
+                    width='30'
+                    height='20'
+                    rx='3'
+                    fill='#90C2FF'
+                  />
+                  <rect
+                    x='20'
+                    y='25'
+                    width='20'
+                    height='3'
+                    rx='1.5'
+                    fill='#fff'
+                  />
+                  <rect
+                    x='20'
+                    y='31'
+                    width='12'
+                    height='2'
+                    rx='1'
+                    fill='#fff'
+                  />
+                </svg>
+              </div>
+              <Button
+                className='ml-4'
+                onClick={() => {
+                  setShowIdentity(true);
+                  setShowPassword(false);
+                }}
+              >
+                Modifier <span className='ml-2'>→</span>
+              </Button>
+            </div>
+          </div>
 
-            <Button className='mt-6'>Modifier</Button>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Password Card */}
+          <div className='flex-1 bg-white rounded-2xl shadow-md p-8 flex flex-col justify-between min-w-[320px] max-w-[420px]'>
+            <div>
+              <h2 className='text-lg font-bold text-foreground mb-2'>
+                Mon mot de passe
+              </h2>
+              <p className='text-muted-foreground mb-4'>
+                Sécurisez l'accès à votre compte. Ne le communiquez jamais.
+              </p>
+            </div>
+            <div className='flex items-end justify-between mt-auto'>
+              {/* Illustration placeholder */}
+              <div className='w-24 h-24 bg-blue-50 rounded-xl flex items-center justify-center'>
+                <svg width='60' height='60' fill='none' viewBox='0 0 60 60'>
+                  <rect width='60' height='60' rx='12' fill='#E0EDFF' />
+                  <circle cx='30' cy='32' r='8' fill='#90C2FF' />
+                  <rect x='26' y='28' width='8' height='8' rx='2' fill='#fff' />
+                </svg>
+              </div>
+              <Button
+                className='ml-4'
+                onClick={() => {
+                  setShowPassword(true);
+                  setShowIdentity(false);
+                }}
+              >
+                Modifier <span className='ml-2'>→</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Show forms below cards */}
+      {showIdentity && (
+        <div className='max-w-2xl mx-auto mt-8'>
+          <PatientIdentityTab
+            patientData={updatedPatientData || patientData}
+            onUpdate={handlePatientUpdate}
+          />
+        </div>
+      )}
+      {showPassword && (
+        <div className='max-w-2xl mx-auto mt-8'>
+          <PatientPasswordTab />
+        </div>
+      )}
     </div>
   );
 };

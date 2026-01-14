@@ -182,8 +182,9 @@ export class EmailTemplateService {
     firstName: string;
     email: string;
     password: string;
+    loginUrl?: string;
   }): EmailTemplate {
-    const { firstName, email, password } = data;
+    const { firstName, email, password, loginUrl } = data;
 
     const subject = 'Welcome to CureHub - Your Login Credentials';
 
@@ -307,6 +308,14 @@ export class EmailTemplateService {
           
           <p>You can log in to your account using the credentials above. We recommend changing your password during your first login for security purposes.</p>
           
+          ${
+            loginUrl
+              ? `<div style="text-align: center;">
+            <a href="${loginUrl}" class="cta-button">Go to Login Page</a>
+          </div>`
+              : ''
+          }
+          
           <div class="footer">
             <p>If you have any questions about your account, please contact your healthcare provider.<br>
             This is an automated message from CureHub.</p>
@@ -331,6 +340,12 @@ export class EmailTemplateService {
       - If you didn't expect this account creation, please contact your doctor immediately
       
       You can log in to your account using the credentials above.
+      ${
+        loginUrl
+          ? `
+      Login Page: ${loginUrl}`
+          : ''
+      }
       
       ---
       CureHub Team
@@ -451,8 +466,9 @@ export class EmailTemplateService {
     firstName: string;
     email: string;
     newPassword: string;
+    loginUrl?: string;
   }): EmailTemplate {
-    const { firstName, email, newPassword } = data;
+    const { firstName, email, newPassword, loginUrl } = data;
 
     const subject = 'CureHub - Vos nouvelles identifiants de connexion';
 
@@ -579,6 +595,14 @@ export class EmailTemplateService {
           </div>
           
           <p>Vous pouvez vous connecter à votre compte avec les identifiants ci-dessus. Nous vous recommandons de modifier votre mot de passe lors de votre première connexion pour des raisons de sécurité.</p>
+          
+          ${
+            loginUrl
+              ? `<div style="text-align: center;">
+            <a href="${loginUrl}" class="cta-button">Accéder à la page de connexion</a>
+          </div>`
+              : ''
+          }
           
           <div class="footer">
             <p>Si vous avez des questions concernant votre compte, veuillez contacter votre prestataire de soins de santé.<br>
