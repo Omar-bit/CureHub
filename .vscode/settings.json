@@ -4,7 +4,7 @@
       "file": "/PRD.md"
     }
   ],
-  "workbench.colorTheme": "Hack The Box",
+  "workbench.colorTheme": "GitHub Dark",
   "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"

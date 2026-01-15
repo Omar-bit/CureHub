@@ -15,15 +15,37 @@ import {
   TabsContent,
 } from '../components/ui/tabs';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog';
+import { Label } from '../components/ui/label';
+import { Input } from '../components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
+import {
   Calendar,
   FileText,
   User,
   AlertCircle,
   Clock,
   MapPin,
+  Plus,
+  Users,
+  X,
+  Trash2,
 } from 'lucide-react';
 import PatientIdentityTab from '../components/PatientIdentityTab';
 import PatientPasswordTab from '../components/PatientPasswordTab';
+import { ConfirmDialog } from '../components/ui/confirm-dialog';
+import { patientAuthAPI } from '../services/api';
+import { showSuccess, showError } from '../lib/toast';
 
 const PatientSpacePage = () => {
   const [patientData, setPatientData] = useState(null);
@@ -434,24 +456,529 @@ const PatientProfilePage = ({ patientData }) => {
   );
 };
 
+// Family relationship labels
+const FAMILY_RELATIONSHIPS = [
+  { value: 'SON', label: 'Fils' },
+  { value: 'DAUGHTER', label: 'Fille' },
+  { value: 'FATHER', label: 'Père' },
+  { value: 'MOTHER', label: 'Mère' },
+  { value: 'BROTHER', label: 'Frère' },
+  { value: 'SISTER', label: 'Sœur' },
+  { value: 'SPOUSE', label: 'Conjoint(e)' },
+  { value: 'GRANDFATHER', label: 'Grand-père' },
+  { value: 'GRANDMOTHER', label: 'Grand-mère' },
+  { value: 'GRANDSON', label: 'Petit-fils' },
+  { value: 'GRANDDAUGHTER', label: 'Petite-fille' },
+  { value: 'UNCLE', label: 'Oncle' },
+  { value: 'AUNT', label: 'Tante' },
+  { value: 'NEPHEW', label: 'Neveu' },
+  { value: 'NIECE', label: 'Nièce' },
+  { value: 'COUSIN', label: 'Cousin(e)' },
+];
+
+const getFamilyRelationshipLabel = (value) => {
+  const rel = FAMILY_RELATIONSHIPS.find((r) => r.value === value);
+  return rel ? rel.label : value;
+};
+
 // Patient Relatives Page
 const PatientRelativesPage = () => {
+  const [relatives, setRelatives] = useState([]);
+  const [canAddRelatives, setCanAddRelatives] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [addingType, setAddingType] = useState('FAMILY'); // 'FAMILY' or 'OTHER'
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deletingRelativeId, setDeletingRelativeId] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    name: '',
+    dateOfBirth: '',
+    gender: '',
+    email: '',
+    phoneNumber: '',
+    address: '',
+    familyRelationship: '',
+    customRelationship: '',
+  });
+
+  useEffect(() => {
+    loadRelatives();
+  }, []);
+
+  const loadRelatives = async () => {
+    try {
+      setIsLoading(true);
+      const data = await patientAuthAPI.getRelatives();
+      setRelatives(data.relatives || []);
+      setCanAddRelatives(data.canAddRelatives || false);
+    } catch (error) {
+      console.error('Error loading relatives:', error);
+      showError('Erreur lors du chargement des proches');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      dateOfBirth: '',
+      gender: '',
+      email: '',
+      phoneNumber: '',
+      address: '',
+      familyRelationship: '',
+      customRelationship: '',
+    });
+  };
+
+  const openAddDialog = (type) => {
+    setAddingType(type);
+    resetForm();
+    setShowAddDialog(true);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      // Validate
+      if (!formData.name || !formData.gender) {
+        showError('Veuillez remplir les champs obligatoires');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (addingType === 'FAMILY' && !formData.familyRelationship) {
+        showError('Veuillez sélectionner le lien familial');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (addingType === 'OTHER' && !formData.customRelationship) {
+        showError('Veuillez décrire la relation');
+        setIsSubmitting(false);
+        return;
+      }
+
+      const payload = {
+        patient: {
+          name: formData.name,
+          dateOfBirth: formData.dateOfBirth || null,
+          gender: formData.gender,
+          email: formData.email || null,
+          phoneNumber: formData.phoneNumber || null,
+          address: formData.address || null,
+        },
+        relationship: {
+          relationshipType: addingType,
+          familyRelationship:
+            addingType === 'FAMILY' ? formData.familyRelationship : null,
+          customRelationship:
+            addingType === 'OTHER' ? formData.customRelationship : null,
+        },
+      };
+
+      await patientAuthAPI.createRelative(payload);
+      showSuccess('Proche ajouté avec succès');
+      setShowAddDialog(false);
+      loadRelatives();
+    } catch (error) {
+      console.error('Error creating relative:', error);
+      showError(
+        error.response?.data?.message || 'Erreur lors de la création du proche'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openDeleteDialog = (relationshipId) => {
+    setDeletingRelativeId(relationshipId);
+    setShowDeleteDialog(true);
+  };
+
+  const handleRemoveRelative = async () => {
+    if (!deletingRelativeId) return;
+
+    setIsDeleting(true);
+    try {
+      await patientAuthAPI.removeRelative(deletingRelativeId);
+      showSuccess('Proche supprimé avec succès');
+      setShowDeleteDialog(false);
+      setDeletingRelativeId(null);
+      loadRelatives();
+    } catch (error) {
+      console.error('Error removing relative:', error);
+      showError('Erreur lors de la suppression du proche');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Filter relatives by type
+  const familyRelatives = relatives.filter(
+    (r) => r.relationshipType === 'FAMILY'
+  );
+  const otherRelatives = relatives.filter(
+    (r) => r.relationshipType === 'OTHER'
+  );
+
+  if (isLoading) {
+    return (
+      <div className='p-8'>
+        <div className='flex items-center justify-center h-64'>
+          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600'></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className='p-8'>
-      <nav className='flex items-center space-x-2 text-sm text-muted-foreground mb-4'>
+    <div className='p-8 bg-slate-50 min-h-full'>
+      <nav className='flex items-center space-x-2 text-sm text-muted-foreground mb-2'>
         <span>ACCUEIL</span>
         <span>›</span>
-        <span>MES PROCHES</span>
+        <span>MON COMPTE</span>
       </nav>
-      <h1 className='text-3xl font-bold text-foreground mb-8'>Mes proches</h1>
+      <div className='flex items-center justify-between mb-8'>
+        <h1 className='text-3xl font-bold text-foreground'>Mes proches</h1>
+        <div className='w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center'>
+          <Users className='h-6 w-6 text-blue-600' />
+        </div>
+      </div>
 
-      <Card>
-        <CardContent className='pt-6'>
-          <p className='text-muted-foreground text-center py-8'>
-            Aucun proche enregistré
-          </p>
+      {/* Famille Section */}
+      <Card className='mb-6'>
+        <CardHeader className='pb-2'>
+          <CardTitle className='text-lg font-semibold'>Famille</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className='flex flex-wrap gap-4'>
+            {/* Existing family relatives */}
+            {familyRelatives.map((rel) => (
+              <div
+                key={rel.id}
+                className='relative flex flex-col items-center p-4 border border-dashed border-gray-300 rounded-xl min-w-[160px] max-w-[180px] bg-white'
+              >
+                {canAddRelatives && (
+                  <button
+                    onClick={() => openDeleteDialog(rel.id)}
+                    className='absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 transition-colors'
+                    title='Supprimer'
+                  >
+                    <X className='h-4 w-4' />
+                  </button>
+                )}
+                <div className='w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-3'>
+                  <User className='h-8 w-8 text-gray-400' />
+                </div>
+                <p className='font-medium text-sm text-center truncate w-full'>
+                  {rel.relatedPatient?.name || 'N/A'}
+                </p>
+                <p className='text-xs text-muted-foreground text-center'>
+                  {getFamilyRelationshipLabel(rel.familyRelationship)}
+                </p>
+              </div>
+            ))}
+
+            {/* Add new family member card */}
+            {canAddRelatives && (
+              <div className='flex flex-col items-center p-4 border border-dashed border-gray-300 rounded-xl min-w-[160px] max-w-[180px] bg-white'>
+                <div className='w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-3'>
+                  <User className='h-8 w-8 text-gray-400' />
+                </div>
+                <p className='font-medium text-sm text-center mb-3'>
+                  Nouveau compte
+                </p>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => openAddDialog('FAMILY')}
+                  className='text-xs'
+                >
+                  Ajouter
+                </Button>
+              </div>
+            )}
+
+            {/* Empty state for family */}
+            {familyRelatives.length === 0 && !canAddRelatives && (
+              <p className='text-muted-foreground py-4'>
+                Aucun proche familial enregistré
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
+
+      {/* Autre Section */}
+      <Card>
+        <CardHeader className='pb-2'>
+          <CardTitle className='text-lg font-semibold'>Autre</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className='flex flex-wrap gap-4'>
+            {/* Existing other relatives */}
+            {otherRelatives.map((rel) => (
+              <div
+                key={rel.id}
+                className='relative flex flex-col items-center p-4 border border-dashed border-gray-300 rounded-xl min-w-[160px] max-w-[180px] bg-white'
+              >
+                {canAddRelatives && (
+                  <button
+                    onClick={() => openDeleteDialog(rel.id)}
+                    className='absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 transition-colors'
+                    title='Supprimer'
+                  >
+                    <X className='h-4 w-4' />
+                  </button>
+                )}
+                <div className='w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-3'>
+                  <User className='h-8 w-8 text-gray-400' />
+                </div>
+                <p className='font-medium text-sm text-center truncate w-full'>
+                  {rel.relatedPatient?.name || 'N/A'}
+                </p>
+                <p className='text-xs text-muted-foreground text-center'>
+                  {rel.customRelationship || 'Autre'}
+                </p>
+              </div>
+            ))}
+
+            {/* Add new other relative card */}
+            {canAddRelatives && (
+              <div className='flex flex-col items-center p-4 border border-dashed border-gray-300 rounded-xl min-w-[160px] max-w-[180px] bg-white'>
+                <div className='w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-3'>
+                  <User className='h-8 w-8 text-gray-400' />
+                </div>
+                <p className='font-medium text-sm text-center mb-3'>
+                  Nouveau compte
+                </p>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => openAddDialog('OTHER')}
+                  className='text-xs'
+                >
+                  Ajouter
+                </Button>
+              </div>
+            )}
+
+            {/* Empty state for other */}
+            {otherRelatives.length === 0 && !canAddRelatives && (
+              <p className='text-muted-foreground py-4'>
+                Aucun autre proche enregistré
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Permission notice if cannot add */}
+      {!canAddRelatives && (
+        <div className='mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg'>
+          <p className='text-sm text-amber-800'>
+            Vous n'avez pas la permission d'ajouter des proches. Veuillez
+            contacter votre médecin pour obtenir cette autorisation.
+          </p>
+        </div>
+      )}
+
+      {/* Add Relative Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent className='max-h-[90vh] flex flex-col p-0'>
+          {/* Sticky Header */}
+          <DialogHeader className='sticky top-0 bg-background z-10 px-6 pt-6 pb-4 border-b'>
+            <DialogTitle>
+              Ajouter un proche{' '}
+              {addingType === 'FAMILY' ? '(Famille)' : '(Autre)'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <form
+            onSubmit={handleSubmit}
+            className='flex flex-col flex-1 overflow-hidden'
+          >
+            {/* Scrollable Content */}
+            <div className='flex-1 overflow-y-auto px-6 py-4 space-y-4'>
+              {/* Name */}
+              <div>
+                <Label htmlFor='name'>
+                  Nom complet <span className='text-red-500'>*</span>
+                </Label>
+                <Input
+                  id='name'
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  placeholder='Nom et prénom'
+                  required
+                />
+              </div>
+
+              {/* Date of birth */}
+              <div>
+                <Label htmlFor='dateOfBirth'>Date de naissance</Label>
+                <Input
+                  id='dateOfBirth'
+                  type='date'
+                  value={formData.dateOfBirth}
+                  onChange={(e) =>
+                    setFormData({ ...formData, dateOfBirth: e.target.value })
+                  }
+                />
+              </div>
+
+              {/* Gender */}
+              <div>
+                <Label htmlFor='gender'>
+                  Genre <span className='text-red-500'>*</span>
+                </Label>
+                <Select
+                  value={formData.gender}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, gender: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder='Sélectionner' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value='MALE'>Homme</SelectItem>
+                    <SelectItem value='FEMALE'>Femme</SelectItem>
+                    {/* <SelectItem value='OTHER'>Autre</SelectItem> */}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Relationship type specific fields */}
+              {addingType === 'FAMILY' ? (
+                <div>
+                  <Label htmlFor='familyRelationship'>
+                    Lien familial <span className='text-red-500'>*</span>
+                  </Label>
+                  <Select
+                    value={formData.familyRelationship}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, familyRelationship: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder='Sélectionner le lien' />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {FAMILY_RELATIONSHIPS.map((rel) => (
+                        <SelectItem key={rel.value} value={rel.value}>
+                          {rel.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div>
+                  <Label htmlFor='customRelationship'>
+                    Description de la relation{' '}
+                    <span className='text-red-500'>*</span>
+                  </Label>
+                  <Input
+                    id='customRelationship'
+                    value={formData.customRelationship}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        customRelationship: e.target.value,
+                      })
+                    }
+                    placeholder='Ex: Ami, Voisin, Collègue...'
+                    required={addingType === 'OTHER'}
+                  />
+                </div>
+              )}
+
+              {/* Email */}
+              <div>
+                <Label htmlFor='email'>Email</Label>
+                <Input
+                  id='email'
+                  type='email'
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  placeholder='email@exemple.com'
+                />
+              </div>
+
+              {/* Phone */}
+              <div>
+                <Label htmlFor='phoneNumber'>Téléphone</Label>
+                <Input
+                  id='phoneNumber'
+                  type='tel'
+                  value={formData.phoneNumber}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phoneNumber: e.target.value })
+                  }
+                  placeholder='+33 6 XX XX XX XX'
+                />
+              </div>
+
+              {/* Address */}
+              <div>
+                <Label htmlFor='address'>Adresse</Label>
+                <Input
+                  id='address'
+                  value={formData.address}
+                  onChange={(e) =>
+                    setFormData({ ...formData, address: e.target.value })
+                  }
+                  placeholder='Adresse complète'
+                />
+              </div>
+            </div>
+
+            {/* Sticky Footer */}
+            <div className='sticky bottom-0 bg-background border-t px-6 py-4 flex justify-end gap-2'>
+              <Button
+                type='button'
+                variant='outline'
+                onClick={() => setShowAddDialog(false)}
+                disabled={isSubmitting}
+              >
+                Annuler
+              </Button>
+              <Button type='submit' disabled={isSubmitting}>
+                {isSubmitting ? 'Enregistrement...' : 'Ajouter'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => {
+          setShowDeleteDialog(false);
+          setDeletingRelativeId(null);
+        }}
+        onConfirm={handleRemoveRelative}
+        title='Supprimer ce proche'
+        description='Êtes-vous sûr de vouloir supprimer ce proche ? Cette action est irréversible.'
+        confirmText='Supprimer'
+        cancelText='Annuler'
+        variant='destructive'
+        isLoading={isDeleting}
+      />
     </div>
   );
 };

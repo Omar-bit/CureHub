@@ -639,4 +639,183 @@ export class AuthService {
 
     return { message: 'Password changed successfully', success: true };
   }
+
+  // Patient Relatives Methods
+
+  /**
+   * Get all relatives of the authenticated patient
+   */
+  async getPatientRelatives(patientId: string) {
+    const patient = await this.prisma.patient.findUnique({
+      where: { id: patientId },
+      select: {
+        id: true,
+        canAddRelatives: true,
+        canBookForRelatives: true,
+      },
+    });
+
+    if (!patient) {
+      throw new NotFoundException('Patient not found');
+    }
+
+    const relationships = await this.prisma.patientRelationship.findMany({
+      where: {
+        mainPatientId: patientId,
+      },
+      include: {
+        relatedPatient: {
+          select: {
+            id: true,
+            name: true,
+            dateOfBirth: true,
+            profileImage: true,
+            gender: true,
+            email: true,
+            phoneNumber: true,
+            address: true,
+            createdAt: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return {
+      canAddRelatives: patient.canAddRelatives,
+      canBookForRelatives: patient.canBookForRelatives,
+      relatives: relationships,
+    };
+  }
+
+  /**
+   * Create a new relative for the authenticated patient
+   */
+  async createPatientRelative(
+    patientId: string,
+    body: {
+      patient: {
+        name: string;
+        dateOfBirth?: string;
+        gender: string;
+        email?: string;
+        phoneNumber?: string;
+        address?: string;
+      };
+      relationship: {
+        relationshipType: 'FAMILY' | 'OTHER';
+        familyRelationship?: string;
+        customRelationship?: string;
+      };
+    },
+  ) {
+    // Check if patient exists and has permission
+    const mainPatient = await this.prisma.patient.findUnique({
+      where: { id: patientId },
+      select: {
+        id: true,
+        doctorId: true,
+        canAddRelatives: true,
+      },
+    });
+
+    if (!mainPatient) {
+      throw new NotFoundException('Patient not found');
+    }
+
+    if (!mainPatient.canAddRelatives) {
+      throw new BadRequestException(
+        "Vous n'avez pas la permission d'ajouter des proches",
+      );
+    }
+
+    // Validate relationship data
+    if (
+      body.relationship.relationshipType === 'FAMILY' &&
+      !body.relationship.familyRelationship
+    ) {
+      throw new BadRequestException('Le type de relation familiale est requis');
+    }
+
+    if (
+      body.relationship.relationshipType === 'OTHER' &&
+      !body.relationship.customRelationship
+    ) {
+      throw new BadRequestException(
+        'La description de la relation est requise',
+      );
+    }
+
+    // Create the new relative patient
+    const newPatient = await this.prisma.patient.create({
+      data: {
+        name: body.patient.name,
+        dateOfBirth: body.patient.dateOfBirth
+          ? new Date(body.patient.dateOfBirth)
+          : null,
+        gender: body.patient.gender as any,
+        email: body.patient.email || null,
+        phoneNumber: body.patient.phoneNumber || null,
+        address: body.patient.address || null,
+        doctorId: mainPatient.doctorId, // Same doctor as main patient
+      },
+    });
+
+    // Create the relationship
+    const relationship = await this.prisma.patientRelationship.create({
+      data: {
+        mainPatientId: patientId,
+        relatedPatientId: newPatient.id,
+        relationshipType: body.relationship.relationshipType,
+        familyRelationship: body.relationship.familyRelationship as any,
+        customRelationship: body.relationship.customRelationship,
+      },
+      include: {
+        relatedPatient: {
+          select: {
+            id: true,
+            name: true,
+            dateOfBirth: true,
+            profileImage: true,
+            gender: true,
+            email: true,
+            phoneNumber: true,
+            address: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    return relationship;
+  }
+
+  /**
+   * Remove a relative relationship for the authenticated patient
+   */
+  async removePatientRelative(patientId: string, relationshipId: string) {
+    // Verify the relationship belongs to this patient
+    const relationship = await this.prisma.patientRelationship.findUnique({
+      where: { id: relationshipId },
+    });
+
+    if (!relationship) {
+      throw new NotFoundException('Relation non trouvée');
+    }
+
+    if (relationship.mainPatientId !== patientId) {
+      throw new BadRequestException(
+        "Vous n'avez pas la permission de supprimer cette relation",
+      );
+    }
+
+    // Delete the relationship (but keep the patient record)
+    await this.prisma.patientRelationship.delete({
+      where: { id: relationshipId },
+    });
+
+    return { message: 'Relation supprimée avec succès' };
+  }
 }

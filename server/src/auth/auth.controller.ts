@@ -8,6 +8,8 @@ import {
   HttpStatus,
   Res,
   Patch,
+  Delete,
+  Param,
   BadRequestException,
 } from '@nestjs/common';
 import { I18nLang } from 'nestjs-i18n';
@@ -247,6 +249,64 @@ export class AuthController {
     return await this.authService.changePatientPassword(
       patientId,
       changePasswordDto,
+    );
+  }
+
+  // Patient Relatives Endpoints
+
+  @Get('patient/relatives')
+  @UseGuards(JwtAuthGuard)
+  async getPatientRelatives(@CurrentUser() user: any) {
+    const patientId = user.sub || user.id;
+    if (!patientId) {
+      throw new BadRequestException('Patient ID not found in token');
+    }
+    return await this.authService.getPatientRelatives(patientId);
+  }
+
+  @Post('patient/relatives')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.CREATED)
+  async createPatientRelative(
+    @CurrentUser() user: any,
+    @Body()
+    body: {
+      patient: {
+        name: string;
+        dateOfBirth?: string;
+        gender: string;
+        email?: string;
+        phoneNumber?: string;
+        address?: string;
+      };
+      relationship: {
+        relationshipType: 'FAMILY' | 'OTHER';
+        familyRelationship?: string;
+        customRelationship?: string;
+      };
+    },
+  ) {
+    const patientId = user.sub || user.id;
+    if (!patientId) {
+      throw new BadRequestException('Patient ID not found in token');
+    }
+    return await this.authService.createPatientRelative(patientId, body);
+  }
+
+  @Delete('patient/relatives/:relationshipId')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async removePatientRelative(
+    @CurrentUser() user: any,
+    @Param('relationshipId') relationshipId: string,
+  ) {
+    const patientId = user.sub || user.id;
+    if (!patientId) {
+      throw new BadRequestException('Patient ID not found in token');
+    }
+    return await this.authService.removePatientRelative(
+      patientId,
+      relationshipId,
     );
   }
 }

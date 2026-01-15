@@ -701,4 +701,20 @@ export const patientAuthAPI = {
   // Change patient password
   changePassword: (data) =>
     api.post('/auth/patient/change-password', data).then((res) => res.data),
+
+  // Patient Relatives API
+
+  // Get all relatives of the authenticated patient
+  getRelatives: () =>
+    api.get('/auth/patient/relatives').then((res) => res.data),
+
+  // Create a new relative for the authenticated patient
+  createRelative: (data) =>
+    api.post('/auth/patient/relatives', data).then((res) => res.data),
+
+  // Remove a relative relationship
+  removeRelative: (relationshipId) =>
+    api
+      .delete(`/auth/patient/relatives/${relationshipId}`)
+      .then((res) => res.data),
 };
