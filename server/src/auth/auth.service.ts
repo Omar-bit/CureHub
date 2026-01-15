@@ -818,4 +818,146 @@ export class AuthService {
 
     return { message: 'Relation supprimée avec succès' };
   }
+
+  /**
+   * Get appointments for the authenticated patient
+   * Returns upcoming and past appointments
+   */
+  async getPatientAppointments(patientId: string) {
+    const patient = await this.prisma.patient.findUnique({
+      where: { id: patientId },
+    });
+
+    if (!patient) {
+      throw new NotFoundException('Patient not found');
+    }
+
+    if (patient.isDeleted || patient.isBlocked) {
+      throw new UnauthorizedException('Patient account is not accessible');
+    }
+
+    const now = new Date();
+
+    // Get all appointments for this patient (either as primary or via appointmentPatients)
+    const appointments = await this.prisma.appointment.findMany({
+      where: {
+        OR: [
+          { patientId: patientId },
+          {
+            appointmentPatients: {
+              some: { patientId: patientId },
+            },
+          },
+        ],
+        status: {
+          notIn: ['CANCELLED'],
+        },
+      },
+      include: {
+        consultationType: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            duration: true,
+          },
+        },
+        consultationTypeDetails: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            modeExercice: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        doctor: {
+          select: {
+            id: true,
+            title: true,
+            specialization: true,
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+        documents: {
+          select: {
+            id: true,
+            fileName: true,
+          },
+        },
+        appointmentPatients: {
+          include: {
+            patient: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        startTime: 'asc',
+      },
+    });
+
+    // Separate upcoming and past appointments
+    const upcomingAppointments = appointments.filter(
+      (apt) => new Date(apt.startTime) >= now,
+    );
+    const pastAppointments = appointments
+      .filter((apt) => new Date(apt.startTime) < now)
+      .reverse(); // Most recent first for past
+
+    // Compute location for each appointment
+    const computeLocation = (appointment: any): string => {
+      if (appointment.location) {
+        return appointment.location;
+      }
+      const modeName = (
+        appointment.consultationTypeDetails?.modeExercice?.name || ''
+      )
+        .toString()
+        .toLowerCase();
+      if (
+        modeName.includes('visio') ||
+        modeName.includes('tele') ||
+        modeName.includes('video')
+      )
+        return 'ONLINE';
+      if (modeName.includes('domicile') || modeName.includes('home'))
+        return 'ATHOME';
+      return 'ONSITE';
+    };
+
+    const formatAppointment = (apt: any) => ({
+      id: apt.id,
+      title: apt.title,
+      description: apt.description,
+      startTime: apt.startTime,
+      endTime: apt.endTime,
+      status: apt.status,
+      location: computeLocation(apt),
+      consultationType: apt.consultationType,
+      consultationTypeDetails: apt.consultationTypeDetails,
+      doctor: apt.doctor,
+      documentsCount: apt.documents?.length || 0,
+      patientsCount: apt.appointmentPatients?.length || 1,
+      patients: apt.appointmentPatients?.map((ap: any) => ap.patient) || [],
+    });
+
+    return {
+      upcoming: upcomingAppointments.map(formatAppointment),
+      past: pastAppointments.map(formatAppointment),
+    };
+  }
 }

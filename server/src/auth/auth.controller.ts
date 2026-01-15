@@ -309,4 +309,14 @@ export class AuthController {
       relationshipId,
     );
   }
+
+  @Get('patient/appointments')
+  @UseGuards(JwtAuthGuard)
+  async getPatientAppointments(@CurrentUser() user: any) {
+    const patientId = user.sub || user.id;
+    if (!patientId) {
+      throw new BadRequestException('Patient ID not found in token');
+    }
+    return await this.authService.getPatientAppointments(patientId);
+  }
 }

@@ -40,6 +40,11 @@ import {
   Users,
   X,
   Trash2,
+  Video,
+  Home,
+  Building2,
+  ChevronRight,
+  Paperclip,
 } from 'lucide-react';
 import PatientIdentityTab from '../components/PatientIdentityTab';
 import PatientPasswordTab from '../components/PatientPasswordTab';
@@ -174,7 +179,7 @@ const PatientSpacePage = () => {
     } else if (location.pathname === '/patient-space/relatives') {
       return <PatientRelativesPage />;
     } else if (location.pathname === '/patient-space/appointments') {
-      return <PatientAppointmentsPage appointments={appointments} />;
+      return <PatientAppointmentsPage />;
     } else if (location.pathname === '/patient-space/documents') {
       return <PatientDocumentsPage documents={documents} />;
     } else if (location.pathname === '/patient-space/payments') {
@@ -984,65 +989,195 @@ const PatientRelativesPage = () => {
 };
 
 // Patient Appointments Page
-const PatientAppointmentsPage = ({ appointments }) => {
+const PatientAppointmentsPage = () => {
+  const [appointments, setAppointments] = useState({ upcoming: [], past: [] });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadAppointments();
+  }, []);
+
+  const loadAppointments = async () => {
+    try {
+      setIsLoading(true);
+      const data = await patientAuthAPI.getAppointments();
+      setAppointments(data);
+    } catch (error) {
+      console.error('Error loading appointments:', error);
+      showError('Erreur lors du chargement des rendez-vous');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  };
+
+  const formatTime = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const getLocationIcon = (location) => {
+    switch (location) {
+      case 'ONLINE':
+        return <Video className='h-5 w-5 text-white' />;
+      case 'ATHOME':
+        return <Home className='h-5 w-5 text-white' />;
+      default:
+        return <Building2 className='h-5 w-5 text-white' />;
+    }
+  };
+
+  const getLocationBgColor = (location) => {
+    switch (location) {
+      case 'ONLINE':
+        return 'bg-blue-600';
+      case 'ATHOME':
+        return 'bg-green-600';
+      default:
+        return 'bg-gray-600';
+    }
+  };
+
+  const getPatientInitials = (patients) => {
+    if (!patients || patients.length === 0) return '?';
+    const name = patients[0]?.name || '';
+    const parts = name.split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  const AppointmentCard = ({ appointment }) => {
+    // console.log(appointment);
+    return (
+      <div className='flex items-center justify-between py-4 px-2 hover:bg-gray-50 rounded-lg transition-colors'>
+        <div className='flex items-center gap-4'>
+          {/* Document icon */}
+          <div className='text-gray-400'>
+            <FileText className='h-5 w-5' />
+          </div>
+
+          {/* Location icon */}
+          <div
+            className={`w-10 h-10 rounded-lg flex items-center justify-center ${getLocationBgColor(
+              appointment.location
+            )}`}
+          >
+            {getLocationIcon(appointment.location)}
+          </div>
+
+          {/* Date and time */}
+          <div className='flex items-center gap-3'>
+            <span className='text-gray-900 font-medium'>
+              {formatDate(appointment.startTime)}
+            </span>
+            <span className='px-2 py-1 bg-gray-100 rounded text-sm text-gray-700'>
+              {formatTime(appointment.startTime)}
+            </span>
+          </div>
+
+          {/* Patient initials */}
+          <div className='flex items-center gap-2'>
+            <ChevronRight className='h-4 w-4 text-gray-400' />
+            <div className='w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-medium'>
+              {getPatientInitials(appointment.patients)}
+            </div>
+          </div>
+        </div>
+
+        <div className='flex items-center gap-4'>
+          {/* Documents count */}
+          {appointment.documentsCount > 0 && (
+            <div className='flex items-center gap-1 text-gray-500'>
+              <Paperclip className='h-4 w-4' />
+              <span className='text-sm'>{appointment.documentsCount}</span>
+            </div>
+          )}
+
+          {/* Arrow */}
+          <ChevronRight className='h-5 w-5 text-gray-400' />
+        </div>
+      </div>
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <div className='p-8'>
+        <div className='flex items-center justify-center h-64'>
+          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600'></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className='p-8'>
       <nav className='flex items-center space-x-2 text-sm text-muted-foreground mb-4'>
         <span>ACCUEIL</span>
         <span>›</span>
-        <span>MES RENDEZ-VOUS</span>
+        <span>MON COMPTE</span>
       </nav>
-      <h1 className='text-3xl font-bold text-foreground mb-8'>
-        Mes rendez-vous
-      </h1>
 
-      {appointments.length > 0 ? (
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-          {appointments.map((appointment) => (
-            <Card key={appointment.id}>
-              <CardContent className='pt-6'>
-                <div className='space-y-3'>
-                  <div>
-                    <h3 className='font-semibold text-lg text-foreground'>
-                      {appointment.title}
-                    </h3>
-                    <p className='text-sm text-muted-foreground'>
-                      avec {appointment.doctor}
-                    </p>
-                  </div>
+      <div className='flex items-center justify-between mb-8'>
+        <h1 className='text-3xl font-bold text-foreground'>Mes rendez-vous</h1>
+        <Button variant='outline' className='flex items-center gap-2'>
+          <Plus className='h-4 w-4' />
+          Ajouter
+        </Button>
+      </div>
 
-                  <div className='flex items-center gap-2 text-muted-foreground'>
-                    <Clock className='h-4 w-4' />
-                    <span>
-                      {new Date(appointment.date).toLocaleDateString('fr-FR')} à{' '}
-                      {appointment.time}
-                    </span>
-                  </div>
-
-                  <div className='flex items-center gap-2 text-muted-foreground'>
-                    <MapPin className='h-4 w-4' />
-                    <span>{appointment.location}</span>
-                  </div>
-
-                  <div className='pt-2'>
-                    <span className='inline-block px-3 py-1 text-sm font-medium bg-blue-100 text-blue-800 rounded-full'>
-                      Prévu
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <Card>
-          <CardContent className='pt-6'>
-            <p className='text-muted-foreground text-center py-8'>
-              Aucun rendez-vous prévu
+      {/* Upcoming appointments section */}
+      <div className='mb-8'>
+        <h2 className='text-lg font-semibold text-gray-900 mb-4'>
+          Prochain rendez-vous
+        </h2>
+        {appointments.upcoming.length > 0 ? (
+          <div className='bg-white rounded-xl shadow-sm border divide-y'>
+            {appointments.upcoming.map((appointment) => (
+              <AppointmentCard key={appointment.id} appointment={appointment} />
+            ))}
+          </div>
+        ) : (
+          <div className='bg-white rounded-xl shadow-sm border p-6'>
+            <p className='text-muted-foreground text-center'>
+              Aucun rendez-vous à venir
             </p>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        )}
+      </div>
+
+      {/* Past appointments section */}
+      <div>
+        <h2 className='text-lg font-semibold text-gray-900 mb-4'>
+          Rendez-vous passé
+        </h2>
+        {appointments.past.length > 0 ? (
+          <div className='bg-white rounded-xl shadow-sm border divide-y'>
+            {appointments.past.map((appointment) => (
+              <AppointmentCard key={appointment.id} appointment={appointment} />
+            ))}
+          </div>
+        ) : (
+          <div className='bg-white rounded-xl shadow-sm border p-6'>
+            <p className='text-muted-foreground text-center'>
+              Aucun rendez-vous passé...
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

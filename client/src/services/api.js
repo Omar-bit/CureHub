@@ -717,4 +717,8 @@ export const patientAuthAPI = {
     api
       .delete(`/auth/patient/relatives/${relationshipId}`)
       .then((res) => res.data),
+
+  // Get patient appointments (upcoming and past)
+  getAppointments: () =>
+    api.get('/auth/patient/appointments').then((res) => res.data),
 };
