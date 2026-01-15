@@ -7,6 +7,7 @@ import {
 } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
+import { AdminAuthProvider } from './contexts/AdminAuthContext';
 import './i18n';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
@@ -30,6 +31,8 @@ import PricingSection from './components/PricingSection';
 import Footer from './components/Footer';
 import { AgendaProvider } from './contexts/AgendaContext';
 import ActesPage from './pages/ActesPage';
+import AdminLoginPage from './pages/admin/AdminLoginPage';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 
 // Landing page component
 const LandingPage = () => (
@@ -44,124 +47,150 @@ const LandingPage = () => (
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <AgendaProvider>
-          <Layout>
+      <AdminAuthProvider>
+        <Router>
+          <AgendaProvider>
             <Routes>
-              {/* Public routes */}
-              <Route path='/' element={<LandingPage />} />
-              <Route path='/login' element={<LoginPage />} />
-              <Route path='/:doctorId/login' element={<PatientLoginPage />} />
-              <Route path='/register' element={<RegisterPage />} />
-              <Route path='/verify-email' element={<EmailVerificationPage />} />
-
-              {/* Patient space route */}
-              <Route path='/patient-space/*' element={<PatientSpacePage />} />
-
-              {/* Protected routes */}
+              {/* Admin routes - outside Layout */}
+              <Route path='/admin/login' element={<AdminLoginPage />} />
               <Route
-                path='/dashboard'
-                element={
-                  <ProtectedRoute>
-                    <DashboardPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path='/agenda'
-                element={
-                  <ProtectedRoute>
-                    <AgendaPage />
-                  </ProtectedRoute>
-                }
-              />
-              {/* /settings route removed - settings now shown via sidebar panel */}
-              <Route
-                path='/settings/profile'
-                element={
-                  <ProtectedRoute>
-                    <ProfileSettingsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path='/settings/consultation-types'
-                element={
-                  <ProtectedRoute>
-                    <ConsultationTypesPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path='/settings/actes'
-                element={
-                  <ProtectedRoute>
-                    <ActesPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path='/settings/timeplan'
-                element={
-                  <ProtectedRoute>
-                    <TimeplanPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path='/settings/pto'
-                element={
-                  <ProtectedRoute>
-                    <PTOPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path='/settings/mode-exercice'
-                element={
-                  <ProtectedRoute>
-                    <ModeExercicePage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path='/messagery'
-                element={
-                  <ProtectedRoute>
-                    <MessagingPage />
-                  </ProtectedRoute>
-                }
+                path='/admin/dashboard/*'
+                element={<AdminDashboardPage />}
               />
 
-              {/* Redirect unknown routes to home */}
-              <Route path='*' element={<Navigate to='/' replace />} />
+              {/* Main app routes */}
+              <Route
+                path='/*'
+                element={
+                  <Layout>
+                    <Routes>
+                      {/* Public routes */}
+                      <Route path='/' element={<LandingPage />} />
+                      <Route path='/login' element={<LoginPage />} />
+                      <Route
+                        path='/:doctorId/login'
+                        element={<PatientLoginPage />}
+                      />
+                      <Route path='/register' element={<RegisterPage />} />
+                      <Route
+                        path='/verify-email'
+                        element={<EmailVerificationPage />}
+                      />
+
+                      {/* Patient space route */}
+                      <Route
+                        path='/patient-space/*'
+                        element={<PatientSpacePage />}
+                      />
+
+                      {/* Protected routes */}
+                      <Route
+                        path='/dashboard'
+                        element={
+                          <ProtectedRoute>
+                            <DashboardPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='/agenda'
+                        element={
+                          <ProtectedRoute>
+                            <AgendaPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      {/* /settings route removed - settings now shown via sidebar panel */}
+                      <Route
+                        path='/settings/profile'
+                        element={
+                          <ProtectedRoute>
+                            <ProfileSettingsPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='/settings/consultation-types'
+                        element={
+                          <ProtectedRoute>
+                            <ConsultationTypesPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='/settings/actes'
+                        element={
+                          <ProtectedRoute>
+                            <ActesPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='/settings/timeplan'
+                        element={
+                          <ProtectedRoute>
+                            <TimeplanPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='/settings/pto'
+                        element={
+                          <ProtectedRoute>
+                            <PTOPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='/settings/mode-exercice'
+                        element={
+                          <ProtectedRoute>
+                            <ModeExercicePage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='/messagery'
+                        element={
+                          <ProtectedRoute>
+                            <MessagingPage />
+                          </ProtectedRoute>
+                        }
+                      />
+
+                      {/* Redirect unknown routes to home */}
+                      <Route path='*' element={<Navigate to='/' replace />} />
+                    </Routes>
+                  </Layout>
+                }
+              />
             </Routes>
-          </Layout>
-          <Toaster
-            position='top-right'
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: 'var(--background)',
-                color: 'var(--foreground)',
-                border: '1px solid var(--border)',
-              },
-              success: {
-                iconTheme: {
-                  primary: 'var(--primary)',
-                  secondary: 'var(--primary-foreground)',
+            <Toaster
+              position='top-right'
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  background: 'var(--background)',
+                  color: 'var(--foreground)',
+                  border: '1px solid var(--border)',
                 },
-              },
-              error: {
-                iconTheme: {
-                  primary: 'var(--destructive)',
-                  secondary: 'var(--destructive-foreground)',
+                success: {
+                  iconTheme: {
+                    primary: 'var(--primary)',
+                    secondary: 'var(--primary-foreground)',
+                  },
                 },
-              },
-            }}
-          />
-        </AgendaProvider>
-      </Router>
+                error: {
+                  iconTheme: {
+                    primary: 'var(--destructive)',
+                    secondary: 'var(--destructive-foreground)',
+                  },
+                },
+              }}
+            />
+          </AgendaProvider>
+        </Router>
+      </AdminAuthProvider>
     </AuthProvider>
   );
 }

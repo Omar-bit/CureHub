@@ -25,6 +25,7 @@ import { PTOModule } from './pto/pto.module';
 import { AiModule } from './ai/ai.module';
 import { ModeExerciceModule } from './mode-exercice/mode-exercice.module';
 import { ActeModule } from './acte/acte.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { ActeModule } from './acte/acte.module';
     AiModule,
     ModeExerciceModule,
     ActeModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

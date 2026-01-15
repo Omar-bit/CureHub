@@ -742,3 +742,95 @@ export const patientAuthAPI = {
       .patch(`/auth/patient/documents/${documentId}/pin`)
       .then((res) => res.data),
 };
+
+// Admin API
+export const adminAPI = {
+  // Auth
+  login: (data) => {
+    const token = localStorage.getItem('adminToken');
+    return api.post('/admin/login', data).then((res) => {
+      if (res.data.access_token) {
+        localStorage.setItem('adminToken', res.data.access_token);
+      }
+      return res.data;
+    });
+  },
+
+  logout: () => {
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('admin');
+    return Promise.resolve();
+  },
+
+  getProfile: () =>
+    api
+      .get('/admin/me', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
+        },
+      })
+      .then((res) => res.data),
+
+  // Dashboard
+  getDashboardStats: () =>
+    api
+      .get('/admin/dashboard/stats', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
+        },
+      })
+      .then((res) => res.data),
+
+  // Users
+  getUsers: (params = {}) =>
+    api
+      .get('/admin/users', {
+        params,
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
+        },
+      })
+      .then((res) => res.data),
+
+  getUserById: (id) =>
+    api
+      .get(`/admin/users/${id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
+        },
+      })
+      .then((res) => res.data),
+
+  toggleUserStatus: (id) =>
+    api
+      .patch(
+        `/admin/users/${id}/toggle-status`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
+          },
+        }
+      )
+      .then((res) => res.data),
+
+  deleteUser: (id) =>
+    api
+      .delete(`/admin/users/${id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
+        },
+      })
+      .then((res) => res.data),
+
+  // Patients
+  getPatients: (params = {}) =>
+    api
+      .get('/admin/patients', {
+        params,
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
+        },
+      })
+      .then((res) => res.data),
+};
