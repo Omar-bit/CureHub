@@ -45,6 +45,13 @@ import {
   Building2,
   ChevronRight,
   Paperclip,
+  RefreshCw,
+  Grid3X3,
+  List,
+  Pin,
+  MoreHorizontal,
+  Download,
+  Info,
 } from 'lucide-react';
 import PatientIdentityTab from '../components/PatientIdentityTab';
 import PatientPasswordTab from '../components/PatientPasswordTab';
@@ -181,7 +188,7 @@ const PatientSpacePage = () => {
     } else if (location.pathname === '/patient-space/appointments') {
       return <PatientAppointmentsPage />;
     } else if (location.pathname === '/patient-space/documents') {
-      return <PatientDocumentsPage documents={documents} />;
+      return <PatientDocumentsPage />;
     } else if (location.pathname === '/patient-space/payments') {
       return <PatientPaymentsPage />;
     }
@@ -1183,59 +1190,481 @@ const PatientAppointmentsPage = () => {
 };
 
 // Patient Documents Page
-const PatientDocumentsPage = ({ documents }) => {
+const PatientDocumentsPage = () => {
+  const navigate = useNavigate();
+  const [documents, setDocuments] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [downloadingId, setDownloadingId] = useState(null);
+  const [viewMode, setViewMode] = useState('list'); // 'grid' or 'list'
+  const [showPinnedOnly, setShowPinnedOnly] = useState(false);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState(null);
+
+  // Document categories for filtering
+  const DOCUMENT_CATEGORIES = [
+    { value: 'all', label: 'Par catégorie' },
+    { value: 'NON_CATEGORISE', label: 'Non catégorisés' },
+    { value: 'PHARMACIE', label: 'Pharmacie' },
+    { value: 'BIOLOGIE', label: 'Biologie' },
+    { value: 'RADIOLOGIE', label: 'Radiologie' },
+    { value: 'OPTIQUE', label: 'Optique' },
+    { value: 'MATERIEL', label: 'Matériel' },
+    { value: 'COMPTES_RENDUS', label: 'Comptes rendus' },
+    { value: 'IMAGERIE', label: 'Imagerie' },
+    { value: 'OPERATION', label: 'Opération' },
+    { value: 'CONSULTATION', label: 'Consultation' },
+    { value: 'HOSPITALISATION', label: 'Hospitalisation' },
+    { value: 'SOINS_PARAMEDICAUX', label: 'Soins paramédicaux' },
+    { value: 'KINE', label: 'Kinésithérapie' },
+    { value: 'INFIRMIER', label: 'Infirmier' },
+    { value: 'PODOLOGUE', label: 'Podologue' },
+    { value: 'ORTHOPTISTE', label: 'Orthoptiste' },
+    { value: 'ORTHOPHONISTE', label: 'Orthophoniste' },
+    { value: 'ADMINISTRATIF', label: 'Administratif' },
+    { value: 'COURRIER', label: 'Courrier' },
+    { value: 'CERTIFICAT', label: 'Certificat' },
+    { value: 'HONORAIRES', label: 'Honoraires' },
+    { value: 'CONSENTEMENT', label: 'Consentement' },
+    { value: 'ASSURANCE', label: 'Assurance' },
+    { value: 'DEVIS', label: 'Devis' },
+    { value: 'AUTRE', label: 'Autre' },
+  ];
+
+  const getCategoryLabel = (categoryValue) => {
+    if (!categoryValue || categoryValue === 'AUTRE') return 'Non catégorisés';
+    const cat = DOCUMENT_CATEGORIES.find((c) => c.value === categoryValue);
+    return cat ? cat.label : categoryValue;
+  };
+
+  useEffect(() => {
+    loadDocuments();
+  }, []);
+
+  const loadDocuments = async () => {
+    try {
+      setIsLoading(true);
+      const data = await patientAuthAPI.getDocuments();
+      setDocuments(data);
+    } catch (error) {
+      console.error('Error loading documents:', error);
+      showError('Erreur lors du chargement des documents');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    try {
+      setIsRefreshing(true);
+      const data = await patientAuthAPI.getDocuments();
+      setDocuments(data);
+      showSuccess('Documents actualisés');
+    } catch (error) {
+      console.error('Error refreshing documents:', error);
+      showError("Erreur lors de l'actualisation");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleDownload = async (doc) => {
+    if (doc.locked) {
+      showError('Ce document est verrouillé');
+      return;
+    }
+
+    try {
+      setDownloadingId(doc.id);
+      const response = await patientAuthAPI.downloadDocument(doc.id);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = window.document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', doc.originalName);
+      window.document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      showSuccess('Document téléchargé');
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      showError('Erreur lors du téléchargement');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const handleTogglePin = async (doc) => {
+    // Only patient documents can be pinned (not appointment documents)
+    if (doc.isAppointmentDocument) {
+      showError('Les documents de rendez-vous ne peuvent pas être épinglés');
+      return;
+    }
+
+    try {
+      const result = await patientAuthAPI.toggleDocumentPin(doc.id);
+      // Update the local state
+      setDocuments((prevDocs) =>
+        prevDocs.map((d) =>
+          d.id === doc.id ? { ...d, pinned: result.pinned } : d
+        )
+      );
+      showSuccess(result.pinned ? 'Document épinglé' : 'Document désépinglé');
+      setOpenMenuId(null);
+    } catch (error) {
+      console.error('Error toggling pin:', error);
+      showError("Erreur lors de l'épinglage du document");
+    }
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  };
+
+  const formatDateTime = (dateString) => {
+    const date = new Date(dateString);
+    return `${date.toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    })} ${date.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+    })}`;
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return bytes + ' o';
+    if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' ko';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' Mo';
+  };
+
+  // Filter documents based on category and pinned status
+  const filteredDocuments = documents.filter((doc) => {
+    // First apply pinned filter
+    if (showPinnedOnly && !doc.pinned) return false;
+
+    // Then apply category filter
+    if (selectedCategory === 'all') return true;
+    if (selectedCategory === 'NON_CATEGORISE') {
+      return !doc.category || doc.category === 'AUTRE';
+    }
+    return doc.category === selectedCategory;
+  });
+
+  // Group documents by category
+  const groupedDocuments = filteredDocuments.reduce((acc, doc) => {
+    const category =
+      !doc.category || doc.category === 'AUTRE'
+        ? 'NON_CATEGORISE'
+        : doc.category;
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(doc);
+    return acc;
+  }, {});
+
+  // Sort pinned documents first within each category
+  Object.keys(groupedDocuments).forEach((category) => {
+    groupedDocuments[category].sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+  });
+
+  if (isLoading) {
+    return (
+      <div className='p-8'>
+        <div className='flex items-center justify-center h-64'>
+          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600'></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className='p-8'>
       <nav className='flex items-center space-x-2 text-sm text-muted-foreground mb-4'>
         <span>ACCUEIL</span>
-        <span>›</span>
-        <span>MES DOCUMENTS</span>
+        <span>&gt;</span>
+        <span>MON COMPTE</span>
       </nav>
-      <h1 className='text-3xl font-bold text-foreground mb-8'>Mes documents</h1>
 
-      {documents.length > 0 ? (
-        <div className='space-y-2'>
-          {documents.map((doc) => (
-            <Card key={doc.id}>
-              <CardContent className='pt-6'>
-                <div className='flex items-center justify-between'>
-                  <div className='flex items-center gap-3'>
-                    <FileText className='h-5 w-5 text-muted-foreground' />
-                    <div>
-                      <p className='font-semibold text-foreground'>
-                        {doc.name}
+      <div className='flex items-center justify-between mb-8'>
+        <h1 className='text-3xl font-bold text-foreground'>Mes documents</h1>
+      </div>
+
+      {/* Toolbar */}
+      <div className='flex items-center justify-between mb-6'>
+        {/* Category filter */}
+        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+          <SelectTrigger className='w-[180px] bg-gray-100 border-0'>
+            <SelectValue placeholder='Par catégorie' />
+          </SelectTrigger>
+          <SelectContent>
+            {DOCUMENT_CATEGORIES.map((cat) => (
+              <SelectItem key={cat.value} value={cat.value}>
+                {cat.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Right side toolbar */}
+        <div className='flex items-center gap-2'>
+          {/* View mode buttons */}
+          <div className='flex items-center border rounded-md'>
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 transition-colors ${
+                viewMode === 'grid' ? 'bg-gray-200' : 'hover:bg-gray-100'
+              }`}
+              title='Vue grille'
+            >
+              <Grid3X3
+                className={`h-4 w-4 ${
+                  viewMode === 'grid' ? 'text-gray-700' : 'text-gray-500'
+                }`}
+              />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 transition-colors ${
+                viewMode === 'list' ? 'bg-gray-200' : 'hover:bg-gray-100'
+              }`}
+              title='Vue liste'
+            >
+              <List
+                className={`h-4 w-4 ${
+                  viewMode === 'list' ? 'text-gray-700' : 'text-gray-500'
+                }`}
+              />
+            </button>
+            <button
+              onClick={() => setShowPinnedOnly(!showPinnedOnly)}
+              className={`p-2 transition-colors ${
+                showPinnedOnly ? 'bg-yellow-100' : 'hover:bg-gray-100'
+              }`}
+              title={
+                showPinnedOnly
+                  ? 'Afficher tous les documents'
+                  : 'Afficher uniquement les épinglés'
+              }
+            >
+              <Pin
+                className={`h-4 w-4 ${
+                  showPinnedOnly
+                    ? 'text-yellow-600 fill-yellow-500'
+                    : 'text-gray-500'
+                }`}
+              />
+            </button>
+            <button
+              onClick={handleRefresh}
+              className='p-2 hover:bg-gray-100 transition-colors'
+              title='Actualiser'
+              disabled={isRefreshing}
+            >
+              <RefreshCw
+                className={`h-4 w-4 text-gray-500 ${
+                  isRefreshing ? 'animate-spin' : ''
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Add button */}
+          <Button
+            variant='outline'
+            className='flex items-center gap-2'
+            onClick={() => setShowAddDialog(true)}
+          >
+            <Plus className='h-4 w-4' />
+            Ajouter
+          </Button>
+        </div>
+      </div>
+
+      {/* Documents list */}
+      {Object.keys(groupedDocuments).length > 0 ? (
+        <div className='space-y-6'>
+          {Object.entries(groupedDocuments).map(([category, docs]) => (
+            <div key={category}>
+              <h2 className='text-base font-semibold text-gray-700 mb-3'>
+                {getCategoryLabel(category)}
+              </h2>
+              <div className='bg-white rounded-xl shadow-sm border'>
+                {docs.map((doc, index) => (
+                  <div
+                    key={doc.id}
+                    className={`flex items-center justify-between py-3 px-4 hover:bg-gray-50 transition-colors ${
+                      index !== docs.length - 1 ? 'border-b' : ''
+                    }`}
+                  >
+                    {/* Pin indicator */}
+                    <div className='w-6 flex-shrink-0'>
+                      {doc.pinned && (
+                        <Pin className='h-4 w-4 text-yellow-500 fill-yellow-500' />
+                      )}
+                    </div>
+
+                    {/* File icon */}
+                    <div className='flex-shrink-0 mr-3'>
+                      <div className='w-8 h-8 bg-gray-100 rounded flex items-center justify-center'>
+                        <FileText className='h-4 w-4 text-gray-500' />
+                      </div>
+                    </div>
+
+                    {/* Document info */}
+                    <div className='flex-1 min-w-0 mr-4'>
+                      <p className='font-medium text-gray-900 truncate text-sm'>
+                        {doc.originalName}
                       </p>
-                      <p className='text-sm text-muted-foreground'>
-                        {doc.category} •{' '}
-                        {new Date(doc.uploadDate).toLocaleDateString('fr-FR')}
+                      <p className='text-xs text-gray-500'>
+                        {formatDateTime(doc.uploadDate || doc.createdAt)}
+                        {doc.fileSize && ` - ${formatFileSize(doc.fileSize)}`}
                       </p>
                     </div>
+
+                    {/* Category dropdown */}
+                    <div className='flex-shrink-0 mr-2'>
+                      <Select defaultValue='choose'>
+                        <SelectTrigger className='w-[130px] h-8 text-xs bg-white border'>
+                          <SelectValue placeholder='Choisissez...' />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value='choose' disabled>
+                            Choisissez...
+                          </SelectItem>
+                          {DOCUMENT_CATEGORIES.filter(
+                            (c) =>
+                              c.value !== 'all' && c.value !== 'NON_CATEGORISE'
+                          ).map((cat) => (
+                            <SelectItem key={cat.value} value={cat.value}>
+                              {cat.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* More options menu */}
+                    <div className='relative flex-shrink-0'>
+                      <button
+                        onClick={() =>
+                          setOpenMenuId(openMenuId === doc.id ? null : doc.id)
+                        }
+                        className='p-2 hover:bg-gray-100 rounded-full'
+                      >
+                        <MoreHorizontal className='h-4 w-4 text-gray-500' />
+                      </button>
+                      {openMenuId === doc.id && (
+                        <div className='absolute right-0 top-full mt-1 bg-white border rounded-lg shadow-lg z-10 py-1 min-w-[150px]'>
+                          <button
+                            onClick={() => {
+                              handleDownload(doc);
+                              setOpenMenuId(null);
+                            }}
+                            disabled={doc.locked}
+                            className='w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'
+                          >
+                            <Download className='h-4 w-4' />
+                            Télécharger
+                          </button>
+                          {!doc.isAppointmentDocument && (
+                            <button
+                              onClick={() => handleTogglePin(doc)}
+                              className='w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2'
+                            >
+                              <Pin
+                                className={`h-4 w-4 ${
+                                  doc.pinned
+                                    ? 'fill-yellow-500 text-yellow-500'
+                                    : ''
+                                }`}
+                              />
+                              {doc.pinned ? 'Désépingler' : 'Épingler'}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className='flex items-center gap-2'>
-                    {doc.locked && (
-                      <span className='text-xs px-2 py-1 bg-red-100 text-red-700 rounded'>
-                        Verrouillé
-                      </span>
-                    )}
-                    {!doc.locked && (
-                      <Button size='sm' variant='outline'>
-                        Télécharger
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       ) : (
-        <Card>
-          <CardContent className='pt-6'>
-            <p className='text-muted-foreground text-center py-8'>
-              Aucun document disponible
+        <div className='bg-white rounded-xl shadow-sm border p-8'>
+          <div className='text-center'>
+            <FileText className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+            <p className='text-gray-500'>
+              {showPinnedOnly
+                ? 'Aucun document épinglé'
+                : selectedCategory !== 'all'
+                ? 'Aucun document trouvé pour cette catégorie'
+                : 'Aucun document disponible'}
             </p>
-          </CardContent>
-        </Card>
+            {showPinnedOnly && (
+              <Button
+                variant='outline'
+                className='mt-4'
+                onClick={() => setShowPinnedOnly(false)}
+              >
+                Afficher tous les documents
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Add Document Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent className='sm:max-w-[400px]'>
+          <button
+            onClick={() => setShowAddDialog(false)}
+            className='absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100'
+          >
+            <X className='h-4 w-4' />
+          </button>
+          <div className='flex flex-col items-center text-center pt-6 pb-4'>
+            <div className='w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4'>
+              <Info className='h-6 w-6 text-blue-600' />
+            </div>
+            <p className='text-gray-700 mb-6'>
+              L'envoi de document ne peut se faire
+              <br />
+              qu'à l'occasion d'un rendez-vous.
+            </p>
+            <Button
+              onClick={() => {
+                setShowAddDialog(false);
+                navigate('/patient-space/appointments');
+              }}
+              className='bg-gray-900 text-white hover:bg-gray-800'
+            >
+              Voir mes RDVs
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Click outside handler for menu */}
+      {openMenuId && (
+        <div
+          className='fixed inset-0 z-0'
+          onClick={() => setOpenMenuId(null)}
+        />
       )}
     </div>
   );

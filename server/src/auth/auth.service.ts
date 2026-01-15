@@ -960,4 +960,263 @@ export class AuthService {
       past: pastAppointments.map(formatAppointment),
     };
   }
+
+  /**
+   * Get documents for the authenticated patient
+   * Returns all documents associated with the patient
+   */
+  async getPatientDocuments(patientId: string) {
+    const patient = await this.prisma.patient.findUnique({
+      where: { id: patientId },
+    });
+
+    if (!patient) {
+      throw new NotFoundException('Patient not found');
+    }
+
+    if (patient.isDeleted || patient.isBlocked) {
+      throw new UnauthorizedException('Patient account is not accessible');
+    }
+
+    // Fetch patient documents
+    const patientDocuments = await this.prisma.patientDocument.findMany({
+      where: {
+        patientId: patientId,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      select: {
+        id: true,
+        originalName: true,
+        fileName: true,
+        fileSize: true,
+        mimeType: true,
+        category: true,
+        description: true,
+        pinned: true,
+        locked: true,
+        paid: true,
+        uploadDate: true,
+        createdAt: true,
+      },
+    });
+
+    // Fetch appointment documents for this patient's appointments
+    const appointmentDocuments = await this.prisma.appointmentDocument.findMany(
+      {
+        where: {
+          appointment: {
+            OR: [
+              { patientId: patientId },
+              {
+                appointmentPatients: {
+                  some: { patientId: patientId },
+                },
+              },
+            ],
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        select: {
+          id: true,
+          originalName: true,
+          fileName: true,
+          fileSize: true,
+          mimeType: true,
+          category: true,
+          description: true,
+          blockClientDownload: true,
+          shareUntilDate: true,
+          uploadDate: true,
+          createdAt: true,
+          appointment: {
+            select: {
+              id: true,
+              title: true,
+              startTime: true,
+            },
+          },
+        },
+      },
+    );
+
+    // Transform appointment documents to match patient document structure
+    // Check if document is accessible (not blocked or within share date)
+    const now = new Date();
+    const transformedAppointmentDocs = appointmentDocuments
+      .filter((doc) => {
+        // Skip if blocked for client download
+        if (doc.blockClientDownload) return false;
+        // Skip if share date has passed
+        if (doc.shareUntilDate && new Date(doc.shareUntilDate) < now)
+          return false;
+        return true;
+      })
+      .map((doc) => ({
+        id: doc.id,
+        originalName: doc.originalName,
+        fileName: doc.fileName,
+        fileSize: doc.fileSize,
+        mimeType: doc.mimeType,
+        category: doc.category,
+        description: doc.description,
+        pinned: false, // Appointment documents don't have pinned
+        locked: doc.blockClientDownload, // Map blockClientDownload to locked for UI consistency
+        paid: false, // Appointment documents don't have paid
+        uploadDate: doc.uploadDate,
+        createdAt: doc.createdAt,
+        isAppointmentDocument: true,
+        appointmentInfo: {
+          id: doc.appointment.id,
+          title: doc.appointment.title,
+          startTime: doc.appointment.startTime,
+        },
+      }));
+
+    // Transform patient documents
+    const transformedPatientDocs = patientDocuments.map((doc) => ({
+      ...doc,
+      isAppointmentDocument: false,
+      appointmentInfo: null,
+    }));
+
+    // Combine both arrays and sort by creation date
+    const allDocuments = [
+      ...transformedPatientDocs,
+      ...transformedAppointmentDocs,
+    ];
+    allDocuments.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+
+    return allDocuments;
+  }
+
+  /**
+   * Download a document for the authenticated patient
+   */
+  async getPatientDocumentDownload(patientId: string, documentId: string) {
+    const patient = await this.prisma.patient.findUnique({
+      where: { id: patientId },
+    });
+
+    if (!patient) {
+      throw new NotFoundException('Patient not found');
+    }
+
+    if (patient.isDeleted || patient.isBlocked) {
+      throw new UnauthorizedException('Patient account is not accessible');
+    }
+
+    // Try to find as patient document
+    let document = await this.prisma.patientDocument.findFirst({
+      where: {
+        id: documentId,
+        patientId: patientId,
+      },
+    });
+
+    if (document) {
+      // Check if locked
+      if (document.locked) {
+        throw new UnauthorizedException('This document is locked');
+      }
+      return {
+        filePath: document.filePath,
+        originalName: document.originalName,
+        mimeType: document.mimeType,
+      };
+    }
+
+    // Try to find as appointment document
+    const appointmentDocument = await this.prisma.appointmentDocument.findFirst(
+      {
+        where: {
+          id: documentId,
+          appointment: {
+            OR: [
+              { patientId: patientId },
+              {
+                appointmentPatients: {
+                  some: { patientId: patientId },
+                },
+              },
+            ],
+          },
+        },
+      },
+    );
+
+    if (appointmentDocument) {
+      // Check if blocked for client download
+      if (appointmentDocument.blockClientDownload) {
+        throw new UnauthorizedException(
+          'This document is not available for download',
+        );
+      }
+      // Check if share date has passed
+      if (
+        appointmentDocument.shareUntilDate &&
+        new Date(appointmentDocument.shareUntilDate) < new Date()
+      ) {
+        throw new UnauthorizedException('This document is no longer available');
+      }
+      return {
+        filePath: appointmentDocument.filePath,
+        originalName: appointmentDocument.originalName,
+        mimeType: appointmentDocument.mimeType,
+      };
+    }
+
+    throw new NotFoundException('Document not found');
+  }
+
+  /**
+   * Toggle pin status for a patient document
+   */
+  async togglePatientDocumentPin(patientId: string, documentId: string) {
+    const patient = await this.prisma.patient.findUnique({
+      where: { id: patientId },
+    });
+
+    if (!patient) {
+      throw new NotFoundException('Patient not found');
+    }
+
+    if (patient.isDeleted || patient.isBlocked) {
+      throw new UnauthorizedException('Patient account is not accessible');
+    }
+
+    // Try to find and update patient document
+    const patientDocument = await this.prisma.patientDocument.findFirst({
+      where: {
+        id: documentId,
+        patientId: patientId,
+      },
+    });
+
+    if (patientDocument) {
+      const updated = await this.prisma.patientDocument.update({
+        where: { id: documentId },
+        data: { pinned: !patientDocument.pinned },
+        select: {
+          id: true,
+          pinned: true,
+        },
+      });
+      return {
+        id: updated.id,
+        pinned: updated.pinned,
+        isAppointmentDocument: false,
+      };
+    }
+
+    throw new NotFoundException(
+      'Document not found or you do not have permission to modify it',
+    );
+  }
 }

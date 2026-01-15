@@ -721,4 +721,24 @@ export const patientAuthAPI = {
   // Get patient appointments (upcoming and past)
   getAppointments: () =>
     api.get('/auth/patient/appointments').then((res) => res.data),
+
+  // Get patient documents
+  getDocuments: () =>
+    api.get('/auth/patient/documents').then((res) => res.data),
+
+  // Download a document
+  downloadDocument: (documentId) =>
+    api.get(`/auth/patient/documents/${documentId}/download`, {
+      responseType: 'blob',
+    }),
+
+  // Get download URL for a document
+  getDocumentDownloadUrl: (documentId) =>
+    `${API_BASE_URL}/auth/patient/documents/${documentId}/download`,
+
+  // Toggle pin status for a document
+  toggleDocumentPin: (documentId) =>
+    api
+      .patch(`/auth/patient/documents/${documentId}/pin`)
+      .then((res) => res.data),
 };

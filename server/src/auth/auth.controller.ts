@@ -319,4 +319,60 @@ export class AuthController {
     }
     return await this.authService.getPatientAppointments(patientId);
   }
+
+  @Get('patient/documents')
+  @UseGuards(JwtAuthGuard)
+  async getPatientDocuments(@CurrentUser() user: any) {
+    const patientId = user.sub || user.id;
+    if (!patientId) {
+      throw new BadRequestException('Patient ID not found in token');
+    }
+    return await this.authService.getPatientDocuments(patientId);
+  }
+
+  @Get('patient/documents/:documentId/download')
+  @UseGuards(JwtAuthGuard)
+  async downloadPatientDocument(
+    @CurrentUser() user: any,
+    @Param('documentId') documentId: string,
+    @Res() res: Response,
+  ) {
+    const patientId = user.sub || user.id;
+    if (!patientId) {
+      throw new BadRequestException('Patient ID not found in token');
+    }
+
+    const fileInfo = await this.authService.getPatientDocumentDownload(
+      patientId,
+      documentId,
+    );
+
+    const fs = await import('fs');
+    const fileStream = fs.createReadStream(fileInfo.filePath);
+
+    res.setHeader('Content-Type', fileInfo.mimeType);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${fileInfo.originalName}"`,
+    );
+
+    fileStream.pipe(res);
+  }
+
+  @Patch('patient/documents/:documentId/pin')
+  @UseGuards(JwtAuthGuard)
+  async togglePatientDocumentPin(
+    @CurrentUser() user: any,
+    @Param('documentId') documentId: string,
+  ) {
+    const patientId = user.sub || user.id;
+    if (!patientId) {
+      throw new BadRequestException('Patient ID not found in token');
+    }
+
+    return await this.authService.togglePatientDocumentPin(
+      patientId,
+      documentId,
+    );
+  }
 }
