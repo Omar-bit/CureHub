@@ -19,12 +19,13 @@ const CalendarView = forwardRef(
       timeplans = [],
       onAppointmentClick,
       onTimeSlotClick,
+      onAppointmentDrop,
       workingHours = { start: 8, end: 20 },
       verticalZoom = 1,
       mainColor = '#FFA500',
       defaultView = 'day',
       isTabOpen = false,
-      onDateChange = () => { },
+      onDateChange = () => {},
     },
     ref
   ) => {
@@ -87,6 +88,7 @@ const CalendarView = forwardRef(
         onDateChange: handleDateChange,
         onAppointmentClick,
         onTimeSlotClick,
+        onAppointmentDrop,
         workingHours,
         verticalZoom,
         mainColor,

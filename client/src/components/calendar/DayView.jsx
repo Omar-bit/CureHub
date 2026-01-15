@@ -28,6 +28,7 @@ const DayView = ({
   onDateChange,
   onAppointmentClick,
   onTimeSlotClick,
+  onAppointmentDrop,
   workingHours = { start: 8, end: 20 },
   verticalZoom = 1,
   mainColor = '#FFA500',
@@ -35,6 +36,8 @@ const DayView = ({
   currentView = 'day',
   onViewChange,
 }) => {
+  const [draggedAppointment, setDraggedAppointment] = React.useState(null);
+  const [dragOverSlot, setDragOverSlot] = React.useState(null);
   const containerRef = React.useRef(null);
   const [containerHeight, setContainerHeight] = React.useState(0);
   const [currentTimePosition, setCurrentTimePosition] = React.useState(null);
@@ -588,6 +591,71 @@ const DayView = ({
     onTimeSlotClick?.(slotDate);
   };
 
+  // Drag and drop handlers
+  const handleDragStart = (e, appointment) => {
+    setDraggedAppointment(appointment);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', appointment.id);
+    // Add a slight delay to allow the drag image to be set
+    setTimeout(() => {
+      e.target.style.opacity = '0.5';
+    }, 0);
+  };
+
+  const handleDragEnd = (e) => {
+    e.target.style.opacity = '1';
+    setDraggedAppointment(null);
+    setDragOverSlot(null);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDragEnter = (e, timeSlot) => {
+    e.preventDefault();
+    setDragOverSlot(timeSlot);
+  };
+
+  const handleDragLeave = (e) => {
+    // Only clear if leaving the slot area (not entering a child element)
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setDragOverSlot(null);
+    }
+  };
+
+  const handleDrop = (e, timeSlot) => {
+    e.preventDefault();
+    if (!draggedAppointment) return;
+
+    const [hour] = timeSlot.split(':').map(Number);
+
+    // Get the drop position relative to the time slot element
+    const rect = e.currentTarget.getBoundingClientRect();
+    const dropY = e.clientY - rect.top;
+    const slotHeight = rect.height;
+
+    // Calculate which 15-minute segment was dropped on (0, 15, 30, or 45)
+    const segmentIndex = Math.floor((dropY / slotHeight) * 4);
+    const minute = Math.min(segmentIndex, 3) * 15;
+
+    const newStartTime = new Date(currentDate);
+    newStartTime.setHours(hour, minute, 0, 0);
+
+    // Calculate duration of the original appointment
+    const originalStart = new Date(draggedAppointment.startTime);
+    const originalEnd = new Date(draggedAppointment.endTime);
+    const duration = originalEnd.getTime() - originalStart.getTime();
+
+    // Calculate new end time based on original duration
+    const newEndTime = new Date(newStartTime.getTime() + duration);
+
+    onAppointmentDrop?.(draggedAppointment, newStartTime, newEndTime);
+    setDraggedAppointment(null);
+    setDragOverSlot(null);
+  };
+
   const getAppointmentStyle = (appointment, column, totalColumns) => {
     const startTime = CalendarUtils.formatTime(new Date(appointment.startTime));
     const duration = CalendarUtils.getAppointmentDuration(
@@ -832,9 +900,19 @@ const DayView = ({
                 </div>
                 {/* Time slot area */}
                 <div
-                  className='flex-1 border-t border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors'
+                  className={`flex-1 border-t border-gray-100 cursor-pointer transition-all duration-150 ${
+                    dragOverSlot === timeSlot
+                      ? 'bg-blue-100 border-blue-300 ring-2 ring-blue-400 ring-inset'
+                      : draggedAppointment
+                      ? 'hover:bg-blue-50'
+                      : 'hover:bg-gray-50'
+                  }`}
                   style={{ height: `${60 * effectiveZoom}px` }}
                   onClick={(e) => handleTimeSlotClick(timeSlot, e)}
+                  onDragOver={handleDragOver}
+                  onDragEnter={(e) => handleDragEnter(e, timeSlot)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, timeSlot)}
                 >
                   <div className='h-full w-full relative'>
                     {/* 15-minute mark */}
@@ -899,12 +977,20 @@ const DayView = ({
                 className={`
                   flex ${
                     isShort ? 'items-center' : 'items-start'
-                  } gap-2 cursor-pointer
+                  } gap-2 cursor-grab active:cursor-grabbing
                   ${
                     colorClasses.darkBg
                   } transition-all rounded-lg overflow-hidden
                   ${isCancelled ? 'opacity-60' : ''}
+                  ${
+                    draggedAppointment?.id === appointment.id
+                      ? 'ring-2 ring-blue-500 ring-offset-1'
+                      : ''
+                  }
                 `}
+                draggable
+                onDragStart={(e) => handleDragStart(e, appointment)}
+                onDragEnd={handleDragEnd}
                 onClick={() => onAppointmentClick?.(appointment)}
               >
                 {/* Time Badge */}

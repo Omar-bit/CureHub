@@ -25,6 +25,7 @@ const WeekView = ({
   onDateChange,
   onAppointmentClick,
   onTimeSlotClick,
+  onAppointmentDrop,
   workingHours = { start: 8, end: 20 },
   isTabOpen = false,
   currentView = 'week',
@@ -33,6 +34,8 @@ const WeekView = ({
 }) => {
   const [showDatePicker, setShowDatePicker] = React.useState(false);
   const [currentTimePosition, setCurrentTimePosition] = React.useState(null);
+  const [draggedAppointment, setDraggedAppointment] = React.useState(null);
+  const [dragOverSlot, setDragOverSlot] = React.useState(null);
   const datePickerRef = React.useRef(null);
 
   const weekDays = CalendarUtils.getWeekDays(currentDate);
@@ -192,6 +195,69 @@ const WeekView = ({
     const slotDate = new Date(day);
     slotDate.setHours(hour, minute, 0, 0);
     onTimeSlotClick?.(slotDate);
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e, appointment) => {
+    setDraggedAppointment(appointment);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', appointment.id);
+    setTimeout(() => {
+      e.target.style.opacity = '0.5';
+    }, 0);
+  };
+
+  const handleDragEnd = (e) => {
+    e.target.style.opacity = '1';
+    setDraggedAppointment(null);
+    setDragOverSlot(null);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDragEnter = (e, dayIndex, timeSlot) => {
+    e.preventDefault();
+    setDragOverSlot(`${dayIndex}-${timeSlot}`);
+  };
+
+  const handleDragLeave = (e) => {
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setDragOverSlot(null);
+    }
+  };
+
+  const handleDrop = (e, day, timeSlot) => {
+    e.preventDefault();
+    if (!draggedAppointment) return;
+
+    const [hour] = timeSlot.split(':').map(Number);
+
+    // Get the drop position relative to the time slot element
+    const rect = e.currentTarget.getBoundingClientRect();
+    const dropY = e.clientY - rect.top;
+    const slotHeight = rect.height;
+
+    // Calculate which 15-minute segment was dropped on (0, 15, 30, or 45)
+    const segmentIndex = Math.floor((dropY / slotHeight) * 4);
+    const minute = Math.min(segmentIndex, 3) * 15;
+
+    const newStartTime = new Date(day);
+    newStartTime.setHours(hour, minute, 0, 0);
+
+    // Calculate duration of the original appointment
+    const originalStart = new Date(draggedAppointment.startTime);
+    const originalEnd = new Date(draggedAppointment.endTime);
+    const duration = originalEnd.getTime() - originalStart.getTime();
+
+    // Calculate new end time based on original duration
+    const newEndTime = new Date(newStartTime.getTime() + duration);
+
+    onAppointmentDrop?.(draggedAppointment, newStartTime, newEndTime);
+    setDraggedAppointment(null);
+    setDragOverSlot(null);
   };
 
   const getAppointmentStyle = (appointment, column, totalColumns) => {
@@ -674,12 +740,24 @@ const WeekView = ({
                 const blockingSegments = getBlockingImprevuSegmentsForDay(day);
                 const isBlockedDay =
                   blockingSegments.length > 0 || hasBlockingImprevuForDay(day);
+                const slotKey = `${dayIndex}-${timeSlot}`;
+                const isSlotHighlighted = dragOverSlot === slotKey;
                 return (
                   <div
                     key={dayIndex}
-                    className='flex-1 border-r border-gray-100 last:border-r-0 hover:bg-gray-50 cursor-pointer transition-colors relative'
+                    className={`flex-1 border-r border-gray-100 last:border-r-0 cursor-pointer transition-all duration-150 relative ${
+                      isSlotHighlighted
+                        ? 'bg-blue-100 ring-2 ring-blue-400 ring-inset z-10'
+                        : draggedAppointment
+                        ? 'hover:bg-blue-50'
+                        : 'hover:bg-gray-50'
+                    }`}
                     style={{ height: '60px' }}
                     onClick={() => handleTimeSlotClick(day, timeSlot)}
+                    onDragOver={handleDragOver}
+                    onDragEnter={(e) => handleDragEnter(e, dayIndex, timeSlot)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, day, timeSlot)}
                   >
                     {timeIndex === 0 && (
                       <div
@@ -828,14 +906,24 @@ const WeekView = ({
                                 className={`
                                 flex ${
                                   isShort ? 'items-center' : 'items-start'
-                                } gap-0.5 cursor-pointer
+                                } gap-0.5 cursor-grab active:cursor-grabbing
                                 ${
                                   colorClasses.darkBg
                                 } transition-all rounded-lg overflow-hidden ${
                                   isShort ? 'text-[10px]' : 'text-xs'
                                 }
                                 ${isCancelled ? 'opacity-60' : ''}
+                                ${
+                                  draggedAppointment?.id === appointment.id
+                                    ? 'ring-2 ring-blue-500 ring-offset-1'
+                                    : ''
+                                }
                               `}
+                                draggable
+                                onDragStart={(e) =>
+                                  handleDragStart(e, appointment)
+                                }
+                                onDragEnd={handleDragEnd}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   onAppointmentClick?.(appointment);

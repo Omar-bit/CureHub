@@ -14,7 +14,7 @@ import {
   ptoAPI,
   timeplanAPI,
 } from '../services/api';
-import { showError } from '../lib/toast';
+import { showError, showSuccess } from '../lib/toast';
 import { Loader2 } from 'lucide-react';
 import { ConfirmDialog } from './ui/confirm-dialog';
 import { format } from 'date-fns';
@@ -189,6 +189,24 @@ const CalendarSection = forwardRef(
       onDateChange?.(targetDate);
     };
 
+    const handleAppointmentDrop = async (
+      appointment,
+      newStartTime,
+      newEndTime
+    ) => {
+      try {
+        await appointmentAPI.update(appointment.id, {
+          startTime: newStartTime.toISOString(),
+          endTime: newEndTime.toISOString(),
+        });
+        await loadAppointments({ showLoader: false });
+        showSuccess('Rendez-vous déplacé avec succès');
+      } catch (error) {
+        console.error('Error updating appointment:', error);
+        showError('Erreur lors du déplacement du rendez-vous');
+      }
+    };
+
     const findBlockingImprevuForDateTime = (dateTime) => {
       if (!imprevus || imprevus.length === 0) {
         return null;
@@ -258,7 +276,7 @@ const CalendarSection = forwardRef(
             startDate: data.startDate,
             endDate: data.endDate,
             reason: data.label, // Map label to reason for display
-            type: 'PTO' // marker
+            type: 'PTO', // marker
           });
         }
         setForceDialogOpen(true);
@@ -325,6 +343,7 @@ const CalendarSection = forwardRef(
             timeplans={timeplans}
             onAppointmentClick={onAppointmentClick}
             onTimeSlotClick={handleTimeSlotClickWithImprevuCheck}
+            onAppointmentDrop={handleAppointmentDrop}
             workingHours={{
               start: preferences.startHour,
               end: preferences.endHour,
@@ -343,9 +362,11 @@ const CalendarSection = forwardRef(
           title='Forcer un rendez-vous sur un jour fermé ?'
           description={
             pendingImprevu
-              ? `Ce jour est déclaré comme non travaillé en raison de ${pendingImprevu.type === 'PTO' ? 'congés' : "l'imprévu"} « ${getImprevuLabel(
-                pendingImprevu
-              )} ». Voulez-vous vraiment forcer la création de ce rendez-vous à cette date ?`
+              ? `Ce jour est déclaré comme non travaillé en raison de ${
+                  pendingImprevu.type === 'PTO' ? 'congés' : "l'imprévu"
+                } « ${getImprevuLabel(
+                  pendingImprevu
+                )} ». Voulez-vous vraiment forcer la création de ce rendez-vous à cette date ?`
               : 'Ce jour est déclaré comme non travaillé en raison d’un imprévu. Voulez-vous vraiment forcer la création de ce rendez-vous à cette date ?'
           }
           confirmText='Forcer le rendez-vous'
