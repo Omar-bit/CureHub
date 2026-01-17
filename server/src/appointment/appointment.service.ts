@@ -708,11 +708,12 @@ export class AppointmentService {
 
         // Build a simple confirmation message
         const start = new Date(updatedAppointment.startTime);
-        const appointmentTime = `${start.toLocaleDateString()} ${start.toLocaleTimeString(
-          [],
+        const appointmentTime = `${start.toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' })} ${start.toLocaleTimeString(
+          'fr-FR',
           {
             hour: '2-digit',
             minute: '2-digit',
+            timeZone: 'Europe/Paris',
           },
         )}`;
 
@@ -1547,6 +1548,7 @@ export class AppointmentService {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
+        timeZone: 'Europe/Paris',
       },
     );
 
@@ -1555,6 +1557,7 @@ export class AppointmentService {
       {
         hour: '2-digit',
         minute: '2-digit',
+        timeZone: 'Europe/Paris',
       },
     );
 

@@ -41,6 +41,7 @@ export class AppointmentNotificationService
         where: {
           notifyRappel: true,
           rappelSentAt: null,
+          isDeleted: false, // Don't send reminders for deleted appointments
           status: {
             in: [AppointmentStatus.SCHEDULED, AppointmentStatus.CONFIRMED],
           },
@@ -66,11 +67,12 @@ export class AppointmentNotificationService
         }
 
         const start = new Date(apt.startTime);
-        const appointmentTime = `${start.toLocaleDateString()} ${start.toLocaleTimeString(
-          [],
+        const appointmentTime = `${start.toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' })} ${start.toLocaleTimeString(
+          'fr-FR',
           {
             hour: '2-digit',
             minute: '2-digit',
+            timeZone: 'Europe/Paris',
           },
         )}`;
 
