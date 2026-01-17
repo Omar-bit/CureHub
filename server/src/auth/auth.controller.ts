@@ -58,7 +58,7 @@ export class AuthController {
     response.cookie('access_token', result.access_token, {
       httpOnly: true,
       secure: isProduction, // Only send over HTTPS in production
-      sameSite: isProduction ? 'none' : 'lax', // 'none' required for cross-site cookies in production
+      sameSite: 'none', // isProduction ? 'none' : 'lax', // 'none' required for cross-site cookies in production
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       path: '/', // Ensure cookie is available for all paths
     });
@@ -76,7 +76,7 @@ export class AuthController {
     response.clearCookie('access_token', {
       httpOnly: true,
       secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
+      sameSite: 'none', //isProduction ? 'none' : 'lax',
       path: '/',
     });
     return { message: 'Logged out successfully' };
@@ -158,7 +158,7 @@ export class AuthController {
     response.cookie('patient_token', result.access_token, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
+      sameSite: 'none', // isProduction ? 'none' : 'lax',
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       path: '/',
     });
@@ -186,7 +186,7 @@ export class AuthController {
     response.cookie('patient_token', result.access_token, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
+      sameSite: 'none', // isProduction ? 'none' : 'lax',
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       path: '/',
     });
@@ -202,7 +202,7 @@ export class AuthController {
     response.clearCookie('patient_token', {
       httpOnly: true,
       secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
+      sameSite: 'none', //isProduction ? 'none' : 'lax',
       path: '/',
     });
 
