@@ -202,6 +202,7 @@ export class AuthController {
     response.clearCookie('patient_token', {
       httpOnly: true,
       secure: isProduction,
+      //!todo remove the comment later
       sameSite: 'none', //isProduction ? 'none' : 'lax',
       path: '/',
     });
